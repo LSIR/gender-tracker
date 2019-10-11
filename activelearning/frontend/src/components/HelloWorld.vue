@@ -87,6 +87,7 @@
         <h2 class="headline font-weight-bold mb-3">API call example</h2>
 
         <v-layout justify-center>
+          <a>
             {{ hello }}
           </a>
         </v-layout>

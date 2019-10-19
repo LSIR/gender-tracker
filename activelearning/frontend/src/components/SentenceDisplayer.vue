@@ -7,7 +7,7 @@
 
       <v-flex mb-4>
         <h1 class="display-2 font-weight-bold mb-3">
-          This displays a sentence!
+          Active Learning for the Gender Tracker Project
         </h1>
         <v-layout justify-center>
           <div>
@@ -16,7 +16,7 @@
         </v-layout>
         <v-layout justify-center>
           <div>
-            <button v-on:click="loadSentence">Load</button>
+            <v-btn class="ma-2" outlined color="indigo" v-on:click.native=loadSentence>Load Sentence</v-btn>
           </div>
         </v-layout>
       </v-flex>
@@ -31,16 +31,16 @@ import $ from 'jquery'
   
 export default {
   data: () => ({
-    sentence: 'No sentence was loaded yet.'
+    sentence: 'No sentence has been loaded yet.'
   }),
   methods: {
     loadSentence: function () {
       var that = this;
       $.ajax({
           type: 'GET',
-          url: 'http://localhost:8000/api/hello',
+          url: 'http://localhost:8000/api/loadSentence',
           success: function (data) {
-            that.sentence = data;
+            that.sentence = data['sentence'];
           }
       })
     }

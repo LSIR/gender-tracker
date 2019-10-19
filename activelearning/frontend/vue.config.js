@@ -26,5 +26,9 @@ module.exports = {
             .watchOptions({poll: 1000})
             .https(false)
             .headers({"Access-Control-Allow-Origin": ["\*"]})
-            }
-        };
+    },
+    // Written by Niels: Proxy setup for development
+    devServer: {
+        proxy: 'http://127.0.0.1:8000'
+    },
+};

@@ -157,7 +157,7 @@ export default {
     var that = this;
       $.ajax({
           type: 'GET',
-          url: '/api/hello',
+          url: 'http://127.0.0.1:8000/api/hello',
           success: function (data) {
               that.hello = data;
           }

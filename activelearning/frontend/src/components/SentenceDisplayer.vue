@@ -14,6 +14,11 @@
               {{sentence}}
           </div>
         </v-layout>
+        <v-layout justify-center>
+          <div>
+            <button v-on:click="loadSentence">Load</button>
+          </div>
+        </v-layout>
       </v-flex>
 
 
@@ -26,17 +31,19 @@ import $ from 'jquery'
   
 export default {
   data: () => ({
-    sentence: '"Apples are delicious!", said Marc.'
+    sentence: 'No sentence was loaded yet.'
   }),
-  mounted: function () {
-    var that = this;
+  methods: {
+    loadSentence: function () {
+      var that = this;
       $.ajax({
           type: 'GET',
-          url: '/api/hello',
+          url: 'http://localhost:8000/api/hello',
           success: function (data) {
-              that.sentence = data;
+            that.sentence = data;
           }
       })
-  }
+    }
+  },
 };
 </script>

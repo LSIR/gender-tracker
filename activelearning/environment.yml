@@ -24,5 +24,6 @@ dependencies:
   - zlib=1.2.11=h1de35cc_3
   - pip:
     - django-webpack-loader==0.6.0
+    - django-cors-headers==3.1.1
 prefix: /miniconda3/envs/gendertracker
 

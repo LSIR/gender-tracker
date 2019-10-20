@@ -29,8 +29,9 @@ def parse_xml(xml_file):
     """
     root = xml_file.getroot()
     full_text = get_element_text(root)
-    returned_text = full_text[:40] + '...'
-    return {'sentence': returned_text}
+    returned_text = full_text[:45] +  ' ...'
+    split_words = returned_text.split(' ')
+    return {'sentence': split_words}
 
 def get_element_text(element):
     """

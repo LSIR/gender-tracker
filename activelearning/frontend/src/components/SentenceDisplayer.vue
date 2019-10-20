@@ -11,7 +11,18 @@
         </h1>
         <v-layout justify-center>
           <div>
-              {{sentence}}
+            <span v-for="(word, i) in sentence" :key="i">
+              <v-btn-toggle
+                v-model="toggle_exclusive"
+                multiple
+              >
+                <v-btn
+                  outlined color="indigo"
+                >
+                  {{word}}
+                </v-btn>
+              </v-btn-toggle>
+            </span>
           </div>
         </v-layout>
         <v-layout justify-center>
@@ -31,7 +42,7 @@ import $ from 'jquery'
   
 export default {
   data: () => ({
-    sentence: 'No sentence has been loaded yet.'
+    sentence: ['No sentence has been loaded yet.']
   }),
   methods: {
     loadSentence: function () {

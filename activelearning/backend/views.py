@@ -1,13 +1,26 @@
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
+from django.views.decorators.csrf import csrf_exempt
 import xml.etree.ElementTree as ET
 
 def hello(request):
     return JsonResponse({'hello': 'world'})
 
+
 def loadSentence(request):
     xml_article = load_article()
     response = parse_xml(xml_article)
     return JsonResponse(response)
+
+
+@csrf_exempt 
+def submitTags(request):
+    try:
+        tags = request.POST["tags"]
+    except KeyError:
+        tags = "error"
+    print(tags)
+    return HttpResponse('Success')
+
 
 # As I'm not sure where to put helper functions yet (my guess is that I'll write a helper.py file),
 # I'll write them in here for now

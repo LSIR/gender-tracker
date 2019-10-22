@@ -31,6 +31,7 @@
         <v-layout justify-center>
           <div>
             <v-btn class="ma-2" outlined v-on:click.native=loadSentence>Load Sentence</v-btn>
+            <v-btn class="ma-2" outlined v-on:click.native=submitTags>Submit Answers</v-btn>
           </div>
         </v-layout>
         <v-layout justify-center>
@@ -95,6 +96,19 @@ export default {
             that.sentence = data['sentence'];
             that.sentence_tags = new Array(that.sentence.length)
             that.sentence_tags.fill(0)
+          }
+      })
+    },
+    submitTags: function () {
+      var that = this;
+      $.ajax({
+          type: 'POST',
+          url: 'http://localhost:8000/api/submitTags/',
+          data: JSON.stringify({ tags: that.sentence_tags }),
+          contentType: "application/json; charset=utf-8",
+          dataType: "json",
+          success: function (data) {
+            alert(data)
           }
       })
     },

@@ -139,4 +139,12 @@ WEBPACK_LOADER = {
 # Added by Niels to allow different orgins for the backend and the frontend
 # https://github.com/adamchainz/django-cors-headers
 
-CORS_ORIGIN_ALLOW_ALL = True
+CORS_ORIGIN_WHITELIST = [
+    "http://localhost:8080",
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:8080",
+]
+
+CORS_ALLOW_CREDENTIALS = True

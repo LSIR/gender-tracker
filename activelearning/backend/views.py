@@ -1,6 +1,7 @@
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 import xml.etree.ElementTree as ET
+import json
 
 def hello(request):
     return JsonResponse({'hello': 'world'})
@@ -14,12 +15,17 @@ def loadSentence(request):
 
 @csrf_exempt 
 def submitTags(request):
-    try:
-        tags = request.POST["tags"]
-    except KeyError:
-        tags = "error"
-    print(tags)
-    return HttpResponse('Success')
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            tags = data['tags']
+            print(tags)
+            return HttpResponse('Success.')
+        except KeyError:
+            tags = "error"
+            print(tags)
+            return HttpResponse('Failiure. JSON parse failed.')
+    return HttpResponse('Failiure. Not a POST request.')
 
 
 # As I'm not sure where to put helper functions yet (my guess is that I'll write a helper.py file),

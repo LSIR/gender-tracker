@@ -3,6 +3,11 @@ https://medium.com/@rodrigosmaniotto/integrating-django-and-vuejs-with-vue-cli-3
 
 npm and conda need to be installed.
 
+PostgreSQL was setup by foolowing parts of this tutorial:
+https://medium.com/agatha-codes/painless-postgresql-django-d4f03364989
+
+PostgreSQL needs to be installed
+
 To setup your conda environment run:
 
 ```conda env create -f environment.yml -n gender-tracker```
@@ -10,6 +15,19 @@ To setup your conda environment run:
 Activate it:
 
 ```conda activate gender-tracker```
+
+Create a PostgreSQL database
+
+Create a .env file in the activelearning folder
+
+```touch .env```
+
+Add 3 lines to the .env file, containing the name of your database, your username and your password
+
+    DB_NAME=name_of_your_db
+    DB_USER=your_username
+    DB_password=your_password
+
 
 Create the database tables:
 

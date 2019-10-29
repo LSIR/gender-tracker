@@ -1,5 +1,6 @@
 import xml.etree.ElementTree as ET
 
+
 def load_article():
     """
     :return: an article whose quotes we want to label.
@@ -9,6 +10,7 @@ def load_article():
     """
     article_path = '../data/article01.xml'
     return ET.parse(article_path)
+
 
 def parse_xml(xml_file):
     """
@@ -20,6 +22,7 @@ def parse_xml(xml_file):
     returned_text = full_text[:45] +  ' ...'
     split_words = returned_text.split(' ')
     return {'sentence': split_words}
+
 
 def get_element_text(element):
     """

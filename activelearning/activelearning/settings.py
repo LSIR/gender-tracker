@@ -46,6 +46,8 @@ INSTALLED_APPS = [
     'webpack_loader',
     # Added by Niels. CORS Headers
     'corsheaders',
+    # Added by Niels. Server
+    'backend',
 ]
 
 MIDDLEWARE = [

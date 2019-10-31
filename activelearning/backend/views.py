@@ -3,12 +3,33 @@ from django.views.decorators.csrf import csrf_exempt
 from .helpers import load_article, parse_xml
 import json
 
+# The life span of a cookie, in seconds
+COOKIE_LIFE_SPAN = 1 * 60 * 60
+
 def hello(request):
     return JsonResponse({'hello': 'world'})
 
 
 def loadSentence(request):
-    xml_article = load_article()
+    # Get user session id. If he has none, set one.
+    session = request.session
+    session.set_test_cookie()
+    print(session.keys())
+    # Clears cookies that have expired
+    session.clear_expired()
+    # If the user already doesn't have a session yet,
+    # set a cookie that expires COOKIE_LIFE_SPAN hour later
+    print(session.keys())
+    if 'user' not in session:
+        session['user'] = '1'
+        session.set_expiry(COOKIE_LIFE_SPAN)
+        print('Cookie set. Life Span = 1 hour = 3600 seconds')
+    else:
+        print('Returning user:', session['user'])
+        print('Time left =', session.get_expiry_age())
+    
+    print('Session keys: ', session.keys())
+    xml_article = load_article('../data/article01.xml')
     response = parse_xml(xml_article)
     return JsonResponse(response)
 
@@ -17,6 +38,7 @@ def loadSentence(request):
 def submitTags(request):
     if request.method == 'POST':
         try:
+            # Get user tags
             data = json.loads(request.body)
             tags = data['tags']
             print(tags)

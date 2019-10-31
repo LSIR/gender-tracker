@@ -1,14 +1,17 @@
 import xml.etree.ElementTree as ET
 
 
-def load_article():
+##############################################################################################
+# Loading and parsing articles
+##############################################################################################
+
+def load_article(article_path):
     """
     :return: an article whose quotes we want to label.
     Right now: loads the only xml-formatted article I have, and returns it as an ElementTree.
     Future: Probably load a random article (or a carefully selected one), parse it and return
     it as an ElementTree. How we choose each article to parse is the important part.
     """
-    article_path = '../data/article01.xml'
     return ET.parse(article_path)
 
 
@@ -39,3 +42,11 @@ def get_element_text(element):
     text = ''.join(ls).replace('\n', '')
     text = ' '.join(text.split())
     return text
+
+##############################################################################################
+# Adding articles to the database
+##############################################################################################
+
+
+def add_article(article_path):
+    return 0

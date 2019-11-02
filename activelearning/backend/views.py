@@ -6,6 +6,8 @@ import json
 # The life span of a cookie, in seconds
 COOKIE_LIFE_SPAN = 1 * 60 * 60
 
+# Default session ID (until the actual cookies are working)
+SESSION_ID = 1111
 
 def loadSentence(request):
     """

@@ -1,5 +1,5 @@
 import xml.etree.ElementTree as ET
-from models import Article, UserLabel
+from backend.models import Article, UserLabel
 
 ##############################################################################################
 # Constants
@@ -34,7 +34,7 @@ def parse_xml(xml_file):
 
 
 ##############################################################################################
-# Database Helpers
+# Save to Database
 ##############################################################################################
 
 
@@ -164,6 +164,7 @@ def add_article_to_DB(url, nlp):
     # Process the file
     article_tokens, p_indices, s_indices, people_indices, in_quotes = process_article(article_text, nlp)
     label_counts = len(article_tokens) * [0]
+    confidence = len(s_indices) * [0]
     a = Article(
         text=article_text,
         authors={'authors': people_indices},
@@ -171,7 +172,8 @@ def add_article_to_DB(url, nlp):
         paragraphs={'paragraphs': p_indices},
         sentences={'sentences': s_indices},
         label_counts={'label_counts': label_counts},
-        in_quotes={'in_quotes': in_quotes}
+        in_quotes={'in_quotes': in_quotes},
+        confidence={'confidence': confidence}
     )
     a.save()
 
@@ -193,5 +195,20 @@ def add_user_labels_to_DB(article_id, session_id, labels, sentence_index, author
         sentence_index={'sentence_index': sentence_index},
         author_index={'author_index': author_index}
     )
+    labels.save()
+
+
+##############################################################################################
+# Import from Database
+##############################################################################################
+
+def load_hardest_articles(n):
+    """
+    Loads the hardest articles to classify in the database, in terms of the confidence in the
+    answers.
+
+    :param n: int The number of articles to load from the database
+    :return: list(int) The n hardest article IDs.  
+    """
     return 0
 

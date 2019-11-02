@@ -22,7 +22,11 @@ class Article(models.Model):
     label_counts = JSONField()
     # List of boolean values {0, 1} representing if a token is in between quotes or not
     in_quotes = JSONField()
-
+    # List of values, where value j is in (0, 1) representing the confidence of the current
+    # ML models predictions in deciding if sentence j is a quote or not. 1 means absolute
+    # confidence (the sentence has been labeled), while 0 means completely unsure.
+    confidence = JSONField()
+    
     def __str__(self):
         return self.name
 

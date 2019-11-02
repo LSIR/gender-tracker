@@ -173,7 +173,10 @@ def add_article_to_DB(url, nlp):
         sentences={'sentences': s_indices},
         label_counts={'label_counts': label_counts},
         in_quotes={'in_quotes': in_quotes},
-        confidence={'confidence': confidence}
+        confidence={
+            'confidence': confidence,
+            'min_confidence': 0,
+        }
     )
     a.save()
 
@@ -202,6 +205,7 @@ def add_user_labels_to_DB(article_id, session_id, labels, sentence_index, author
 # Import from Database
 ##############################################################################################
 
+
 def load_hardest_articles(n):
     """
     Loads the hardest articles to classify in the database, in terms of the confidence in the
@@ -210,5 +214,7 @@ def load_hardest_articles(n):
     :param n: int The number of articles to load from the database
     :return: list(int) The n hardest article IDs.  
     """
+    ### Not done
+    worst_confidence = Article.objects.order_by('confidence__min_confidence')[:n]
     return 0
 

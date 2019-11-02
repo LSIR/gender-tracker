@@ -1,5 +1,5 @@
 import xml.etree.ElementTree as ET
-
+from models import Article, UserLabel
 
 ##############################################################################################
 # Constants
@@ -99,19 +99,19 @@ def extract_people(doc, start_index):
     return people
 
 
-def process_article(url, nlp):
+def process_article(article_text, nlp):
     """
     Processes an article stored as an XML file, and returns all the information necessary 
     to store the article in the database.
 
-    :param url: string The URL of the stored XML file
+    :param article_text: string The article in XML format stored as a string
     :param nlp: spacy.Language The language model used to tokenize the text
     :return: (list(spacy.Tokens), list(int), list(int), list((int, int)), list(int))
         All the tokens in the article,
         the indices of all tokens starting a paragraph, the indices of all tokens starting a sentence, all people
         found as Named Entities, boolean values representing if each token is in between quotes.
     """
-    root = ET.parse(url).getroot()
+    root = ET.fromstring(article_text)
     # Extracts the article as a list of paragraphs
     paragraphs = extract_paragraphs(root)
     paragraphs = [nlp(p) for p in paragraphs]
@@ -148,5 +148,50 @@ def process_article(url, nlp):
     return article_tokens, paragraph_indices, sentence_indices, people_indices, in_quotes
 
 
-def add_labels(article_id, session_id, ):
+def add_article_to_DB(url, nlp):
+    """
+    Loads an article stored as an XML file, and adds it to the database
+    afterhaving processed it.
+
+    :param url: string The URL of the stored XML file
+    :param nlp: spacy.Language The language model used to tokenize the text
+    :return: None
+    """
+    # Loading an xml file as a string
+    with open(url, 'r') as file:
+        article_text = file.read()
+    
+    # Process the file
+    article_tokens, p_indices, s_indices, people_indices, in_quotes = process_article(article_text, nlp)
+    label_counts = len(article_tokens) * [0]
+    a = Article(
+        text=article_text,
+        authors={'authors': people_indices},
+        tokens={'tokens': article_tokens},
+        paragraphs={'paragraphs': p_indices},
+        sentences={'sentences': s_indices},
+        label_counts={'label_counts': label_counts},
+        in_quotes={'in_quotes': in_quotes}
+    )
+    a.save()
+
+
+def add_user_labels_to_DB(article_id, session_id, labels, sentence_index, author_index):
+    """
+    Adds a new set of user labels to the database for a given sentence.
+
+    :param article_id: int The key of the article that was annotated
+    :param session_id: int The users session id
+    :param labels: list(int) The labels the user created
+    :param sentence_index: int The index of the token at which this sentence starts
+    :param author_index: list(int) The indices of the tokens that are authors for this sentence
+    """
+    labels = UserLabel(
+        article=article_id,
+        session_id=session_id,
+        labels={'labels': labels},
+        sentence_index={'sentence_index': sentence_index},
+        author_index={'author_index': author_index}
+    )
     return 0
+

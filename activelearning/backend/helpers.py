@@ -226,9 +226,11 @@ def load_hardest_articles(n):
     answers.
 
     :param n: int The number of articles to load from the database
-    :return: list(int) The n hardest article IDs.  
+    :return: list(Article) The n hardest articles to classify.
     """
-    # Not done
-    worst_confidence = Article.objects.order_by('confidence__min_confidence')[:n]
-    return 0
+    return Article.objects.all().order_by('confidence__min_confidence')[:n]
 
+
+##############################################################################################
+# User Requests
+##############################################################################################

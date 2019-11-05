@@ -28,7 +28,7 @@ class Article(models.Model):
     confidence = JSONField()
     
     def __str__(self):
-        return self.name
+        return f'Article id: {self.id}'
 
 
 class UserLabel(models.Model):
@@ -48,5 +48,6 @@ class UserLabel(models.Model):
     author_index = JSONField()
 
     def __str__(self):
-        return self.name
+        return f'Label id: {self.id}, Session id: {self.session_id}, {self.article}, Sentence Number: ' \
+               f'{self.sentence_index}'
 

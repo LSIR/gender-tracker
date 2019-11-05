@@ -11,6 +11,7 @@ QUOTES = ["«", "»", "“", "”", "„", "‹", "›", "‟", "〝", "〞"]
 # Loading and parsing articles
 ##############################################################################################
 
+
 def load_article(article_path):
     """
     :return: an article whose quotes we want to label.
@@ -148,14 +149,14 @@ def process_article(article_text, nlp):
     return article_tokens, paragraph_indices, sentence_indices, people_indices, in_quotes
 
 
-def add_article_to_DB(url, nlp):
+def add_article_to_db(url, nlp):
     """
     Loads an article stored as an XML file, and adds it to the database
     afterhaving processed it.
 
     :param url: string The URL of the stored XML file
     :param nlp: spacy.Language The language model used to tokenize the text
-    :return: None
+    :return: Article The article created
     """
     # Loading an xml file as a string
     with open(url, 'r') as file:
@@ -165,7 +166,7 @@ def add_article_to_DB(url, nlp):
     article_tokens, p_indices, s_indices, people_indices, in_quotes = process_article(article_text, nlp)
     label_counts = len(article_tokens) * [0]
     confidence = len(s_indices) * [0]
-    a = Article(
+    return Article.objects.create(
         text=article_text,
         authors={'authors': people_indices},
         tokens={'tokens': article_tokens},
@@ -178,10 +179,9 @@ def add_article_to_DB(url, nlp):
             'min_confidence': 0,
         }
     )
-    a.save()
 
 
-def add_user_labels_to_DB(article_id, session_id, labels, sentence_index, author_index):
+def add_user_labels_to_db(article_id, session_id, labels, sentence_index, author_index):
     """
     Adds a new set of user labels to the database for a given sentence.
 
@@ -190,15 +190,29 @@ def add_user_labels_to_DB(article_id, session_id, labels, sentence_index, author
     :param labels: list(int) The labels the user created
     :param sentence_index: int The index of the token at which this sentence starts
     :param author_index: list(int) The indices of the tokens that are authors for this sentence
+    :return: UserLabel The UserLabel created
     """
-    labels = UserLabel(
-        article=article_id,
+    # Get the article to which these labels belong
+    article = Article.objects.get(id=article_id)
+
+    # Increase the label count for the given tokens in the Article database
+    label_counts = article.label_counts['label_counts']
+    sentence_starts = article.sentences['sentences']
+    start_token = sentence_starts[sentence_index]
+    end_token = sentence_starts[sentence_index + 1]
+    for i in range(start_token, end_token):
+        label_counts[i] += 1
+    article.label_counts = {'label_counts': label_counts}
+    article.save()
+
+    # Create the user labels and return them
+    return UserLabel.objects.create(
+        article=article,
         session_id=session_id,
         labels={'labels': labels},
-        sentence_index={'sentence_index': sentence_index},
+        sentence_index=sentence_index,
         author_index={'author_index': author_index}
     )
-    labels.save()
 
 
 ##############################################################################################
@@ -214,7 +228,7 @@ def load_hardest_articles(n):
     :param n: int The number of articles to load from the database
     :return: list(int) The n hardest article IDs.  
     """
-    ### Not done
+    # Not done
     worst_confidence = Article.objects.order_by('confidence__min_confidence')[:n]
     return 0
 

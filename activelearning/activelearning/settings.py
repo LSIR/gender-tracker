@@ -160,3 +160,9 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 CORS_ALLOW_CREDENTIALS = True
+
+# So that testing prints to the console
+
+NOSE_ARGS = ['--nocapture',
+             '--nologcapture',]
+

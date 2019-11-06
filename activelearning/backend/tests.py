@@ -1,6 +1,6 @@
 from django.test import TestCase
 from backend.models import Article, UserLabel
-from backend.helpers import add_article_to_db, add_user_labels_to_db, load_hardest_articles
+from backend.helpers import add_article_to_db, add_user_labels_to_db, load_hardest_articles, request_labelling_task
 import spacy
 import random
 
@@ -27,23 +27,74 @@ class ArticleTestCase(TestCase):
         author_index = [65, 66, 68]
         add_user_labels_to_db(article_id, session_id, labels, sentence_index, author_index)
 
+        # Add a user label for article 1
+        article_id = a1.id
+        session_id = 1234
+        sentence_index = 0
+        add_user_labels_to_db(article_id, session_id, labels, sentence_index, author_index)
+
+        # Add a user label for article 1
+        article_id = a1.id
+        session_id = 1234
+        sentence_index = 1
+        add_user_labels_to_db(article_id, session_id, labels, sentence_index, author_index)
+
+        # Add a user label for article 2
+        article_id = a2.id
+        session_id = 1234
+        sentence_index = 0
+        add_user_labels_to_db(article_id, session_id, labels, sentence_index, author_index)
+
+        # Add a user label for article 2
+        article_id = a2.id
+        session_id = 1234
+        sentence_index = 9
+        add_user_labels_to_db(article_id, session_id, labels, sentence_index, author_index)
+
+        # Add a user label for article 3
+        article_id = a3.id
+        session_id = 1234
+        sentence_index = 0
+        add_user_labels_to_db(article_id, session_id, labels, sentence_index, author_index)
+
+        # Add a user label for article 3
+        article_id = a3.id
+        session_id = 1234
+        sentence_index = 1
+        add_user_labels_to_db(article_id, session_id, labels, sentence_index, author_index)
+
+        # Add a user label for article 4
+        article_id = a4.id
+        session_id = 1234
+        sentence_index = 0
+        add_user_labels_to_db(article_id, session_id, labels, sentence_index, author_index)
+
+        # Add a user label for article 4
+        article_id = a4.id
+        session_id = 1234
+        sentence_index = 9
+        add_user_labels_to_db(article_id, session_id, labels, sentence_index, author_index)
+
+
     def test_articles_correctly_stored(self):
+        print('\n')
         """Checks that the Articles are correctly added to the database"""
         articles = Article.objects.all().values('id', 'paragraphs')
         for a in articles:
             print('Articles: ', a)
 
     def test_labels_correctly_stored(self):
+        print('\n')
         """Checks that the Labels are correctly added to the database"""
         labels = UserLabel.objects.all()
         for label in labels:
             article = label.article
             label_counts = article.label_counts['label_counts']
-            # "border" printed as well
             print('Labels: ', label)
-            print(label_counts[99 - 1:129 + 1])
+            print(label_counts[0:11])
 
     def test_load_hardest_articles(self):
+        print('\n')
         """Checks that the method to extract the hardest articles to predict works"""
         # Generate new confidence numbers, between 0 and 10000
         # (It will be between 0 and 100 in reality but more variance is needed here)
@@ -60,3 +111,10 @@ class ArticleTestCase(TestCase):
         for a in load_hardest_articles(2):
             min_conf = a.confidence['min_confidence']
             print(f'Article: {a.id}, min confidence = {min_conf}')
+
+    def test_request_labelling_task(self):
+        """Checks that the method to extract the hardest articles to predict works"""
+        # Generate new confidence numbers, between 0 and 10000
+        # (It will be between 0 and 100 in reality but more variance is needed here)
+        print('\n')
+        print(request_labelling_task(1234))

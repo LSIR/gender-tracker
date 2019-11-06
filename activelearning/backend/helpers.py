@@ -7,6 +7,12 @@ from backend.models import Article, UserLabel
 
 QUOTES = ["«", "»", "“", "”", "„", "‹", "›", "‟", "〝", "〞"]
 
+COUNT_THRESHOLD = 3
+
+ARTICLE_LOADS = 5
+
+CONFIDENCE_THRESHOLD = 80
+
 ##############################################################################################
 # Loading and parsing articles
 ##############################################################################################
@@ -29,7 +35,7 @@ def parse_xml(xml_file):
     """
     root = xml_file.getroot()
     full_text = get_element_text(root)
-    returned_text = full_text[:45] +  ' ...'
+    returned_text = full_text[:45] + ' ...'
     split_words = returned_text.split(' ')
     return {'sentence': split_words}
 
@@ -119,7 +125,7 @@ def process_article(article_text, nlp):
 
     # The full text as a list of tokens
     article_tokens = []
-    # A list of indices of tokens at which paragraphs begin
+    # A list of indices of sentences at which paragraphs end
     paragraph_indices = []
     # A list of indices of tokens at which sentences begin
     sentence_indices = []
@@ -130,13 +136,14 @@ def process_article(article_text, nlp):
     in_quotes_tagger = 0
     in_quotes = []
     
-    # The index at which the previous sentence ended
-    prev_index = 0
+    # The token index at which the previous sentence ended
+    prev_sent_index = 0
+    # The sentence index at which the previous paragraph ended
+    prev_par_index = 0
     for p in paragraphs:
-        people_indices += extract_people(p, prev_index)
-        paragraph_indices.append(prev_index)
+        people_indices += extract_people(p, prev_sent_index)
         for s in p.sents:
-            sentence_indices.append(prev_index)
+            sentence_indices.append(prev_sent_index)
             for token in s:
                 if token.text == '"' and in_quotes_tagger == 0:
                     in_quotes_tagger = 1
@@ -144,7 +151,9 @@ def process_article(article_text, nlp):
                     in_quotes_tagger = 0
                 in_quotes.append(in_quotes_tagger)
                 article_tokens.append(token.text)
-            prev_index += len(s)
+            prev_sent_index += len(s)
+            prev_par_index += 1
+        paragraph_indices.append(prev_par_index)
     
     return article_tokens, paragraph_indices, sentence_indices, people_indices, in_quotes
 
@@ -164,7 +173,7 @@ def add_article_to_db(url, nlp):
     
     # Process the file
     article_tokens, p_indices, s_indices, people_indices, in_quotes = process_article(article_text, nlp)
-    label_counts = len(article_tokens) * [0]
+    label_counts = len(s_indices) * [0]
     confidence = len(s_indices) * [0]
     return Article.objects.create(
         text=article_text,
@@ -197,11 +206,7 @@ def add_user_labels_to_db(article_id, session_id, labels, sentence_index, author
 
     # Increase the label count for the given tokens in the Article database
     label_counts = article.label_counts['label_counts']
-    sentence_starts = article.sentences['sentences']
-    start_token = sentence_starts[sentence_index]
-    end_token = sentence_starts[sentence_index + 1]
-    for i in range(start_token, end_token):
-        label_counts[i] += 1
+    label_counts[sentence_index] += 1
     article.label_counts = {'label_counts': label_counts}
     article.save()
 
@@ -232,5 +237,35 @@ def load_hardest_articles(n):
 
 
 ##############################################################################################
-# User Requests
+# Labelling tasks
 ##############################################################################################
+
+
+def request_labelling_task(session_id):
+    """
+    Finds a sentence or paragraph that needs to be labelled, and that doesn't already have a label with the given
+    session_id. If the list of sentence_indices is empty, then the whole paragraph needs to be labelled. Otherwise,
+    the sentence(s) need to be labelled.
+
+    :param session_id: int The user's session id
+    :return: (int, int, list(int)) The article_id, paragraph_index and sentence_indices of the labelling task
+    """
+    session_labels = UserLabel.objects.filter(session_id=session_id)
+    for article in load_hardest_articles(ARTICLE_LOADS):
+        annotated_sentences = [user_label.sentence_index for user_label in session_labels.filter(article=article)]
+        label_counts = article.label_counts['label_counts']
+        confidences = article.confidence['confidence']
+        sentence_starts = article.sentences['sentences']
+        prev_par_end = 0
+        for (i, p) in enumerate(article.paragraphs['paragraphs']):
+            min_conf = min([conf for conf in confidences[prev_par_end:p+1]])
+            # For high enough confidences, annotate the whole paragraph
+            if min_conf >= CONFIDENCE_THRESHOLD\
+                    and label_counts[prev_par_end] < COUNT_THRESHOLD\
+                    and prev_par_end not in annotated_sentences:
+                return article.id, i, []
+            # Return a single sentence
+            for (j, c) in enumerate(label_counts):
+                if c < COUNT_THRESHOLD and j not in annotated_sentences:
+                    return article.id, i, [j]
+    return None

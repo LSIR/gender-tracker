@@ -14,11 +14,11 @@ class Article(models.Model):
     authors = JSONField()
     # Article text surrounded by a list of tokens
     tokens = JSONField()
-    # List of all token indices that are the start of paragraphs
+    # List of all sentence indices that are the ends of paragraphs
     paragraphs = JSONField()
     # List of all token indices that are the start of sentences
     sentences = JSONField()
-    # List of the number of user labels for each token 
+    # List of the number of user labels for each sentence
     label_counts = JSONField()
     # List of boolean values {0, 1} representing if a token is in between quotes or not
     in_quotes = JSONField()
@@ -50,4 +50,3 @@ class UserLabel(models.Model):
     def __str__(self):
         return f'Label id: {self.id}, Session id: {self.session_id}, {self.article}, Sentence Number: ' \
                f'{self.sentence_index}'
-

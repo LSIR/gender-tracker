@@ -17,64 +17,29 @@ class ArticleTestCase(TestCase):
         a3 = add_article_to_db('../data/article01clean.xml', nlp)
         a4 = add_article_to_db('../data/article02clean.xml', nlp)
 
-        # Add a user label for article 1
-        article_id = a1.id
+        # Default values
         session_id = 1234
         labels = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        # 8th sentence in the article
-        sentence_index = 7
-        # 2th paragraph in the article
-        author_index = [65, 66, 68]
-        add_user_labels_to_db(article_id, session_id, labels, sentence_index, author_index)
 
-        # Add a user label for article 1
-        article_id = a1.id
-        session_id = 1234
-        sentence_index = 0
-        add_user_labels_to_db(article_id, session_id, labels, sentence_index, author_index)
+        # Add a user label for article 1: Only one that actually makes sense
+        add_user_labels_to_db(a1.id, session_id, labels, 7, [66])
 
-        # Add a user label for article 1
-        article_id = a1.id
-        session_id = 1234
-        sentence_index = 1
-        add_user_labels_to_db(article_id, session_id, labels, sentence_index, author_index)
+        # Add other user labels
+        add_user_labels_to_db(a1.id, session_id, labels, 0, 10 * [0])
+        add_user_labels_to_db(a1.id, session_id, labels, 1, 11* [0])
+        add_user_labels_to_db(a1.id, session_id, labels, 2, 12 * [0])
 
-        # Add a user label for article 2
-        article_id = a2.id
-        session_id = 1234
-        sentence_index = 0
-        add_user_labels_to_db(article_id, session_id, labels, sentence_index, author_index)
+        add_user_labels_to_db(a2.id, session_id, labels, 0, 10 * [0])
+        add_user_labels_to_db(a2.id, session_id, labels, 1, 11 * [0])
+        add_user_labels_to_db(a2.id, session_id, labels, 5, 12 * [0])
 
-        # Add a user label for article 2
-        article_id = a2.id
-        session_id = 1234
-        sentence_index = 9
-        add_user_labels_to_db(article_id, session_id, labels, sentence_index, author_index)
+        add_user_labels_to_db(a3.id, session_id, labels, 0, 10 * [0])
+        add_user_labels_to_db(a3.id, session_id, labels, 1, 11 * [0])
+        add_user_labels_to_db(a3.id, session_id, labels, 2, 12 * [0])
 
-        # Add a user label for article 3
-        article_id = a3.id
-        session_id = 1234
-        sentence_index = 0
-        add_user_labels_to_db(article_id, session_id, labels, sentence_index, author_index)
-
-        # Add a user label for article 3
-        article_id = a3.id
-        session_id = 1234
-        sentence_index = 1
-        add_user_labels_to_db(article_id, session_id, labels, sentence_index, author_index)
-
-        # Add a user label for article 4
-        article_id = a4.id
-        session_id = 1234
-        sentence_index = 0
-        add_user_labels_to_db(article_id, session_id, labels, sentence_index, author_index)
-
-        # Add a user label for article 4
-        article_id = a4.id
-        session_id = 1234
-        sentence_index = 9
-        add_user_labels_to_db(article_id, session_id, labels, sentence_index, author_index)
-
+        add_user_labels_to_db(a4.id, session_id, labels, 0, 10 * [0])
+        add_user_labels_to_db(a4.id, session_id, labels, 1, 11 * [0])
+        add_user_labels_to_db(a4.id, session_id, labels, 5, 12 * [0])
 
     def test_articles_correctly_stored(self):
         print('\n')
@@ -117,4 +82,5 @@ class ArticleTestCase(TestCase):
         # Generate new confidence numbers, between 0 and 10000
         # (It will be between 0 and 100 in reality but more variance is needed here)
         print('\n')
-        print(request_labelling_task(1234))
+        print(f"First task: {request_labelling_task(1234)}")
+        print(f"Second task: {request_labelling_task(9999)}")

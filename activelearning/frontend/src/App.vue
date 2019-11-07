@@ -16,19 +16,20 @@
     </v-app-bar>
 
     <v-content>
-      <SentenceDisplayer/>
+      <ContentTagger/>
     </v-content>
   </v-app>
 </template>
 
 <script>
 // import HelloWorld from './components/HelloWorld';
-import SentenceDisplayer from './components/SentenceDisplayer';
+// import SentenceDisplayer from './components/SentenceDisplayer';
+import ContentTagger from "./components/ContentTagger";
 
 export default {
   name: 'App',
   components: {
-    SentenceDisplayer,
+    ContentTagger,
   },
   data: () => ({
     //

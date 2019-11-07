@@ -1,27 +1,26 @@
 <template>
   <v-container>
     <v-layout
-      text-center
-      wrap
-    >
-
-      <v-flex mb-4>
-        <h1 class="display-2 font-weight-bold mb-3">
-          Active Learning for the Gender Tracker Project
-        </h1>
-        <div>
-            {{toggle_text[toggle_selection - 1] }}
-        </div>
-        <v-layout justify-center>
-          <div>
-            <span v-for="(word, i) in sentence" :key="i">
-                <v-btn
-                  small
-                  text
-                  v-on:click.native=tagWord(i)
-                  v-bind:color=colors[sentence_tags[i]]
-                  outlined
-                >
+                text-center
+                wrap
+        >
+          <v-flex mb-4>
+              <h1 class="display-2 font-weight-bold mb-3">
+                  Active Learning for the Gender Tracker Project
+                </h1>
+                <div>
+                    {{toggle_text[toggle_selection - 1] }}
+                </div>
+                <v-layout justify-center>
+                  <div>
+                    <span v-for="(word, i) in sentence" :key="i">
+                      <v-btn
+                              small
+                            text
+                            v-on:click.native=tagWord(i)
+                            v-bind:color=colors[sentence_tags[i]]
+                            outlined
+                      >
                   {{ word }}
                 </v-btn>
               </span>

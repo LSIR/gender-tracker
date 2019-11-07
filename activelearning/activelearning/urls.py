@@ -23,7 +23,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('backend.urls')),
     path("",
-        TemplateView.as_view(template_name="application.html"),
-        name="app",
-    ),  
+         TemplateView.as_view(template_name="application.html"),
+         name="app",
+         ),
 ]

@@ -16,7 +16,7 @@ class Article(models.Model):
     tokens = JSONField()
     # List of all sentence indices that are the ends of paragraphs
     paragraphs = JSONField()
-    # List of all token indices that are the start of sentences
+    # List of all token indices that are the ends of sentences
     sentences = JSONField()
     # List of the number of user labels for each sentence
     label_counts = JSONField()
@@ -42,7 +42,7 @@ class UserLabel(models.Model):
     session_id = IntegerField() 
     # List of the labels given to each word by the user
     labels = JSONField()
-    # The first token in the sentences index in the article
+    # The index of the sentence that has these labels
     sentence_index = IntegerField()
     # A list of the token indices that are the author of this citation
     author_index = JSONField()

@@ -1,6 +1,6 @@
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
-from .helpers import load_article, parse_xml
+from .helpers import load_article, parse_xml, request_labelling_task, form_sentence_json, form_paragraph_json
 import json
 
 # The life span of a cookie, in seconds
@@ -8,6 +8,40 @@ COOKIE_LIFE_SPAN = 1 * 60 * 60
 
 # Default session ID (until the actual cookies are working)
 SESSION_ID = 1111
+
+
+def load_content(request):
+    """
+    Selects either a sentence or a paragraph that needs to be labelled. Creates a JSON file that contains an article_id
+    (int), a paragraph_id (int), a sentence_id ([int]), data (list[string]) and a task (either 'sentence' if a
+    sentence needs to be labelled or 'paragraph' if a paragraph needs to be labelled).
+
+    If a sentence needs to be labelled, sentence_id is a list of a least one integer, and data is a list of individual
+    tokens (words). If a paragraph needs to be annotated, sentence_id is an empty list, and data is a list containing a
+    single string, which is the content of the entire paragraph.
+
+    :param request: The user request
+    :return: Json A Json file containing the article_id, paragraph_id, sentence_id, data and task.
+    """
+    # Real Code
+    """
+    # This needs to be the user's session cookie.
+    session_id = 1234
+    article, paragraph_id, sentence_id = request_labelling_task(session_id)
+    if len(sentence_id) == 0:
+        return JsonResponse(form_paragraph_json(article, paragraph_id))
+    else:
+        return JsonResponse(form_sentence_json(article, paragraph_id, sentence_id))
+    """
+    # Placeholder as the database is empty.
+    return JsonResponse({
+        'article_id': 2,
+        'paragraph_id': 1,
+        'sentence_id': 2,
+        'data': ['Le', 'thé', 'est', 'bon', 'pour', 'la', 'santé', '.'],
+        'task': 'sentence',
+    })
+
 
 def loadSentence(request):
     """

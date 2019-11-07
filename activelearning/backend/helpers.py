@@ -40,6 +40,61 @@ def parse_xml(xml_file):
     return {'sentence': split_words}
 
 
+def form_sentence_json(article, paragraph_id, sentence_id):
+    """
+    Given an article and some sentence indices in the article, forms a dict containing the key-value pairs article_id
+    (int), a paragraph_id (int), a sentence_id ([int]), data (list[string]) and  task ('sentence').
+
+    If a sentence needs to be labelled, sentence_id is a list of a least one integer, and data is a list of individual
+    tokens (words).
+
+    :param article: Article The article that needs to be labelled
+    :param paragraph_id: int The index of the paragraph that contains the sentences that need to be labelled
+    :param sentence_id: list(int) The indices of the sentences in the Article that need to be labelled
+    :return: dict A dict containing article_id, paragraph_id, sentence_id, data and task keys
+    """
+    tokens = article.tokens['tokens']
+    if sentence_id[0] == 0:
+        start_token = 0
+    else:
+        start_token = article.sentences['sentences'][sentence_id[0] - 1]
+    end_token = article.sentences['sentences'][sentence_id[-1]]
+    return {
+        'article_id': article.id,
+        'paragraph_id': paragraph_id,
+        'sentence_id': sentence_id,
+        'data': tokens[start_token:end_token],
+        'task': 'sentence'
+    }
+
+
+def form_paragraph_json(article, paragraph_id):
+    """
+    Given an article and some sentence indices in the article, forms a dict containing the key-value pairs article_id
+    (int), a paragraph_id (int), a sentence_id ([int]), data (list[string]) and  task ('paragraph').
+
+    Sentence_id is an empty list, and data is a list containing a single string, which is the content of the entire
+    paragraph.
+
+    :param article: Article The article that needs to be labelled
+    :param paragraph_id: int The index of the paragraph in the Article that needs to be labelled
+    :return: dict A dict containing article_id, paragraph_id, sentence_id, data and task keys
+    """
+    tokens = article.tokens['tokens']
+    if paragraph_id == 0:
+        start_token = 0
+    else:
+        start_token = article.paragraphs['paragraphs'][paragraph_id - 1]
+    end_token = article.paragraphs['paragraphs'][paragraph_id]
+    return {
+        'article_id': article.id,
+        'paragraph_id': paragraph_id,
+        'sentence_id': [],
+        'data': tokens[start_token:end_token],
+        'task': 'paragraph'
+    }
+
+
 ##############################################################################################
 # Save to Database
 ##############################################################################################
@@ -127,7 +182,7 @@ def process_article(article_text, nlp):
     article_tokens = []
     # A list of indices of sentences at which paragraphs end
     paragraph_indices = []
-    # A list of indices of tokens at which sentences begin
+    # A list of indices of tokens at which sentences end
     sentence_indices = []
     # A list of all PER named entities in the article, stored
     # as (start_token_index, end_token_index)
@@ -143,7 +198,6 @@ def process_article(article_text, nlp):
     for p in paragraphs:
         people_indices += extract_people(p, prev_sent_index)
         for s in p.sents:
-            sentence_indices.append(prev_sent_index)
             for token in s:
                 if token.text == '"' and in_quotes_tagger == 0:
                     in_quotes_tagger = 1
@@ -152,6 +206,7 @@ def process_article(article_text, nlp):
                 in_quotes.append(in_quotes_tagger)
                 article_tokens.append(token.text)
             prev_sent_index += len(s)
+            sentence_indices.append(prev_sent_index)
             prev_par_index += 1
         paragraph_indices.append(prev_par_index)
     
@@ -240,6 +295,41 @@ def load_hardest_articles(n):
 # Labelling tasks
 ##############################################################################################
 
+def quote_start_sentence(sentence_starts, in_quote, token_index):
+    """
+    Given a list of in_quote boolean values and an index in that list, finds the index of
+    sentence that contains the first token in the quote.
+
+    :param sentence_starts: list(int) The list first tokens of each sentence
+    :param in_quote: list(int) The list of in_quote tokens
+    :param token_index: int The index of the token in the quote
+    :return: int The index of the sentence containing the first token in the quote
+    """
+    while in_quote[token_index] == 1:
+        token_index += 1
+    sentence_index = 1
+    while token_index >= sentence_starts[sentence_index]:
+        sentence_index += 1
+    return sentence_index - 1
+
+
+def quote_end_sentence(sentence_starts, in_quote, token_index):
+    """
+    Given a list of in_quote boolean values and an index in that list, finds the index of
+    sentence that contains the last token in the quote.
+
+    :param sentence_starts: list(int) The list first tokens of each sentence
+    :param in_quote: list(int) The list of in_quote tokens
+    :param token_index: int The index of the token in the quote
+    :return: int The index of the sentence containing the last token in the quote
+    """
+    while in_quote[token_index] == 1:
+        token_index -= 1
+    sentence_index = len(sentence_starts) - 1
+    while token_index < sentence_starts[sentence_index]:
+        sentence_index -= 1
+    return sentence_index
+
 
 def request_labelling_task(session_id):
     """
@@ -248,7 +338,7 @@ def request_labelling_task(session_id):
     the sentence(s) need to be labelled.
 
     :param session_id: int The user's session id
-    :return: (int, int, list(int)) The article_id, paragraph_index and sentence_indices of the labelling task
+    :return: (Article, int, list(int)) The article_id, paragraph_index and sentence_indices of the labelling task
     """
     session_labels = UserLabel.objects.filter(session_id=session_id)
     for article in load_hardest_articles(ARTICLE_LOADS):
@@ -263,9 +353,14 @@ def request_labelling_task(session_id):
             if min_conf >= CONFIDENCE_THRESHOLD\
                     and label_counts[prev_par_end] < COUNT_THRESHOLD\
                     and prev_par_end not in annotated_sentences:
-                return article.id, i, []
+                return article, i, []
             # Return a single sentence
-            for (j, c) in enumerate(label_counts):
-                if c < COUNT_THRESHOLD and j not in annotated_sentences:
-                    return article.id, i, [j]
+            for j in range(prev_par_end, p+1):
+                if label_counts[j] < COUNT_THRESHOLD and j not in annotated_sentences:
+                    sent_start = sentence_starts[j]
+                    sent_end = 0
+                    # Checks that the sentence is not inside quotes
+                    if article.in_quotes['in_quotes'][j] == 1:
+                        a = 0
+                    return article, i, [j]
     return None

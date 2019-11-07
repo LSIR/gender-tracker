@@ -34,13 +34,25 @@ def load_content(request):
         return JsonResponse(form_sentence_json(article, paragraph_id, sentence_id))
     """
     # Placeholder as the database is empty.
-    return JsonResponse({
-        'article_id': 2,
-        'paragraph_id': 1,
-        'sentence_id': 2,
-        'data': ['Le', 'thé', 'est', 'bon', 'pour', 'la', 'santé', '.'],
-        'task': 'sentence',
-    })
+    import random
+    random_value = random.randint(1, 10)
+    if random_value > 5:
+        return JsonResponse({
+            'article_id': 2,
+            'paragraph_id': 1,
+            'sentence_id': [2],
+            'data': ['Le', 'thé', 'est', 'bon', 'pour', 'la', 'santé', '.'],
+            'task': 'sentence',
+        })
+    else:
+        return JsonResponse({
+            'article_id': 3,
+            'paragraph_id': 0,
+            'sentence_id': [],
+            'data': ['Le thé est très bon pour la santé. Mais il faut en boire en petite quantité.'
+                     'Il contient tout de même de la caféine.'],
+            'task': 'paragraph',
+        })
 
 
 def loadSentence(request):

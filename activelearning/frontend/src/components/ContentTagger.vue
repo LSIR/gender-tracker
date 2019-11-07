@@ -46,21 +46,13 @@
                     Does this paragraph contain reported speech?
                 </h3>
                 <div>
-                    <span v-for="(word, i) in content" :key="i">
-                        <v-btn
-                                small
-                                text
-                                v-on:click.native=tagWord(i)
-                                v-bind:color=colors[sentence_tags[i]]
-                                outlined
-                        >
-                            {{ word }}
-                        </v-btn>
-                    </span>
+                    {{ content[0] }}
                 </div>
                 <div>
-                    <v-btn class="ma-2" outlined v-on:click.native=clearAnswers>Yes</v-btn>
-                    <v-btn class="ma-2" outlined v-on:click.native=submitTags>No</v-btn>
+                    <v-btn-toggle tile>
+                        <v-btn class="ma-2" outlined color="black" v-on:click.native=tagWord(0)>Yes</v-btn>
+                        <v-btn class="ma-2" outlined color="black" v-on:click.native=clearAnswers>No</v-btn>
+                    </v-btn-toggle>
                 </div>
             </v-flex>
         </v-layout>
@@ -73,9 +65,6 @@
         </v-layout>
         <v-layout text-center wrap>
             <v-flex mb-4>
-                <div>
-                    {{content}}
-                </div>
                 <div>
                     Button selected: {{toggle_selection}}
                 </div>

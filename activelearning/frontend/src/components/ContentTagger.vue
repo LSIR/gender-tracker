@@ -50,8 +50,8 @@
                 </div>
                 <div>
                     <v-btn-toggle tile>
-                        <v-btn class="ma-2" outlined color="black" v-on:click.native=tagWord(0)>Yes</v-btn>
-                        <v-btn class="ma-2" outlined color="black" v-on:click.native=clearAnswers>No</v-btn>
+                        <v-btn class="ma-2" outlined color="black" v-on:click.native=submit_paragraph(1)>Yes</v-btn>
+                        <v-btn class="ma-2" outlined color="black" v-on:click.native=submit_paragraph(0)>No</v-btn>
                     </v-btn-toggle>
                 </div>
             </v-flex>
@@ -103,7 +103,8 @@ export default {
             var that = this;
             $.ajax({
                 type: 'GET',
-                url: 'http://localhost:8000/api/loadContent',
+                // url: 'http://localhost:8000/api/loadContent/',
+                url: 'http://127.0.0.1:8000/api/loadContent/',
                 success: function (data) {
                     that.article_id = data['article_id'];
                     that.paragraph_id = data['paragraph_id'];
@@ -116,10 +117,11 @@ export default {
             });
         },
         submitTags: function () {
-            var tags_values = this.sentence_tags
+            var tags_values = this.sentence_tags;
             $.ajax({
                 type: 'POST',
-                url: 'http://localhost:8000/api/submitTags/',
+                // url: 'http://localhost:8000/api/submitTags/',
+                url: 'http://127.0.0.1:8000/api/submitTags/',
                 data: JSON.stringify({ tags: tags_values }),
                 contentType: "application/json; charset=utf-8",
                 dataType: "json",
@@ -132,11 +134,11 @@ export default {
         tagWord: function (index) {
             if (this.toggle_selection === 1){
                 if (this.sentence_tags[index] === 0){
-                    this.sentence_tags[index] = 1
+                    this.sentence_tags[index] = 1;
                     this.toggle_selection += 1
                 }
             }else if (this.toggle_selection === 2){
-                var tag = false
+                var tag = false;
                 for (var i = 0; i <= index; ++i){
                     if (tag) {
                         this.sentence_tags[i] = 1
@@ -155,9 +157,13 @@ export default {
             this.$forceUpdate();
         },
         clearAnswers: function () {
-            this.toggle_selection = 1
-            this.sentence_tags.fill(0)
+            this.toggle_selection = 1;
+            this.sentence_tags.fill(0);
             this.$forceUpdate();
+        },
+        submit_paragraph: function (tag) {
+            this.sentence_tags[0] = tag;
+            this.submitTags()
         },
     },
 };

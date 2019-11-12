@@ -44,17 +44,17 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'webpack_loader',
-    # Added by Niels. CORS Headers
-    'corsheaders',
+    # Added by Niels. CORS Headers. Doesn't need this when I run at http://127.0.0.1:8000/
+    #'corsheaders',
     # Added by Niels. Server
     'backend',
 ]
 
 MIDDLEWARE = [
-    # Added by Niels. CORS Headers
-    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    # Added by Niels. CORS Headers
+    # 'corsheaders.middleware.CorsMiddleware',  Doesn't need this when I run at http://127.0.0.1:8000/
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -148,21 +148,26 @@ WEBPACK_LOADER = {
     }
 }
 
+# Doesn't need this when I run at http://127.0.0.1:8000/
 # Added by Niels to allow different orgins for the backend and the frontend
 # https://github.com/adamchainz/django-cors-headers
 
+"""
 CORS_ORIGIN_WHITELIST = [
     "http://localhost:8080",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8080",
+
 ]
 
 CORS_ALLOW_CREDENTIALS = True
 
+# So that session cookies can be saved
+#SESSION_COOKIE_SAMESITE = None
+"""
 # So that testing prints to the console
 
 NOSE_ARGS = ['--nocapture',
              '--nologcapture',]
-

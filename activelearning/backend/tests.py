@@ -4,42 +4,37 @@ from backend.helpers import add_article_to_db, add_user_labels_to_db, load_harde
 import spacy
 import random
 
+
 class ArticleTestCase(TestCase):
 
     def setUp(self):
         # Load the language model
         nlp = spacy.load('fr_core_news_md')
-
         # Add the articles to the database
         a1 = add_article_to_db('../data/article01clean.xml', nlp)
         a2 = add_article_to_db('../data/article02clean.xml', nlp)
-        # Duplicate Articles to test the load method
-        a3 = add_article_to_db('../data/article01clean.xml', nlp)
-        a4 = add_article_to_db('../data/article02clean.xml', nlp)
+        a3 = add_article_to_db('../data/article03clean.xml', nlp)
 
         # Default values
-        session_id = 1234
+        session_id = 1111
         labels = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
-        # Add a user label for article 1: Only one that actually makes sense
+        # Add a user label for article 1: Only one that has "correct labels"
         add_user_labels_to_db(a1.id, session_id, labels, 7, [66])
 
-        # Add other user labels
+        # Add user labels for article 01
         add_user_labels_to_db(a1.id, session_id, labels, 0, 10 * [0])
-        add_user_labels_to_db(a1.id, session_id, labels, 1, 11* [0])
+        add_user_labels_to_db(a1.id, session_id, labels, 1, 11 * [0])
         add_user_labels_to_db(a1.id, session_id, labels, 2, 12 * [0])
-
+        add_user_labels_to_db(a1.id, session_id, labels, 4, 4 * [0])
+        # Add user labels for article 02
         add_user_labels_to_db(a2.id, session_id, labels, 0, 10 * [0])
         add_user_labels_to_db(a2.id, session_id, labels, 1, 11 * [0])
         add_user_labels_to_db(a2.id, session_id, labels, 5, 12 * [0])
-
+        # Add user labels for article 03
         add_user_labels_to_db(a3.id, session_id, labels, 0, 10 * [0])
         add_user_labels_to_db(a3.id, session_id, labels, 1, 11 * [0])
         add_user_labels_to_db(a3.id, session_id, labels, 2, 12 * [0])
-
-        add_user_labels_to_db(a4.id, session_id, labels, 0, 10 * [0])
-        add_user_labels_to_db(a4.id, session_id, labels, 1, 11 * [0])
-        add_user_labels_to_db(a4.id, session_id, labels, 5, 12 * [0])
 
     def test_articles_correctly_stored(self):
         print('\n')
@@ -56,7 +51,6 @@ class ArticleTestCase(TestCase):
             article = label.article
             label_counts = article.label_counts['label_counts']
             print('Labels: ', label)
-            print(label_counts[0:11])
 
     def test_load_hardest_articles(self):
         print('\n')
@@ -82,5 +76,9 @@ class ArticleTestCase(TestCase):
         # Generate new confidence numbers, between 0 and 10000
         # (It will be between 0 and 100 in reality but more variance is needed here)
         print('\n')
-        print(f"First task: {request_labelling_task(1234)}")
-        print(f"Second task: {request_labelling_task(9999)}")
+        (a1, p1, s1) = request_labelling_task(1111)
+        l1 = a1.label_counts['label_counts']
+        (a2, p2, s2) = request_labelling_task(9999)
+        l2 = a2.label_counts['label_counts']
+        print(f"First task: {a1.id, p1, s1}\n{l1[:12]}")
+        print(f"Second task: {a2.id, p2, s2}\n{l2[:12]}")

@@ -7,7 +7,7 @@ import json
 COOKIE_LIFE_SPAN = 1 * 60 * 60
 
 # Default session ID (until the actual cookies are working)
-SESSION_ID = 1111
+USER_ID = 1111
 
 
 def load_content(request):
@@ -33,11 +33,13 @@ def load_content(request):
     else:
         return JsonResponse(form_sentence_json(article, paragraph_id, sentence_id))
     """
+    # Session stuff
+    user_id = manage_session_id(request)
     # Placeholder as the database is empty.
     import random
     random_value = random.randint(1, 10)
     if random_value > 5:
-        return JsonResponse({
+        response = JsonResponse({
             'article_id': 2,
             'paragraph_id': 1,
             'sentence_id': [2],
@@ -45,7 +47,7 @@ def load_content(request):
             'task': 'sentence',
         })
     else:
-        return JsonResponse({
+        response = JsonResponse({
             'article_id': 3,
             'paragraph_id': 0,
             'sentence_id': [],
@@ -53,19 +55,13 @@ def load_content(request):
                      'Il contient tout de même de la caféine.'],
             'task': 'paragraph',
         })
+    return response
 
 
-def loadSentence(request):
-    """
-    Returns a sentence that the user can label.
-    """
-    xml_article = load_article('../data/article01.xml')
-    response = parse_xml(xml_article)
-    return JsonResponse(response)
-
-
-@csrf_exempt 
-def submitTags(request):
+@csrf_exempt
+def submit_tags(request):
+    # Session stuff
+    user_id = manage_session_id(request)
     if request.method == 'POST':
         try:
             # Get user tags
@@ -85,19 +81,17 @@ def manage_session_id(request):
     If he doesn't, sets one that exipres one COOKIE_LIFE_SPAN later. 
     """
     # Get user session id. If he has none, set one.
-    session = request.session
-    session.set_test_cookie()
-    print(session.keys())
+    print('\nReceived request')
     # Clears cookies that have expired
-    session.clear_expired()
+    request.session.clear_expired()
     # If the user already doesn't have a session yet,
     # set a cookie that expires COOKIE_LIFE_SPAN hour later
-    print(session.keys())
-    if 'user' not in session:
-        session['user'] = '1'
-        session.set_expiry(COOKIE_LIFE_SPAN)
-        print('Cookie set. Life Span = 1 hour = 3600 seconds')
+    if request.session.has_key('user'):
+        print('Returning user:', request.session['user'])
+        print('Time left =', request.session.get_expiry_age())
     else:
-        print('Returning user:', session['user'])
-        print('Time left =', session.get_expiry_age())
-
+        request.session['user'] = f'{USER_ID}'
+        request.session.set_expiry(COOKIE_LIFE_SPAN)
+        print('New user:', request.session['user'])
+        print('Time left =', request.session.get_expiry_age())
+    return request.session['user']

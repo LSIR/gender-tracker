@@ -100,7 +100,6 @@ def form_paragraph_json(article, paragraph_id):
 ##############################################################################################
 
 
-# Replace all formats of quotation marks by the quotation mark <">
 def normalize_quotes(text, default_quote='"', quotes=QUOTES):
     """
     Normalizes all quote chars in a text by a default quote char.
@@ -247,31 +246,30 @@ def add_article_to_db(url, nlp):
 
 def add_user_labels_to_db(article_id, session_id, labels, sentence_index, author_index):
     """
-    Adds a new set of user labels to the database for a given sentence.
+    Adds a new set of user labels to the database for a given user annotation.
 
     :param article_id: int The key of the article that was annotated
     :param session_id: int The users session id
-    :param labels: list(int) The labels the user created
-    :param sentence_index: int The index of the token at which this sentence starts
+    :param labels: list(int) The labels the user created for the sentence
+    :param sentence_index: int The index of the sentence that was labelled in the article
     :param author_index: list(int) The indices of the tokens that are authors for this sentence
     :return: UserLabel The UserLabel created
     """
     # Get the article to which these labels belong
     article = Article.objects.get(id=article_id)
+    label_counts = article.label_counts['label_counts']
 
     # Increase the label count for the given tokens in the Article database
-    label_counts = article.label_counts['label_counts']
     label_counts[sentence_index] += 1
     article.label_counts = {'label_counts': label_counts}
     article.save()
 
-    # Create the user labels and return them
     return UserLabel.objects.create(
-        article=article,
-        session_id=session_id,
-        labels={'labels': labels},
-        sentence_index=sentence_index,
-        author_index={'author_index': author_index}
+            article=article,
+            session_id=session_id,
+            labels={'labels': labels},
+            sentence_index=sentence_index,
+            author_index={'author_index': author_index}
     )
 
 
@@ -294,6 +292,7 @@ def load_hardest_articles(n):
 ##############################################################################################
 # Labelling tasks
 ##############################################################################################
+
 
 def quote_start_sentence(sentence_starts, in_quote, token_index):
     """
@@ -364,3 +363,79 @@ def request_labelling_task(session_id):
                         a = 0
                     return article, i, [j]
     return None
+
+
+def parse_user_tags(article_id, paragraph_index, sentence_indices, tags):
+    """
+    Computes the indices of tokens that are authors and cleans the user tags to only contain words that are in the
+    quotes, and not the tags for authors.
+
+    :param article_id: int The id of the article where the user performed a labelling task
+    :param paragraph_index: int The index of the paragraph in the article where the user performed a labelling task
+    :param sentence_indices: list(int) The indices of the sentences where the user performed a labelling task, and an
+                                empty list if the user labelled the whole article.
+    :param tags: list(int) The user tags
+    :return:
+    """
+    article = Article.objects.get(id=article_id)
+    sentence_ends = article.sentences['sentences']
+    # Find the tagged sentences if the whole paragraph is tagged.
+    if len(sentence_indices) == 0:
+        if paragraph_index == 0:
+            p_start = 0
+        else:
+            p_start = article.paragraphs['paragraphs'][paragraph_index - 1] + 1
+        p_end = article.paragraphs['paragraphs'][paragraph_index]
+        sentence_indices = range(p_start, p_end + 1)
+
+    # Find the index of the first token tagged
+    if sentence_indices[0] == 0:
+        sentence_start = 0
+    else:
+        sentence_start = sentence_ends[sentence_indices[0]] + 1
+
+    # Find the index of the tokens tagged as authors
+    author_indices = []
+    clean_labels = []
+    for index, tag in enumerate(tags):
+        if tag == 2:
+            author_indices.append(sentence_start + index)
+            clean_labels.append(0)
+        else:
+            clean_labels.append(tag)
+
+    # Split the tags into labels for each sentence
+    sentence_labels = []
+    for index in sentence_indices:
+        sentence_labels.append(clean_labels[sentence_start:sentence_ends[index]])
+        sentence_start = sentence_ends[index] + 1
+
+    return sentence_labels, sentence_indices, author_indices
+
+##############################################################################################
+# Learning
+##############################################################################################
+
+
+def change_confidence(article_id, sentence_confidence):
+    """
+    Edits the Article database to reflect that the trained model has changed his confidence level that each sentence is
+    or isn't reported speech.
+
+    :param article_id: int The id of the article to edit
+    :param sentence_confidence: list(int) The confidence (in [0, 100]) the trained model has for each sentence.
+    :return: int. The minimum confidence this article has in a sentence, or -1 if the article couldn't be added to the
+                    database.
+    """
+    article = Article.objects.get(id=article_id)
+    old_conf = article.confidence['confidence']
+    min_conf = min(sentence_confidence)
+    if len(sentence_confidence) == len(old_conf) and min_conf >= 0 and max(sentence_confidence) <= 100:
+        new_conf = {
+            'confidence': sentence_confidence,
+            'min_conf': min_conf,
+        }
+        article.confidence = new_conf
+        article.save()
+        return min_conf
+    return -1

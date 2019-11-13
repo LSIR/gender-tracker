@@ -1,6 +1,7 @@
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
-from .helpers import load_article, parse_xml, request_labelling_task, form_sentence_json, form_paragraph_json
+from .helpers import add_user_labels_to_db, request_labelling_task, form_sentence_json, form_paragraph_json,\
+    parse_user_tags
 import json
 
 # The life span of a cookie, in seconds
@@ -24,10 +25,9 @@ def load_content(request):
     :return: Json A Json file containing the article_id, paragraph_id, sentence_id, data and task.
     """
     # Real Code
-    """
     # This needs to be the user's session cookie.
-    session_id = 1234
-    article, paragraph_id, sentence_id = request_labelling_task(session_id)
+    user_id = manage_session_id(request)
+    article, paragraph_id, sentence_id = request_labelling_task(user_id)
     if len(sentence_id) == 0:
         return JsonResponse(form_paragraph_json(article, paragraph_id))
     else:
@@ -56,6 +56,7 @@ def load_content(request):
             'task': 'paragraph',
         })
     return response
+    """
 
 
 @csrf_exempt
@@ -66,11 +67,16 @@ def submit_tags(request):
         try:
             # Get user tags
             data = json.loads(request.body)
+            article_id = data['article_id']
+            paragraph_id = data['paragraph_id']
+            sentence_id = data['sentence_id']
             tags = data['tags']
-            print(tags)
+            sentence_labels, sentence_indices, author_indices = parse_user_tags(article_id, paragraph_id, sentence_id,
+                                                                                tags)
+            for i in range(len(sentence_labels)):
+                add_user_labels_to_db(article_id, user_id, sentence_labels[i], sentence_indices[i], author_indices)
             return HttpResponse('Success.')
         except KeyError:
-            print('error')
             return HttpResponse('Failiure. JSON parse failed.')
     return HttpResponse('Failiure. Not a POST request.')
 
@@ -80,18 +86,12 @@ def manage_session_id(request):
     Given a request, checks if the user already has a session id.
     If he doesn't, sets one that exipres one COOKIE_LIFE_SPAN later. 
     """
-    # Get user session id. If he has none, set one.
-    print('\nReceived request')
     # Clears cookies that have expired
     request.session.clear_expired()
     # If the user already doesn't have a session yet,
     # set a cookie that expires COOKIE_LIFE_SPAN hour later
-    if request.session.has_key('user'):
-        print('Returning user:', request.session['user'])
-        print('Time left =', request.session.get_expiry_age())
-    else:
+    if not request.session.has_key('user'):
+        # How to generate this?
         request.session['user'] = f'{USER_ID}'
         request.session.set_expiry(COOKIE_LIFE_SPAN)
-        print('New user:', request.session['user'])
-        print('Time left =', request.session.get_expiry_age())
     return request.session['user']

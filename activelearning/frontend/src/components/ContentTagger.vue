@@ -117,12 +117,17 @@ export default {
             });
         },
         submitTags: function () {
-            var tags_values = this.sentence_tags;
+            var that = this;
             $.ajax({
                 type: 'POST',
                 // url: 'http://localhost:8000/api/submitTags/',
                 url: 'http://127.0.0.1:8000/api/submitTags/',
-                data: JSON.stringify({ tags: tags_values }),
+                data: JSON.stringify({
+                    article_id: that.article_id,
+                    paragraph_id: that.paragraph_id,
+                    sentence_id: that.sentence_id,
+                    tags: that.sentence_tags,
+                }),
                 contentType: "application/json; charset=utf-8",
                 dataType: "json",
                 success: function (data) {

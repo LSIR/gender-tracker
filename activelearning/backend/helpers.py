@@ -57,13 +57,13 @@ def form_sentence_json(article, paragraph_id, sentence_id):
     if sentence_id[0] == 0:
         start_token = 0
     else:
-        start_token = article.sentences['sentences'][sentence_id[0] - 1]
+        start_token = article.sentences['sentences'][sentence_id[0] - 1] + 1
     end_token = article.sentences['sentences'][sentence_id[-1]]
     return {
         'article_id': article.id,
         'paragraph_id': paragraph_id,
         'sentence_id': sentence_id,
-        'data': tokens[start_token:end_token],
+        'data': tokens[start_token:end_token + 1],
         'task': 'sentence'
     }
 
@@ -84,13 +84,13 @@ def form_paragraph_json(article, paragraph_id):
     if paragraph_id == 0:
         start_token = 0
     else:
-        start_token = article.paragraphs['paragraphs'][paragraph_id - 1]
+        start_token = article.paragraphs['paragraphs'][paragraph_id - 1] + 1
     end_token = article.paragraphs['paragraphs'][paragraph_id]
     return {
         'article_id': article.id,
         'paragraph_id': paragraph_id,
         'sentence_id': [],
-        'data': tokens[start_token:end_token],
+        'data': tokens[start_token:end_token + 1],
         'task': 'paragraph'
     }
 
@@ -124,8 +124,6 @@ def get_element_text(el):
     """
     # Text as list of strings
     ls = list(el.itertext())
-    # Concatenate
-    text = ''.join(ls)
     # Clean text
     text = ''.join(ls).replace('\n', '')
     text = ' '.join(text.split())
@@ -187,22 +185,23 @@ def process_article(article_text, nlp):
     # as (start_token_index, end_token_index)
     people_indices = []
     # A list of all quotation mark indices in the article
-    in_quotes_tagger = 0
+    in_quote = 0
     in_quotes = []
     
     # The token index at which the previous sentence ended
-    prev_sent_index = - 1
+    prev_sent_index = -1
     # The sentence index at which the previous paragraph ended
-    prev_par_index = 0
+    prev_par_index = -1
     for p in paragraphs:
-        people_indices += extract_people(p, prev_sent_index)
+        people_indices += extract_people(p, prev_sent_index + 1)
         for s in p.sents:
             for token in s:
-                if token.text == '"' and in_quotes_tagger == 0:
-                    in_quotes_tagger = 1
+                in_quotes.append(in_quote)
+                if token.text == '"' and in_quote == 0:
+                    in_quote = 1
                 elif token.text == '"':
-                    in_quotes_tagger = 0
-                in_quotes.append(in_quotes_tagger)
+                    in_quote = 0
+                    in_quotes[-1] = 0
                 article_tokens.append(token.text)
             prev_sent_index += len(s)
             sentence_indices.append(prev_sent_index)
@@ -294,40 +293,40 @@ def load_hardest_articles(n):
 ##############################################################################################
 
 
-def quote_start_sentence(sentence_starts, in_quote, token_index):
+def quote_start_sentence(sentence_ends, in_quote, token_index):
     """
-    Given a list of in_quote boolean values and an index in that list, finds the index of
-    sentence that contains the first token in the quote.
+    Given the index of the first token of a sentence, which is inside quotation marks, returns the index of the sentence
+    where the quotation mark started.
 
-    :param sentence_starts: list(int) The list first tokens of each sentence
+    :param sentence_ends: list(int) The list of the last token of each sentence
     :param in_quote: list(int) The list of in_quote tokens
     :param token_index: int The index of the token in the quote
     :return: int The index of the sentence containing the first token in the quote
     """
-    while in_quote[token_index] == 1:
-        token_index += 1
+    while in_quote[token_index] == 1 and token_index > 0:
+        token_index -= 1
     sentence_index = 1
-    while token_index >= sentence_starts[sentence_index]:
+    while token_index > sentence_ends[sentence_index]:
         sentence_index += 1
-    return sentence_index - 1
+    return sentence_index
 
 
-def quote_end_sentence(sentence_starts, in_quote, token_index):
+def quote_end_sentence(sentence_ends, in_quote, token_index):
     """
-    Given a list of in_quote boolean values and an index in that list, finds the index of
-    sentence that contains the last token in the quote.
+    Given the index of the last token of a sentence, which is inside quotation marks, returns the index of the sentence
+    where the quotation mark ends.
 
-    :param sentence_starts: list(int) The list first tokens of each sentence
+    :param sentence_ends: list(int) The list of the last token of each sentence
     :param in_quote: list(int) The list of in_quote tokens
-    :param token_index: int The index of the token in the quote
+    :param token_index: int The index of the last token in the sentence
     :return: int The index of the sentence containing the last token in the quote
     """
-    while in_quote[token_index] == 1:
-        token_index -= 1
-    sentence_index = len(sentence_starts) - 1
-    while token_index < sentence_starts[sentence_index]:
+    while token_index < len(in_quote) and in_quote[token_index] == 1:
+        token_index += 1
+    sentence_index = len(sentence_ends) - 1
+    while token_index <= sentence_ends[sentence_index]:
         sentence_index -= 1
-    return sentence_index
+    return sentence_index + 1
 
 
 def request_labelling_task(session_id):
@@ -344,24 +343,37 @@ def request_labelling_task(session_id):
         annotated_sentences = [user_label.sentence_index for user_label in session_labels.filter(article=article)]
         label_counts = article.label_counts['label_counts']
         confidences = article.confidence['confidence']
-        sentence_starts = article.sentences['sentences']
-        prev_par_end = 0
+        sentence_ends = article.sentences['sentences']
+        prev_par_end = -1
+        # p is the index of the last sentence in paragraph i
         for (i, p) in enumerate(article.paragraphs['paragraphs']):
-            min_conf = min([conf for conf in confidences[prev_par_end:p+1]])
+            # Lowest confidence in the whole paragraph
+            min_conf = min([conf for conf in confidences[prev_par_end + 1:p + 1]])
+
             # For high enough confidences, annotate the whole paragraph
             if min_conf >= CONFIDENCE_THRESHOLD\
-                    and label_counts[prev_par_end] < COUNT_THRESHOLD\
-                    and prev_par_end not in annotated_sentences:
+                    and label_counts[prev_par_end + 1] < COUNT_THRESHOLD\
+                    and (prev_par_end + 1) not in annotated_sentences:
                 return article, i, []
-            # Return a single sentence
-            for j in range(prev_par_end, p+1):
+
+            for j in range(prev_par_end + 1, p + 1):
                 if label_counts[j] < COUNT_THRESHOLD and j not in annotated_sentences:
-                    sent_start = sentence_starts[j]
-                    sent_end = 0
+                    if j == 0:
+                        sent_start = 0
+                    else:
+                        sent_start = sentence_ends[j - 1] + 1
+                    sent_end = sentence_ends[j]
+                    print(f'\nParagraph {i}, Sentence {j}, first word {article.tokens["tokens"][sent_start]}')
+                    # List of sentence indices to label
+                    labelling_task = [j]
                     # Checks that the sentence is not inside quotes
-                    if article.in_quotes['in_quotes'][j] == 1:
-                        a = 0
-                    return article, i, [j]
+                    if article.in_quotes['in_quotes'][sent_start] == 1:
+                        first_sent = quote_start_sentence(sentence_ends, article.in_quotes['in_quotes'], sent_start)
+                        labelling_task = list(range(first_sent, j + 1))
+                    if article.in_quotes['in_quotes'][sent_end] == 1:
+                        last_sent = quote_end_sentence(sentence_ends, article.in_quotes['in_quotes'], sent_end)
+                        labelling_task = list(range(labelling_task[0], last_sent + 1))
+                    return article, i, labelling_task
     return None
 
 

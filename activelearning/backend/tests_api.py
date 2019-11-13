@@ -18,6 +18,31 @@ def parse_load_data(response):
 
 class ApiTestCase(TestCase):
 
+    def add_sentence_labels(self, client, p_index, s_index, s):
+        response = client.get('/api/loadContent/')
+        article_id, paragraph_id, sentence_ids, text, task = parse_load_data(response)
+        # Check article stuff
+        article = Article.objects.get(id=article_id)
+        print(article.paragraphs['paragraphs'])
+        print(f'{p_index}, {s_index}')
+        print(' '.join(text))
+        tags = s['labels']
+        # Check that the correct paragraph is being annotated
+        self.assertEqual(paragraph_id, p_index)
+        # Check that the correct sentence is being annotated
+        self.assertEqual(len(sentence_ids), 1)
+        self.assertEqual(s_index, sentence_ids[0])
+        # Check that the labels are the same length as the sentence
+        self.assertEqual(len(text), len(tags))
+        # Return response
+        data = {
+            'article_id': article_id,
+            'paragraph_id': paragraph_id,
+            'sentence_id': sentence_ids,
+            'tags': tags,
+        }
+        client.post('/api/submitTags/', data, content_type='application/json')
+
     def setUp(self):
         # Load the language model
         nlp = spacy.load('fr_core_news_md')
@@ -98,9 +123,26 @@ class ApiTestCase(TestCase):
         with open('../data/article01JSON.txt', 'r') as file:
             tagged_data = json.load(file)
         paragraphs = tagged_data['paragraphs']
-        sen = []
-        for p in paragraphs:
+
+        c1 = Client()
+        c2 = Client()
+        # As the 3rd sentence of the 6th paragraph is a 2-line quote, it should be returned as 1 sentence to tag. We
+        # start by having a client tag the sentences up to there
+        sentence_index = 0
+        for p_index, p in enumerate(paragraphs[:6]):
             sentences = p['sentences']
+            print('\n', p_index, '\n')
             for s in sentences:
-                sen.append(s['sentence'])
-        print(sen)
+                self.add_sentence_labels(c1, p_index, sentence_index, s)
+                sentence_index += 1
+
+        p6 = paragraphs[6]
+        s6 = p6['sentences']
+        for s in s6[:2]:
+            self.add_sentence_labels(c1, 6, sentence_index, s)
+            sentence_index += 1
+
+        response = c1.get('/api/loadContent/')
+        article_id, paragraph_id, sentence_ids, text, task = parse_load_data(response)
+        print('\n\nParagraph 7, Sentence 3')
+        print(' '.join(text))

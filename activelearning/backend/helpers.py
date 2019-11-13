@@ -191,7 +191,7 @@ def process_article(article_text, nlp):
     in_quotes = []
     
     # The token index at which the previous sentence ended
-    prev_sent_index = 0
+    prev_sent_index = - 1
     # The sentence index at which the previous paragraph ended
     prev_par_index = 0
     for p in paragraphs:
@@ -407,7 +407,7 @@ def parse_user_tags(article_id, paragraph_index, sentence_indices, tags):
     # Split the tags into labels for each sentence
     sentence_labels = []
     for index in sentence_indices:
-        sentence_labels.append(clean_labels[sentence_start:sentence_ends[index]])
+        sentence_labels.append(clean_labels[sentence_start:sentence_ends[index] + 1])
         sentence_start = sentence_ends[index] + 1
 
     return sentence_labels, sentence_indices, author_indices

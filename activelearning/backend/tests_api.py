@@ -23,8 +23,6 @@ class ApiTestCase(TestCase):
         nlp = spacy.load('fr_core_news_md')
         # Add the articles to the database
         a1 = add_article_to_db('../data/article01clean.xml', nlp)
-        a2 = add_article_to_db('../data/article02clean.xml', nlp)
-        a3 = add_article_to_db('../data/article03clean.xml', nlp)
 
     def test_basic_tag_submit(self):
         """
@@ -67,21 +65,17 @@ class ApiTestCase(TestCase):
         # Check that the labels are the ones we input
         self.assertEqual(label.labels['labels'], tags)
 
-
     def test_tag_multiple_sentences(self):
         c = Client()
         article = Article.objects.all()[0]
         article_id = article.id
         paragraph_id = 0
         sentence_ids = [0, 1]
-        tokens = article.tokens['tokens'][0:article.sentences['sentences'][1]]
         tags_1 = [0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0]
+        rest_1 = [0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         tags_2 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 0]
+        rest_2 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0]
         tags = tags_1 + tags_2
-        print(f'\narticle id  : {article_id}')
-        print(f'label counts: {article.label_counts["label_counts"]}')
-        print(f'tokens      : {tokens}')
-        print(f'tags        : {tags}\n')
         # Return response
         data = {
             'article_id': article_id,
@@ -93,13 +87,20 @@ class ApiTestCase(TestCase):
         article = Article.objects.get(id=article_id)
         labels = [label for label in UserLabel.objects.all()]
         self.assertEqual(len(labels), 2)
-        print(f'\narticle id  : {article_id}')
-        print(f'label counts: {article.label_counts["label_counts"]}')
-        print(f'tokens      : {tokens}')
-        print(f'tags        : {tags}\n')
-        for label in labels:
-            print(f'\nLabel id  : {label.id}')
-            print(f'Article id: {label.article.id}')
-            print(f'Sentence  : {label.sentence_index}')
-            print(f'Labels  : {label.labels["labels"]}')
-            print(f'Author    : {label.author_index["author_index"]}\n')
+        self.assertEqual(labels[0].labels['labels'], rest_1)
+        self.assertEqual(labels[1].labels['labels'], rest_2)
+        self.assertEqual(labels[0].sentence_index, 0)
+        self.assertEqual(labels[1].sentence_index, 1)
+        self.assertEqual(labels[0].author_index['author_index'], [15, 41, 42, 43])
+        self.assertEqual(labels[1].author_index['author_index'], [15, 41, 42, 43])
+
+    def test_tag_full_article(self):
+        with open('../data/article01JSON.txt', 'r') as file:
+            tagged_data = json.load(file)
+        paragraphs = tagged_data['paragraphs']
+        sen = []
+        for p in paragraphs:
+            sentences = p['sentences']
+            for s in sentences:
+                sen.append(s['sentence'])
+        print(sen)

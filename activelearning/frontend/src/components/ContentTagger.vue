@@ -88,6 +88,8 @@ export default {
         task: 'sentence',
         // 0: no tag, 1: start, 2: end, 3: author
         sentence_tags: [0],
+        // relative to the start of the text
+        author_indices: [],
         colors: ["black", "deep-orange darken-4", "green darken-4"],
         toggle_selection: 1,
         toggle_text: ["Select the First Word of the Reported Speech",
@@ -127,6 +129,7 @@ export default {
                     paragraph_id: that.paragraph_id,
                     sentence_id: that.sentence_id,
                     tags: that.sentence_tags,
+                    authors: that.author_indices,
                 }),
                 contentType: "application/json; charset=utf-8",
                 dataType: "json",
@@ -138,11 +141,13 @@ export default {
         },
         tagWord: function (index) {
             if (this.toggle_selection === 1){
+                // Tag first word in reported speech
                 if (this.sentence_tags[index] === 0){
                     this.sentence_tags[index] = 1;
                     this.toggle_selection += 1
                 }
             }else if (this.toggle_selection === 2){
+                // Tag rest of sentence
                 var tag = false;
                 for (var i = 0; i <= index; ++i){
                     if (tag) {
@@ -155,8 +160,12 @@ export default {
                     this.toggle_selection += 1
                 }
             }else{
-                if (this.sentence_tags[index] === 0){
-                    this.sentence_tags[index] = 2
+                // Tag author
+                // If the author is in the sentence, only tag if the index isn't already noted as reported speech
+                if ((index >= 0) && (this.sentence_tags[index] === 0)){
+                    this.author_indices.push(index)
+                }else if (index < 0){
+                    this.author_indices.push(index)
                 }
             }
             this.$forceUpdate();
@@ -164,6 +173,7 @@ export default {
         clearAnswers: function () {
             this.toggle_selection = 1;
             this.sentence_tags.fill(0);
+            this.author_indices = 0;
             this.$forceUpdate();
         },
         submit_paragraph: function (tag) {

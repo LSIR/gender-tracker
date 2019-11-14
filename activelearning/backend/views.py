@@ -28,35 +28,60 @@ def load_content(request):
     # This needs to be the user's session cookie.
     user_id = manage_session_id(request)
     article, paragraph_id, sentence_id = request_labelling_task(user_id)
-    if len(sentence_id) == 0:
-        return JsonResponse(form_paragraph_json(article, paragraph_id))
+    if article is not None:
+        if len(sentence_id) == 0:
+            return JsonResponse(form_paragraph_json(article, paragraph_id))
+        else:
+            return JsonResponse(form_sentence_json(article, paragraph_id, sentence_id))
     else:
-        return JsonResponse(form_sentence_json(article, paragraph_id, sentence_id))
+        # Placeholder as the database is empty.
+        import random
+        random_value = random.randint(1, 10)
+        if random_value > 5:
+            response = JsonResponse({
+                'article_id': 2,
+                'paragraph_id': 1,
+                'sentence_id': [2],
+                'data': ['Le', 'thé', 'est', 'bon', 'pour', 'la', 'santé', '.'],
+                'task': 'sentence',
+            })
+        else:
+            response = JsonResponse({
+                'article_id': 3,
+                'paragraph_id': 0,
+                'sentence_id': [],
+                'data': ['Le thé est très bon pour la santé. Mais il faut en boire en petite quantité.'
+                         'Il contient tout de même de la caféine.'],
+                'task': 'paragraph',
+            })
+        return response
+
+
+def load_rest_of_paragraph(request):
+    """
+
+    :param request:
+    :return:
     """
     # Session stuff
     user_id = manage_session_id(request)
-    # Placeholder as the database is empty.
-    import random
-    random_value = random.randint(1, 10)
-    if random_value > 5:
-        response = JsonResponse({
-            'article_id': 2,
-            'paragraph_id': 1,
-            'sentence_id': [2],
-            'data': ['Le', 'thé', 'est', 'bon', 'pour', 'la', 'santé', '.'],
-            'task': 'sentence',
-        })
-    else:
-        response = JsonResponse({
-            'article_id': 3,
-            'paragraph_id': 0,
-            'sentence_id': [],
-            'data': ['Le thé est très bon pour la santé. Mais il faut en boire en petite quantité.'
-                     'Il contient tout de même de la caféine.'],
-            'task': 'paragraph',
-        })
-    return response
-    """
+    if request.method == 'GET':
+        try:
+            # Get user tags
+            data = json.loads(request.body)
+            article_id = data['article_id']
+            paragraph_id = data['paragraph_id']
+            sentence_id = data['sentence_id']
+            tags = data['tags']
+            authors = data['authors']
+            sentence_labels, sentence_indices, author_indices = parse_user_tags(article_id, paragraph_id, sentence_id,
+                                                                                tags, authors)
+            for i in range(len(sentence_labels)):
+                add_user_labels_to_db(article_id, user_id, sentence_labels[i], sentence_indices[i], author_indices)
+            return HttpResponse('Success.')
+        except KeyError:
+            return HttpResponse('Failiure. JSON parse failed.')
+    return HttpResponse('Failiure. Not a POST request.')
 
 
 @csrf_exempt
@@ -71,8 +96,9 @@ def submit_tags(request):
             paragraph_id = data['paragraph_id']
             sentence_id = data['sentence_id']
             tags = data['tags']
+            authors = data['authors']
             sentence_labels, sentence_indices, author_indices = parse_user_tags(article_id, paragraph_id, sentence_id,
-                                                                                tags)
+                                                                                tags, authors)
             for i in range(len(sentence_labels)):
                 add_user_labels_to_db(article_id, user_id, sentence_labels[i], sentence_indices[i], author_indices)
             return HttpResponse('Success.')

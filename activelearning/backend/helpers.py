@@ -95,6 +95,33 @@ def form_paragraph_json(article, paragraph_id):
     }
 
 
+def load_paragraph_above(article, paragraph_id, sentence_id):
+    """
+    Finds the lists of tokens for a paragraph above a given sentence.
+
+    :param article: Article instance. The Article of which we want the tokens for a paragraph.
+    :param paragraph_id: int. The index of the paragraph for which we want the tokens.
+    :param sentence_id: int. The index of the sentence for which we want the tokens above.
+    :return: list(string). The tokens in paragraph paragraph_id.
+    """
+    tokens = article.tokens['tokens']
+    paragraph_ends = article.paragraphs['paragraphs']
+    sentence_ends = article.sentences['sentences']
+    if paragraph_id == 0:
+        start_sentence = 0
+    else:
+        start_sentence = paragraph_ends[paragraph_id - 1] + 1
+    end_sentence = paragraph_ends[paragraph_id]
+    if start_sentence == 0:
+        start_token = 0
+    else:
+        start_token = sentence_ends[start_sentence - 1] + 1
+    end_token = sentence_ends[end_sentence]
+    return {
+        'data': tokens[start_token:end_token + 1],
+    }
+
+
 ##############################################################################################
 # Save to Database
 ##############################################################################################
@@ -363,7 +390,6 @@ def request_labelling_task(session_id):
                     else:
                         sent_start = sentence_ends[j - 1] + 1
                     sent_end = sentence_ends[j]
-                    print(f'\nParagraph {i}, Sentence {j}, first word {article.tokens["tokens"][sent_start]}')
                     # List of sentence indices to label
                     labelling_task = [j]
                     # Checks that the sentence is not inside quotes
@@ -374,10 +400,10 @@ def request_labelling_task(session_id):
                         last_sent = quote_end_sentence(sentence_ends, article.in_quotes['in_quotes'], sent_end)
                         labelling_task = list(range(labelling_task[0], last_sent + 1))
                     return article, i, labelling_task
-    return None
+    return None, [], []
 
 
-def parse_user_tags(article_id, paragraph_index, sentence_indices, tags):
+def parse_user_tags(article_id, paragraph_index, sentence_indices, tags, authors):
     """
     Computes the indices of tokens that are authors and cleans the user tags to only contain words that are in the
     quotes, and not the tags for authors.
@@ -404,22 +430,20 @@ def parse_user_tags(article_id, paragraph_index, sentence_indices, tags):
     if sentence_indices[0] == 0:
         sentence_start = 0
     else:
-        sentence_start = sentence_ends[sentence_indices[0]] + 1
+        sentence_start = sentence_ends[sentence_indices[0] - 1] + 1
 
-    # Find the index of the tokens tagged as authors
+    # Transform relative index to absolute index
     author_indices = []
-    clean_labels = []
-    for index, tag in enumerate(tags):
-        if tag == 2:
-            author_indices.append(sentence_start + index)
-            clean_labels.append(0)
-        else:
-            clean_labels.append(tag)
+    for index in authors:
+        author_indices.append(sentence_start + index)
 
     # Split the tags into labels for each sentence
     sentence_labels = []
+    first_tag_index = 0
     for index in sentence_indices:
-        sentence_labels.append(clean_labels[sentence_start:sentence_ends[index] + 1])
+        last_tag_index = first_tag_index + (sentence_ends[index] - sentence_start)
+        sentence_labels.append(tags[first_tag_index:last_tag_index + 1])
+        first_tag_index = last_tag_index + 1
         sentence_start = sentence_ends[index] + 1
 
     return sentence_labels, sentence_indices, author_indices

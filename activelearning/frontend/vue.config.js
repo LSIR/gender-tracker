@@ -28,7 +28,7 @@ module.exports = {
             .headers({"Access-Control-Allow-Origin": ["\*"]})
     },
     // Written by Niels: Proxy setup for development
-    devServer: {
-        proxy: 'http://127.0.0.1:8000'
-    },
+    //devServer: {
+        //proxy: 'http://127.0.0.1:8000'
+    //},
 };

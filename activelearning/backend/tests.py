@@ -6,14 +6,14 @@ import random
 
 
 class ArticleTestCase(TestCase):
+    # Load the language model
+    nlp = spacy.load('fr_core_news_md')
 
     def setUp(self):
-        # Load the language model
-        nlp = spacy.load('fr_core_news_md')
         # Add the articles to the database
-        a1 = add_article_to_db('../data/article01clean.xml', nlp)
-        a2 = add_article_to_db('../data/article02clean.xml', nlp)
-        a3 = add_article_to_db('../data/article03clean.xml', nlp)
+        a1 = add_article_to_db('../data/article01.xml', self.nlp)
+        a2 = add_article_to_db('../data/article02clean.xml', self.nlp)
+        a3 = add_article_to_db('../data/article03clean.xml', self.nlp)
 
         # Default values
         session_id = 1111

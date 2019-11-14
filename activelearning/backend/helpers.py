@@ -95,15 +95,16 @@ def form_paragraph_json(article, paragraph_id):
     }
 
 
-def load_paragraph_above(article, paragraph_id, sentence_id):
+def load_paragraph_above(article_id, paragraph_id, sentence_id):
     """
     Finds the lists of tokens for a paragraph above a given sentence.
 
-    :param article: Article instance. The Article of which we want the tokens for a paragraph.
+    :param article_id: int. The id of the Article of which we want the tokens for a paragraph.
     :param paragraph_id: int. The index of the paragraph for which we want the tokens.
     :param sentence_id: int. The index of the sentence for which we want the tokens above.
     :return: list(string). The tokens in paragraph paragraph_id.
     """
+    article = Article.objects.get(id=article_id)
     tokens = article.tokens['tokens']
     paragraph_ends = article.paragraphs['paragraphs']
     sentence_ends = article.sentences['sentences']

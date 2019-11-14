@@ -1,7 +1,7 @@
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from .helpers import add_user_labels_to_db, request_labelling_task, form_sentence_json, form_paragraph_json,\
-    parse_user_tags
+    parse_user_tags, load_paragraph_above
 import json
 
 # The life span of a cookie, in seconds
@@ -72,16 +72,10 @@ def load_rest_of_paragraph(request):
             article_id = data['article_id']
             paragraph_id = data['paragraph_id']
             sentence_id = data['sentence_id']
-            tags = data['tags']
-            authors = data['authors']
-            sentence_labels, sentence_indices, author_indices = parse_user_tags(article_id, paragraph_id, sentence_id,
-                                                                                tags, authors)
-            for i in range(len(sentence_labels)):
-                add_user_labels_to_db(article_id, user_id, sentence_labels[i], sentence_indices[i], author_indices)
-            return HttpResponse('Success.')
+            return JsonResponse(load_paragraph_above(article_id, paragraph_id, sentence_id))
         except KeyError:
-            return HttpResponse('Failiure. JSON parse failed.')
-    return HttpResponse('Failiure. Not a POST request.')
+            return HttpResponse('Failure. JSON parse failed.')
+    return HttpResponse('Failure. Not a GET request.')
 
 
 @csrf_exempt
@@ -103,8 +97,8 @@ def submit_tags(request):
                 add_user_labels_to_db(article_id, user_id, sentence_labels[i], sentence_indices[i], author_indices)
             return HttpResponse('Success.')
         except KeyError:
-            return HttpResponse('Failiure. JSON parse failed.')
-    return HttpResponse('Failiure. Not a POST request.')
+            return HttpResponse('Failure. JSON parse failed.')
+    return HttpResponse('Failure. Not a POST request.')
 
 
 def manage_session_id(request):

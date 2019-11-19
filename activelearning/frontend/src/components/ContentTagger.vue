@@ -17,6 +17,7 @@
                     <span v-for="(word, i) in extra_content" :key="i">
                         <v-btn
                                 small
+                                v-bind:style="buttonStyle"
                                 v-on:click.native=tagAuthor(i)
                                 v-bind:color=button_color_extra_text(i)
                         >
@@ -33,6 +34,7 @@
                     <span v-for="(word, i) in content" :key="i">
                         <v-btn
                                 small
+                                v-bind:style="buttonStyle"
                                 v-on:click.native=tagWord(i)
                                 v-bind:color=button_color(i)
                         >
@@ -64,8 +66,8 @@
                 </div>
                 <div>
                     <v-btn-toggle tile>
-                        <v-btn class="ma-2" outlined color="black" v-on:click.native=submit_paragraph(1)>Yes</v-btn>
-                        <v-btn class="ma-2" outlined color="black" v-on:click.native=submit_paragraph(0)>No</v-btn>
+                        <v-btn class="ma-2" color="white" v-on:click.native=submit_paragraph(1)>Yes</v-btn>
+                        <v-btn class="ma-2" color="white" v-on:click.native=submit_paragraph(0)>No</v-btn>
                     </v-btn-toggle>
                 </div>
             </v-flex>
@@ -113,6 +115,10 @@ export default {
         toggle_text: ["Select the First Word of the Reported Speech",
             "Select the Last Word of the Reported Speech",
             "Select the Author of the Reported Speech"],
+        buttonStyle: {
+            'min-width': 0,
+            'padding': '5px',
+        }
     }),
     mounted: function () {
         this.loadContent()

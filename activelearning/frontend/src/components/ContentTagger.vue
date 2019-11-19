@@ -12,6 +12,19 @@
                 wrap
                 v-if="task==='sentence'"
         >
+            <v-flex mb-4 v-if="extra_content.length > 0">
+                <div>
+                    <span v-for="(word, i) in extra_content" :key="i">
+                        <v-btn
+                                small
+                                v-on:click.native=tagAuthor(i)
+                                v-bind:color=button_color_extra_text(i)
+                        >
+                            {{ word }}
+                        </v-btn>
+                    </span>
+                </div>
+            </v-flex>
             <v-flex mb-4>
                 <h3>
                     {{toggle_text[toggle_selection - 1] }}
@@ -20,14 +33,15 @@
                     <span v-for="(word, i) in content" :key="i">
                         <v-btn
                                 small
-                                text
                                 v-on:click.native=tagWord(i)
-                                v-bind:color=colors[sentence_tags[i]]
-                                outlined
+                                v-bind:color=button_color(i)
                         >
                             {{ word }}
                         </v-btn>
                     </span>
+                </div>
+                <div>
+                    <v-btn class="ma-2" outlined v-on:click.native=loadTextAbove>Load the Rest of the Paragraph</v-btn>
                 </div>
                 <div>
                     <v-btn class="ma-2" outlined v-on:click.native=clearAnswers>Clear Answers</v-btn>
@@ -69,7 +83,10 @@
                     Button selected: {{toggle_selection}}
                 </div>
                 <div>
-                    {{sentence_tags}}
+                    Tags: {{sentence_tags}}
+                </div>
+                <div>
+                    Authors: {{author_indices}}
                 </div>
             </v-flex>
         </v-layout>
@@ -85,6 +102,7 @@ export default {
         paragraph_id: 0,
         sentence_id: 0,
         content: ['No sentence has been loaded yet.'],
+        extra_content: [],
         task: 'sentence',
         // 0: no tag, 1: start, 2: end, 3: author
         sentence_tags: [0],
@@ -105,7 +123,6 @@ export default {
             var that = this;
             $.ajax({
                 type: 'GET',
-                // url: 'http://localhost:8000/api/loadContent/',
                 url: 'http://127.0.0.1:8000/api/loadContent/',
                 success: function (data) {
                     that.article_id = data['article_id'];
@@ -118,18 +135,36 @@ export default {
                 }
             });
         },
+        loadTextAbove: function () {
+            if (this.extra_content.length === 0) {
+                const that = this;
+                $.ajax({
+                    type: 'GET',
+                    url: 'http://127.0.0.1:8000/api/loadMoreContent/',
+                    data: {
+                        'article_id': that.article_id,
+                        'paragraph_id': that.paragraph_id,
+                        'sentence_id': that.sentence_id[0],
+                    },
+                    contentType: "application/json; charset=utf-8",
+                    dataType: "json",
+                    success: function (data) {
+                        that.extra_content = data['data'];
+                    }
+                });
+            }
+        },
         submitTags: function () {
             var that = this;
             $.ajax({
                 type: 'POST',
-                // url: 'http://localhost:8000/api/submitTags/',
                 url: 'http://127.0.0.1:8000/api/submitTags/',
                 data: JSON.stringify({
-                    article_id: that.article_id,
-                    paragraph_id: that.paragraph_id,
-                    sentence_id: that.sentence_id,
-                    tags: that.sentence_tags,
-                    authors: that.author_indices,
+                    'article_id': that.article_id,
+                    'paragraph_id': that.paragraph_id,
+                    'sentence_id': that.sentence_id,
+                    'tags': that.sentence_tags,
+                    'authors': that.author_indices,
                 }),
                 contentType: "application/json; charset=utf-8",
                 dataType: "json",
@@ -159,26 +194,48 @@ export default {
                 if (tag){
                     this.toggle_selection += 1
                 }
-            }else{
-                // Tag author
-                // If the author is in the sentence, only tag if the index isn't already noted as reported speech
-                if ((index >= 0) && (this.sentence_tags[index] === 0)){
-                    this.author_indices.push(index)
-                }else if (index < 0){
-                    this.author_indices.push(index)
-                }
+            }else if ((this.toggle_selection === 3) &&
+                (!this.author_indices.includes(index)) &&
+                (this.sentence_tags[index] === 0)){
+                // Tag author, only if the index isn't already noted as reported speech or an author
+                this.author_indices.push(index);
+                this.author_indices.sort((a, b) => a - b);
             }
             this.$forceUpdate();
+        },
+        tagAuthor: function (index) {
+            // Only add the author if it hasn't been tagged yet
+            if (!this.author_indices.includes(index - this.extra_content.length)) {
+                this.author_indices.push(index - this.extra_content.length);
+                this.author_indices.sort((a, b) => a - b);
+            }
         },
         clearAnswers: function () {
             this.toggle_selection = 1;
             this.sentence_tags.fill(0);
-            this.author_indices = 0;
+            this.author_indices = [];
             this.$forceUpdate();
         },
         submit_paragraph: function (tag) {
             this.sentence_tags[0] = tag;
             this.submitTags()
+        },
+        button_color: function (index) {
+            if (this.sentence_tags[index] === 1) {
+                return "deep-orange lighten-4"
+            }else if (this.author_indices.includes(index)){
+                return "green lighten-4"
+            }else{
+                return "white"
+            }
+        },
+        button_color_extra_text: function (index) {
+            const relative_index = index - this.extra_content.length;
+            if (this.author_indices.includes(relative_index)){
+                return "green lighten-4"
+            }else{
+                return "white"
+            }
         },
     },
 };

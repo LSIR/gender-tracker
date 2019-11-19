@@ -10,6 +10,8 @@ COOKIE_LIFE_SPAN = 1 * 60 * 60
 # Default session ID (until the actual cookies are working)
 USER_ID = 1111
 
+# If in dev mode, don't touch the database:
+DEV_MODE = True
 
 def load_content(request):
     """
@@ -27,8 +29,8 @@ def load_content(request):
     # Real Code
     # This needs to be the user's session cookie.
     user_id = manage_session_id(request)
-    article, paragraph_id, sentence_id = request_labelling_task(user_id)
-    if article is not None:
+    if not DEV_MODE:
+        article, paragraph_id, sentence_id = request_labelling_task(user_id)
         if len(sentence_id) == 0:
             return JsonResponse(form_paragraph_json(article, paragraph_id))
         else:
@@ -42,7 +44,8 @@ def load_content(request):
                 'article_id': 2,
                 'paragraph_id': 1,
                 'sentence_id': [2],
-                'data': ['Le', 'thé', 'est', 'bon', 'pour', 'la', 'santé', '.'],
+                'data': ['Mais', '"', 'il', 'ne', 'pourra', 'plus', 'jamais', 'marcher', '"', ",",\
+                         'selon', 'son', 'docteur', '.'],
                 'task': 'sentence',
             })
         else:
@@ -50,8 +53,9 @@ def load_content(request):
                 'article_id': 3,
                 'paragraph_id': 0,
                 'sentence_id': [],
-                'data': ['Le thé est très bon pour la santé. Mais il faut en boire en petite quantité.'
-                         'Il contient tout de même de la caféine.'],
+                'data': ['Les fractures de pied peuvent être très dangereuses, nous apprends le Dr. Jacques. L\''
+                         'opération fût très compliquée. Elle s\'est bien passée. Mais "il ne pourra plus jamais'
+                         ' marcher", selon son docteur.'],
                 'task': 'paragraph',
             })
         return response
@@ -59,23 +63,45 @@ def load_content(request):
 
 def load_rest_of_paragraph(request):
     """
+    When the speaker of a quote wasn't in sentence reported speech, the user can ask to show the part of the
+    paragraph that leads up to the quote.
 
-    :param request:
-    :return:
+    :param request: The user request.
+    :return: Json A Json file containing the the list of tokens of the paragraph above the sentence.
     """
     # Session stuff
     user_id = manage_session_id(request)
-    if request.method == 'GET':
-        try:
-            # Get user tags
-            data = json.loads(request.body)
-            article_id = data['article_id']
-            paragraph_id = data['paragraph_id']
-            sentence_id = data['sentence_id']
-            return JsonResponse(load_paragraph_above(article_id, paragraph_id, sentence_id))
-        except KeyError:
-            return HttpResponse('Failure. JSON parse failed.')
-    return HttpResponse('Failure. Not a GET request.')
+    if not DEV_MODE:
+        if request.method == 'GET':
+            try:
+                # Get user tags
+                data = dict(request.GET)
+                article_id = data['article_id']
+                paragraph_id = data['paragraph_id']
+                sentence_id = data['sentence_id']
+                return JsonResponse(load_paragraph_above(article_id, paragraph_id, sentence_id))
+            except KeyError:
+                return HttpResponse('Failure. JSON parse failed.')
+        return HttpResponse('Failure. Not a GET request.')
+    else:
+        if request.method == 'GET':
+            try:
+                # Get user tags
+                data = dict(request.GET)
+                print(f'Data: {data}')
+                article_id = data['article_id']
+                paragraph_id = data['paragraph_id']
+                sentence_id = data['sentence_id']
+                print(f'\nids: {article_id}, {paragraph_id}, {sentence_id}\n')
+                text = {
+                    'data': ['Les', 'fractures', 'de', 'pied', 'peuvent', 'être', 'très', 'dangereuses', 'nous',
+                             'apprends', 'le', 'Dr.', 'Jacques', '.', 'L\'', 'opération', 'fût', 'très', 'compliquée',
+                             '.', 'Elle', 's\'', 'est', 'bien', 'passée', '.']
+                }
+                return JsonResponse(text)
+            except KeyError:
+                return HttpResponse('Failure. JSON parse failed.')
+        return HttpResponse('Failure. Not a GET request.')
 
 
 @csrf_exempt
@@ -91,10 +117,16 @@ def submit_tags(request):
             sentence_id = data['sentence_id']
             tags = data['tags']
             authors = data['authors']
-            sentence_labels, sentence_indices, author_indices = parse_user_tags(article_id, paragraph_id, sentence_id,
-                                                                                tags, authors)
-            for i in range(len(sentence_labels)):
-                add_user_labels_to_db(article_id, user_id, sentence_labels[i], sentence_indices[i], author_indices)
+
+            if not DEV_MODE:
+                sentence_labels, sentence_indices, author_indices = parse_user_tags(article_id, paragraph_id,
+                                                                                    sentence_id,
+                                                                                    tags, authors)
+                for i in range(len(sentence_labels)):
+                    add_user_labels_to_db(article_id, user_id, sentence_labels[i], sentence_indices[i], author_indices)
+            else:
+                print(f'\nSubmitted answers: user={user_id}, a={article_id}, p={paragraph_id}, s={sentence_id}, '
+                      f'tags={tags}, authors={authors}\n')
             return HttpResponse('Success.')
         except KeyError:
             return HttpResponse('Failure. JSON parse failed.')

@@ -13,6 +13,8 @@ ARTICLE_LOADS = 5
 
 CONFIDENCE_THRESHOLD = 80
 
+MIN_USER_LABELS = 4
+
 ##############################################################################################
 # Loading and parsing articles
 ##############################################################################################
@@ -244,7 +246,7 @@ def add_article_to_db(path, nlp):
     Loads an article stored as an XML file, and adds it to the database after having processed it.
 
     :param path: string The URL of the stored XML file
-    :param nlp: spacy.Language The language model used to tokenize the text
+    :param nlp: spacy. Language The language model used to tokenize the text
     :return: Article The article created
     """
     # Loading an xml file as a string
@@ -261,7 +263,10 @@ def add_article_to_db(path, nlp):
         tokens={'tokens': article_tokens},
         paragraphs={'paragraphs': p_indices},
         sentences={'sentences': s_indices},
-        label_counts={'label_counts': label_counts},
+        label_counts={
+            'label_counts': label_counts,
+            'min_label_counts': 0
+        },
         in_quotes={'in_quotes': in_quotes},
         confidence={
             'confidence': confidence,
@@ -287,7 +292,10 @@ def add_user_labels_to_db(article_id, session_id, labels, sentence_index, author
 
     # Increase the label count for the given tokens in the Article database
     label_counts[sentence_index] += 1
-    article.label_counts = {'label_counts': label_counts}
+    article.label_counts = {
+            'label_counts': label_counts,
+            'min_label_counts': min(label_counts)
+        }
     article.save()
 
     return UserLabel.objects.create(
@@ -312,7 +320,9 @@ def load_hardest_articles(n):
     :param n: int The number of articles to load from the database
     :return: list(Article) The n hardest articles to classify.
     """
-    return Article.objects.all().order_by('confidence__min_confidence')[:n]
+    # Return only articles that don't have
+    return Article.objects.filter(label_counts__min_label_counts__lt=MIN_USER_LABELS)\
+               .order_by('confidence__min_confidence')[:n]
 
 
 ##############################################################################################

@@ -1,5 +1,6 @@
 import xml.etree.ElementTree as ET
 from backend.models import Article, UserLabel
+from django.core.exceptions import ObjectDoesNotExist
 
 ##############################################################################################
 # Constants
@@ -83,11 +84,14 @@ def form_paragraph_json(article, paragraph_id):
     :return: dict A dict containing article_id, paragraph_id, sentence_id, data and task keys
     """
     tokens = article.tokens['tokens']
+    par_ends = article.paragraphs['paragraphs']
+    sent_ends = article.sentences['sentences']
     if paragraph_id == 0:
         start_token = 0
     else:
-        start_token = article.paragraphs['paragraphs'][paragraph_id - 1] + 1
-    end_token = article.paragraphs['paragraphs'][paragraph_id]
+        start_sent = par_ends[paragraph_id - 1] + 1
+        start_token = sent_ends[start_sent - 1] + 1
+    end_token = sent_ends[par_ends[paragraph_id]]
     return {
         'article_id': article.id,
         'paragraph_id': paragraph_id,
@@ -106,15 +110,19 @@ def load_paragraph_above(article_id, paragraph_id, sentence_id):
     :param sentence_id: int. The index of the sentence for which we want the tokens above.
     :return: list(string). The tokens in paragraph paragraph_id.
     """
-    article = Article.objects.get(id=article_id)
-    tokens = article.tokens['tokens']
-    paragraph_ends = article.paragraphs['paragraphs']
-    sentence_ends = article.sentences['sentences']
+    try:
+        article = Article.objects.get(id=article_id)
+        tokens = article.tokens['tokens']
+        paragraph_ends = article.paragraphs['paragraphs']
+        sentence_ends = article.sentences['sentences']
+    except ObjectDoesNotExist:
+        # Est-ce que je devrais retourner autre chose?
+        return None
     if paragraph_id == 0:
         start_sentence = 0
     else:
         start_sentence = paragraph_ends[paragraph_id - 1] + 1
-    end_sentence = paragraph_ends[paragraph_id]
+    end_sentence = sentence_id - 1
     if start_sentence == 0:
         start_token = 0
     else:
@@ -287,9 +295,12 @@ def add_user_labels_to_db(article_id, session_id, labels, sentence_index, author
     :return: UserLabel The UserLabel created
     """
     # Get the article to which these labels belong
-    article = Article.objects.get(id=article_id)
-    label_counts = article.label_counts['label_counts']
+    try:
+        article = Article.objects.get(id=article_id)
+    except ObjectDoesNotExist:
+        return None
 
+    label_counts = article.label_counts['label_counts']
     # Increase the label count for the given tokens in the Article database
     label_counts[sentence_index] += 1
     article.label_counts = {
@@ -320,7 +331,7 @@ def load_hardest_articles(n):
     :param n: int The number of articles to load from the database
     :return: list(Article) The n hardest articles to classify.
     """
-    # Return only articles that don't have
+    # Return only articles that don't have enough labels for all sentences
     return Article.objects.filter(label_counts__min_label_counts__lt=MIN_USER_LABELS)\
                .order_by('confidence__min_confidence')[:n]
 
@@ -376,7 +387,8 @@ def request_labelling_task(session_id):
     :return: (Article, int, list(int)) The article_id, paragraph_index and sentence_indices of the labelling task
     """
     session_labels = UserLabel.objects.filter(session_id=session_id)
-    for article in load_hardest_articles(ARTICLE_LOADS):
+    articles = load_hardest_articles(ARTICLE_LOADS)
+    for article in articles:
         annotated_sentences = [user_label.sentence_index for user_label in session_labels.filter(article=article)]
         label_counts = article.label_counts['label_counts']
         confidences = article.confidence['confidence']
@@ -393,6 +405,7 @@ def request_labelling_task(session_id):
                     and (prev_par_end + 1) not in annotated_sentences:
                 return article, i, []
 
+            # For all sentences in the paragraph, check if they can be annotated by the user
             for j in range(prev_par_end + 1, p + 1):
                 if label_counts[j] < COUNT_THRESHOLD and j not in annotated_sentences:
                     if j == 0:
@@ -410,6 +423,7 @@ def request_labelling_task(session_id):
                         last_sent = quote_end_sentence(sentence_ends, article.in_quotes['in_quotes'], sent_end)
                         labelling_task = list(range(labelling_task[0], last_sent + 1))
                     return article, i, labelling_task
+            prev_par_end = p
     return None, [], []
 
 
@@ -423,24 +437,31 @@ def parse_user_tags(article_id, paragraph_index, sentence_indices, tags, authors
     :param sentence_indices: list(int) The indices of the sentences where the user performed a labelling task, and an
                                 empty list if the user labelled the whole article.
     :param tags: list(int) The user tags
-    :return:
+    :param authors: list(int) The relative position of the author of the quote, if there is one.
+    :return: list(list(int)), list(int), list(int). The list(token label) for each labelled sentence, the list of
+                sentence indices, and the list of absolute position of the author of this quote.
     """
-    article = Article.objects.get(id=article_id)
-    sentence_ends = article.sentences['sentences']
+    try:
+        article = Article.objects.get(id=article_id)
+    except ObjectDoesNotExist:
+        return None
+
+    par_ends = article.paragraphs['paragraphs']
+    sent_ends = article.sentences['sentences']
     # Find the tagged sentences if the whole paragraph is tagged.
     if len(sentence_indices) == 0:
         if paragraph_index == 0:
             p_start = 0
         else:
-            p_start = article.paragraphs['paragraphs'][paragraph_index - 1] + 1
-        p_end = article.paragraphs['paragraphs'][paragraph_index]
+            p_start = par_ends[paragraph_index - 1] + 1
+        p_end = par_ends[paragraph_index]
         sentence_indices = range(p_start, p_end + 1)
 
     # Find the index of the first token tagged
     if sentence_indices[0] == 0:
         sentence_start = 0
     else:
-        sentence_start = sentence_ends[sentence_indices[0] - 1] + 1
+        sentence_start = sent_ends[sentence_indices[0] - 1] + 1
 
     # Transform relative index to absolute index
     author_indices = []
@@ -451,10 +472,10 @@ def parse_user_tags(article_id, paragraph_index, sentence_indices, tags, authors
     sentence_labels = []
     first_tag_index = 0
     for index in sentence_indices:
-        last_tag_index = first_tag_index + (sentence_ends[index] - sentence_start)
+        last_tag_index = first_tag_index + (sent_ends[index] - sentence_start)
         sentence_labels.append(tags[first_tag_index:last_tag_index + 1])
         first_tag_index = last_tag_index + 1
-        sentence_start = sentence_ends[index] + 1
+        sentence_start = sent_ends[index] + 1
 
     return sentence_labels, sentence_indices, author_indices
 
@@ -463,25 +484,29 @@ def parse_user_tags(article_id, paragraph_index, sentence_indices, tags, authors
 ##############################################################################################
 
 
-def change_confidence(article_id, sentence_confidence):
+def change_confidence(article_id, confidences):
     """
     Edits the Article database to reflect that the trained model has changed his confidence level that each sentence is
     or isn't reported speech.
 
     :param article_id: int The id of the article to edit
-    :param sentence_confidence: list(int) The confidence (in [0, 100]) the trained model has for each sentence.
+    :param confidences: list(int) The confidence (in [0, 100]) the trained model has for each sentence.
     :return: int. The minimum confidence this article has in a sentence, or -1 if the article couldn't be added to the
                     database.
     """
-    article = Article.objects.get(id=article_id)
+    try:
+        article = Article.objects.get(id=article_id)
+    except ObjectDoesNotExist:
+        return None
+
     old_conf = article.confidence['confidence']
-    min_conf = min(sentence_confidence)
-    if len(sentence_confidence) == len(old_conf) and min_conf >= 0 and max(sentence_confidence) <= 100:
+    min_conf = min(confidences)
+    if len(confidences) == len(old_conf) and min_conf >= 0 and max(confidences) <= 100:
         new_conf = {
-            'confidence': sentence_confidence,
-            'min_conf': min_conf,
+            'confidence': confidences,
+            'min_confidence': min_conf,
         }
         article.confidence = new_conf
         article.save()
         return min_conf
-    return -1
+    return None

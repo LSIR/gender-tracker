@@ -3,6 +3,7 @@ from django.views.decorators.csrf import csrf_exempt
 from .helpers import add_user_labels_to_db, request_labelling_task, form_sentence_json, form_paragraph_json,\
     parse_user_tags, load_paragraph_above
 import json
+import random
 
 # The life span of a cookie, in seconds
 COOKIE_LIFE_SPAN = 1 * 60 * 60
@@ -11,7 +12,7 @@ COOKIE_LIFE_SPAN = 1 * 60 * 60
 USER_ID = 1111
 
 # If in dev mode, don't touch the database:
-DEV_MODE = True
+DEV_MODE = False
 LSIR_TAGGER = False
 
 
@@ -32,6 +33,11 @@ def load_content(request):
     # This needs to be the user's session cookie.
     user_id = manage_session_id(request)
     if not DEV_MODE:
+        #
+        #
+        # WHAT DO I DO WHEN THERE ARE NO MORE LABELLING TASKS? Message displayed to user?
+        #
+        #
         article, paragraph_id, sentence_id = request_labelling_task(user_id)
         if len(sentence_id) == 0:
             return JsonResponse(form_paragraph_json(article, paragraph_id))
@@ -39,7 +45,6 @@ def load_content(request):
             return JsonResponse(form_sentence_json(article, paragraph_id, sentence_id))
     else:
         # Placeholder as the database is empty.
-        import random
         random_value = random.randint(1, 10)
         if random_value > 5:
             response = JsonResponse({
@@ -146,6 +151,7 @@ def manage_session_id(request):
     # set a cookie that expires COOKIE_LIFE_SPAN hour later
     if not request.session.has_key('user'):
         # How to generate this?
-        request.session['user'] = f'{USER_ID}'
+        random_user = random.randint(0, 1000)
+        request.session['user'] = f'{random_user}'
         request.session.set_expiry(COOKIE_LIFE_SPAN)
     return request.session['user']

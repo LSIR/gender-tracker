@@ -223,8 +223,9 @@ export default {
             this.$forceUpdate();
         },
         submit_paragraph: function (tag) {
-            this.sentence_tags[0] = tag;
-            this.submitTags()
+            this.sentence_tags = new Array(this.content.length);
+            this.sentence_tags.fill(tag);
+            this.submitTags();
         },
         button_color: function (index) {
             if (this.sentence_tags[index] === 1) {

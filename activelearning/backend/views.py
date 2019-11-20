@@ -12,6 +12,8 @@ USER_ID = 1111
 
 # If in dev mode, don't touch the database:
 DEV_MODE = True
+LSIR_TAGGER = False
+
 
 def load_content(request):
     """

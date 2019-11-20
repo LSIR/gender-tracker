@@ -239,17 +239,16 @@ def process_article(article_text, nlp):
     return article_tokens, paragraph_indices, sentence_indices, people_indices, in_quotes
 
 
-def add_article_to_db(url, nlp):
+def add_article_to_db(path, nlp):
     """
-    Loads an article stored as an XML file, and adds it to the database
-    afterhaving processed it.
+    Loads an article stored as an XML file, and adds it to the database after having processed it.
 
-    :param url: string The URL of the stored XML file
+    :param path: string The URL of the stored XML file
     :param nlp: spacy.Language The language model used to tokenize the text
     :return: Article The article created
     """
     # Loading an xml file as a string
-    with open(url, 'r') as file:
+    with open(path, 'r') as file:
         article_text = file.read()
     
     # Process the file

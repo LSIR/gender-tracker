@@ -1,7 +1,7 @@
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
-from .helpers import add_user_labels_to_db, request_labelling_task, form_sentence_json, form_paragraph_json,\
-    parse_user_tags, load_paragraph_above
+from .task_loading import request_labelling_task, form_sentence_json, form_paragraph_json, load_paragraph_above
+from .helpers import add_user_labels_to_db, parse_user_tags
 import json
 import random
 
@@ -12,7 +12,7 @@ COOKIE_LIFE_SPAN = 1 * 60 * 60
 USER_ID = 1111
 
 # If in dev mode, don't touch the database:
-DEV_MODE = False
+DEV_MODE = True
 LSIR_TAGGER = False
 
 
@@ -51,8 +51,8 @@ def load_content(request):
                 'article_id': 2,
                 'paragraph_id': 1,
                 'sentence_id': [2],
-                'data': ['Mais', '"', 'il', 'ne', 'pourra', 'plus', 'jamais', 'marcher', '"', ",",\
-                         'selon', 'son', 'docteur', '.'],
+                'data': ['Mais ', '"', 'il ', 'ne ', 'pourra ', 'plus ', 'jamais ', 'marcher', '"', ", ",\
+                         'selon ', 'son ', 'docteur', '.'],
                 'task': 'sentence',
             })
         else:
@@ -101,9 +101,9 @@ def load_rest_of_paragraph(request):
                 sentence_id = data['sentence_id']
                 print(f'\nids: {article_id}, {paragraph_id}, {sentence_id}\n')
                 text = {
-                    'data': ['Les', 'fractures', 'de', 'pied', 'peuvent', 'être', 'très', 'dangereuses', 'nous',
-                             'apprends', 'le', 'Dr.', 'Jacques', '.', 'L\'', 'opération', 'fût', 'très', 'compliquée',
-                             '.', 'Elle', 's\'', 'est', 'bien', 'passée', '.']
+                    'data': ['Les ', 'fractures ', 'de ', 'pied ', 'peuvent ', 'être ', 'très ', 'dangereuses', ', ',
+                             'nous ', 'apprends ', 'le ', 'Dr.', 'Jacques', '.', 'L\'', 'opération ', 'fût ', 'très ',
+                             'compliquée', '. ', 'Elle ', 's\'', 'est ', 'bien ', 'passée', '. ']
                 }
                 return JsonResponse(text)
             except KeyError:

@@ -1,5 +1,5 @@
 from django.contrib.postgres.fields import JSONField
-from django.db.models.fields import TextField, IntegerField
+from django.db.models.fields import TextField, IntegerField, BooleanField
 from django.db import models
 
 
@@ -11,7 +11,7 @@ class Article(models.Model):
     # String representation of the article's XML file.
     text = TextField()
     # List of unique people cited in the article
-    authors = JSONField()
+    people = JSONField()
     # Article text surrounded by a list of tokens
     tokens = JSONField()
     # List of all sentence indices that are the ends of paragraphs
@@ -20,13 +20,16 @@ class Article(models.Model):
     sentences = JSONField()
     # List of the number of user labels for each sentence
     label_counts = JSONField()
+    # The percentage of labels that have the same value for each sentence
+    label_overlap = JSONField()
     # List of boolean values {0, 1} representing if a token is in between quotes or not
     in_quotes = JSONField()
-    # List of values, where value j is in (0, 1) representing the confidence of the current
-    # ML models predictions in deciding if sentence j is a quote or not. 1 means absolute
-    # confidence (the sentence has been labeled), while 0 means completely unsure.
+    # List of values, where value j is in (0, 1) representing the confidence of the current ML models predictions in
+    # deciding if sentence j is a quote or not. 1 means absolute confidence, while 0 means completely unsure.
     confidence = JSONField()
-    
+    # If this article can only be seen by admins
+    admin_article = BooleanField()
+
     def __str__(self):
         return f'Article id: {self.id}'
 
@@ -46,6 +49,8 @@ class UserLabel(models.Model):
     sentence_index = IntegerField()
     # A list of the token indices that are the author of this citation
     author_index = JSONField()
+    # If this label was added by an admin user
+    admin_label = BooleanField()
 
     def __str__(self):
         return f'Label id: {self.id}, Session id: {self.session_id}, {self.article}, Sentence Number: ' \

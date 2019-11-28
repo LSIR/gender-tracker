@@ -1,5 +1,7 @@
 <template>
-    <v-container>
+    <v-container
+        style="width: 800px;"
+    >
         <v-layout text-center wrap>
             <v-flex mb-4>
                 <h1 class="display-2 font-weight-bold mb-3">
@@ -12,11 +14,19 @@
                 wrap
                 v-if="task==='sentence'"
         >
-            <v-flex mb-4 v-if="extra_content.length > 0">
+            <v-flex mb-4>
+                <h3>
+                    {{toggle_text[toggle_selection - 1] }}
+                </h3>
                 <div>
+                    <span>
+                        <v-btn small color="blue-grey lighten-4" v-on:click.native=loadTextAbove>&#x21E6;</v-btn>
+                    </span>
+                    &nbsp;
                     <span v-for="(word, i) in extra_content" :key="i">
                         <v-btn
-                                small
+                                class="text-none"
+                                depressed
                                 v-bind:style="buttonStyle"
                                 v-on:click.native=tagAuthor(i)
                                 v-bind:color=button_color_extra_text(i)
@@ -24,16 +34,10 @@
                             {{ word }}
                         </v-btn>
                     </span>
-                </div>
-            </v-flex>
-            <v-flex mb-4>
-                <h3>
-                    {{toggle_text[toggle_selection - 1] }}
-                </h3>
-                <div>
                     <span v-for="(word, i) in content" :key="i">
                         <v-btn
-                                small
+                                class="text-none"
+                                depressed
                                 v-bind:style="buttonStyle"
                                 v-on:click.native=tagWord(i)
                                 v-bind:color=button_color(i)
@@ -43,12 +47,9 @@
                     </span>
                 </div>
                 <div>
-                    <v-btn class="ma-2" outlined v-on:click.native=loadTextAbove>Load the Rest of the Paragraph</v-btn>
-                </div>
-                <div>
-                    <v-btn class="ma-2" outlined v-on:click.native=clearAnswers>Clear Answers</v-btn>
-                    <v-btn class="ma-2" outlined v-on:click.native=submitTags>No Reported Speech</v-btn>
-                    <v-btn class="ma-2" outlined v-on:click.native=submitTags>Submit Response</v-btn>
+                    <v-btn class="ma-2" outlined v-on:click.native=clearAnswers>Effacer les Réponses</v-btn>
+                    <v-btn class="ma-2" outlined v-on:click.native=submitTags>Aucune Citation</v-btn>
+                    <v-btn class="ma-2" outlined v-on:click.native=submitTags>Soumettre les Réponses</v-btn>
                 </div>
             </v-flex>
         </v-layout>
@@ -75,7 +76,7 @@
         <v-layout text-center wrap>
             <v-flex mb-4>
                 <div>
-                    <v-btn class="ma-2" outlined v-on:click.native=loadContent>Load New Sentence</v-btn>
+                    <v-btn class="ma-2" outlined v-on:click.native=loadContent>Nouvelle Phrase</v-btn>
                 </div>
             </v-flex>
         </v-layout>
@@ -112,12 +113,12 @@ export default {
         author_indices: [],
         colors: ["black", "deep-orange darken-4", "green darken-4"],
         toggle_selection: 1,
-        toggle_text: ["Select the First Word of the Reported Speech",
+        toggle_text: ["Clickez sur le premier mot du text cité, ou sur le boutton \"Aucune Citation\" si il n'y en a pas.",
             "Select the Last Word of the Reported Speech",
             "Select the Author of the Reported Speech"],
         buttonStyle: {
             'min-width': 0,
-            'padding': '5px',
+            'padding': '0px',
         }
     }),
     mounted: function () {
@@ -134,9 +135,13 @@ export default {
                     that.article_id = data['article_id'];
                     that.paragraph_id = data['paragraph_id'];
                     that.sentence_id = data['sentence_id'];
-                    that.content = data['data'];
                     that.task = data['task'];
-                    that.sentence_tags = new Array(that.content.length)
+                    if (that.task === 'sentence'){
+                        that.content = that.replace_whitespace(data['data']);
+                    }else{
+                        that.content = data['data'];
+                    }
+                    that.sentence_tags = new Array(that.content.length);
                     that.sentence_tags.fill(0)
                 }
             });
@@ -155,7 +160,7 @@ export default {
                     contentType: "application/json; charset=utf-8",
                     dataType: "json",
                     success: function (data) {
-                        that.extra_content = data['data'];
+                        that.extra_content = that.replace_whitespace(data['data']);
                     }
                 });
             }
@@ -241,9 +246,16 @@ export default {
             if (this.author_indices.includes(relative_index)){
                 return "green lighten-4"
             }else{
-                return "white"
+                return "grey lighten-4"
             }
         },
+        replace_whitespace: function (text_array){
+            for (let i = 0; i < text_array.length; i++) {
+                // \xa0 is the JS whitespace character
+                text_array[i] = text_array[i].replace(' ', '\xa0')
+            }
+            return text_array
+        }
     },
 };
 </script>

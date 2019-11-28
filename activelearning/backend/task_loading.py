@@ -1,5 +1,6 @@
-from backend.models import Article, UserLabel
 from django.core.exceptions import ObjectDoesNotExist
+from backend.models import Article, UserLabel
+from backend.helpers import paragraph_sentences
 
 """ File containing all methods to select and format user labelling tasks. """
 
@@ -79,7 +80,8 @@ def form_paragraph_json(article, paragraph_id):
 
 def load_paragraph_above(article_id, paragraph_id, sentence_id):
     """
-    Finds the lists of tokens for a paragraph above a given sentence.
+    Finds the lists of tokens for a paragraph above a given sentence. If the sentence is in a paragraph below the
+    requested paragraph, returns the whole paragraph.
 
     :param article_id: int.
         The id of the Article of which we want the tokens for a paragraph.
@@ -93,23 +95,58 @@ def load_paragraph_above(article_id, paragraph_id, sentence_id):
     try:
         article = Article.objects.get(id=article_id)
         tokens = article.tokens['tokens']
-        paragraph_ends = article.paragraphs['paragraphs']
         sentence_ends = article.sentences['sentences']
     except ObjectDoesNotExist:
         return None
 
-    if paragraph_id == 0:
-        start_sentence = 0
+    if sentence_id == 0:
+        return {'data': []}
+
+    first_sent, last_sent = paragraph_sentences(article, paragraph_id)
+    last_sent = min(last_sent, sentence_id - 1)
+    # If it was the first sentence in the paragraph, load the paragraph above.
+    if first_sent < last_sent and first_sent != 0:
+        first_sent, last_sent = paragraph_sentences(article, paragraph_id - 1)
+    if first_sent == 0:
+        first_token = 0
     else:
-        start_sentence = paragraph_ends[paragraph_id - 1] + 1
-    end_sentence = sentence_id - 1
-    if start_sentence == 0:
-        start_token = 0
-    else:
-        start_token = sentence_ends[start_sentence - 1] + 1
-    end_token = sentence_ends[end_sentence]
+        first_token = sentence_ends[first_sent - 1] + 1
+    last_token = sentence_ends[last_sent]
     return {
-        'data': tokens[start_token:end_token + 1],
+        'data': tokens[first_token:last_token + 1],
+    }
+
+
+def load_paragraph_below(article_id, paragraph_id, sentence_id):
+    """
+    Finds the lists of tokens for a paragraph below a given sentence. If the sentence is in a paragraph above the
+    requested paragraph, returns the whole paragraph.
+
+    :param article_id: int.
+        The id of the Article of which we want the tokens for a paragraph.
+    :param paragraph_id: int.
+        The index of the paragraph for which we want the tokens.
+    :param sentence_id: int.
+        The index of the sentence for which we want the tokens below.
+    :return: list(string).
+        The tokens in paragraph paragraph_id.
+    """
+    try:
+        article = Article.objects.get(id=article_id)
+        tokens = article.tokens['tokens']
+        sentence_ends = article.sentences['sentences']
+    except ObjectDoesNotExist:
+        return None
+
+    first_sent, last_sent = paragraph_sentences(article, paragraph_id)
+    first_sent = max(first_sent, sentence_id - 1)
+    if first_sent == 0:
+        first_token = 0
+    else:
+        first_token = sentence_ends[first_sent - 1] + 1
+    last_token = sentence_ends[last_sent]
+    return {
+        'data': tokens[first_token:last_token + 1],
     }
 
 
@@ -124,7 +161,7 @@ def load_hardest_articles(n):
         The n hardest articles to classify.
     """
     # Return only articles that don't have enough labels for all sentences
-    return Article.objects.filter(label_counts__min_label_counts__lt=MIN_USER_LABELS)\
+    return Article.objects.filter(label_counts__min_label_counts__lt=MIN_USER_LABELS) \
                .order_by('confidence__min_confidence')[:n]
 
 
@@ -180,8 +217,8 @@ def request_labelling_task(session_id):
 
     :param session_id: int.
         The user's session id
-    :return: (Article, int, list(int)).
-        The article_id, paragraph_index and sentence_indices of the labelling task
+    :return: dict.
+        A dict containing article_id, paragraph_id, sentence_id, data and task keys
     """
     session_labels = UserLabel.objects.filter(session_id=session_id)
     articles = load_hardest_articles(ARTICLE_LOADS)
@@ -197,28 +234,22 @@ def request_labelling_task(session_id):
             min_conf = min([conf for conf in confidences[prev_par_end + 1:p + 1]])
 
             # For high enough confidences, annotate the whole paragraph
-            if min_conf >= CONFIDENCE_THRESHOLD\
-                    and label_counts[prev_par_end + 1] < COUNT_THRESHOLD\
+            if min_conf >= CONFIDENCE_THRESHOLD \
+                    and label_counts[prev_par_end + 1] < COUNT_THRESHOLD \
                     and (prev_par_end + 1) not in annotated_sentences:
-                return article, i, []
+                return form_paragraph_json(article, i)
 
             # For all sentences in the paragraph, check if they can be annotated by the user
             for j in range(prev_par_end + 1, p + 1):
                 if label_counts[j] < COUNT_THRESHOLD and j not in annotated_sentences:
-                    if j == 0:
-                        sent_start = 0
-                    else:
-                        sent_start = sentence_ends[j - 1] + 1
-                    sent_end = sentence_ends[j]
                     # List of sentence indices to label
                     labelling_task = [j]
-                    # Checks that the sentence is not inside quotes
-                    if article.in_quotes['in_quotes'][sent_start] == 1:
-                        first_sent = quote_start_sentence(sentence_ends, article.in_quotes['in_quotes'], sent_start)
-                        labelling_task = list(range(first_sent, j + 1))
+                    # Checks that the sentence's last token is inside quotes, in which case the next sentence would
+                    # also need to be returned
+                    sent_end = sentence_ends[j]
                     if article.in_quotes['in_quotes'][sent_end] == 1:
                         last_sent = quote_end_sentence(sentence_ends, article.in_quotes['in_quotes'], sent_end)
                         labelling_task = list(range(labelling_task[0], last_sent + 1))
-                    return article, i, labelling_task
+                    return form_sentence_json(article, i, labelling_task)
             prev_par_end = p
-    return None, [], []
+    return None

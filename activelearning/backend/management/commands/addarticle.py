@@ -7,10 +7,12 @@ class Command(BaseCommand):
     help = 'Adds a new article to the database'
 
     def add_arguments(self, parser):
-        parser.add_argument('path', nargs=1, help="Path of the article to add to the database")
+        parser.add_argument('path', help="Path of the article to add to the database")
 
     def handle(self, *args, **options):
         path = options['path']
+        print(f'path: {path}')
+        print('Loading language model...')
         nlp = spacy.load('fr_core_news_md')
         try:
             article = add_article_to_db(path, nlp)

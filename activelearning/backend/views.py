@@ -1,7 +1,7 @@
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
-from .task_loading import request_labelling_task, form_sentence_json, form_paragraph_json, load_paragraph_above
-from .helpers import add_user_labels_to_db, parse_user_tags
+from .task_loading import request_labelling_task, load_paragraph_above, load_paragraph_below
+from .task_parsing import add_labels_to_database
 import json
 import random
 
@@ -29,86 +29,64 @@ def load_content(request):
     :param request: The user request
     :return: Json A Json file containing the article_id, paragraph_id, sentence_id, data and task.
     """
-    # Real Code
-    # This needs to be the user's session cookie.
     user_id = manage_session_id(request)
-    if not DEV_MODE:
-        #
-        #
-        # WHAT DO I DO WHEN THERE ARE NO MORE LABELLING TASKS? Message displayed to user?
-        #
-        #
-        article, paragraph_id, sentence_id = request_labelling_task(user_id)
-        if len(sentence_id) == 0:
-            return JsonResponse(form_paragraph_json(article, paragraph_id))
-        else:
-            return JsonResponse(form_sentence_json(article, paragraph_id, sentence_id))
+    labelling_task = request_labelling_task(user_id)
+    if labelling_task is not None:
+        return JsonResponse(labelling_task)
     else:
-        # Placeholder as the database is empty.
-        random_value = random.randint(1, 10)
-        if random_value > 5:
-            response = JsonResponse({
-                'article_id': 2,
-                'paragraph_id': 1,
-                'sentence_id': [2],
-                'data': ['Mais ', '"', 'il ', 'ne ', 'pourra ', 'plus ', 'jamais ', 'marcher', '"', ", ",\
-                         'selon ', 'son ', 'docteur', '.'],
-                'task': 'sentence',
-            })
-        else:
-            response = JsonResponse({
-                'article_id': 3,
-                'paragraph_id': 0,
-                'sentence_id': [],
-                'data': ['Les fractures de pied peuvent être très dangereuses, nous apprends le Dr. Jacques. L\''
-                         'opération fût très compliquée. Elle s\'est bien passée. Mais "il ne pourra plus jamais'
-                         ' marcher", selon son docteur.'],
-                'task': 'paragraph',
-            })
-        return response
+        # Make this better
+        return JsonResponse({'data': 'No more text to annotate!'})
 
 
-def load_rest_of_paragraph(request):
+def load_above(request):
     """
-    When the speaker of a quote wasn't in sentence reported speech, the user can ask to show the part of the
-    paragraph that leads up to the quote.
+    Loads the tokens of the paragraph above a given sentence, or the whole paragraph if the sentence is in a paragraph
+    below it.
 
-    :param request: The user request.
-    :return: Json A Json file containing the the list of tokens of the paragraph above the sentence.
+    :param request:
+        The user request.
+    :return: Json.
+        A Json file containing the the list of tokens of the paragraph above the sentence.
     """
     # Session stuff
     user_id = manage_session_id(request)
-    if not DEV_MODE:
-        if request.method == 'GET':
-            try:
-                # Get user tags
-                data = dict(request.GET)
-                article_id = data['article_id']
-                paragraph_id = data['paragraph_id']
-                sentence_id = data['sentence_id']
-                return JsonResponse(load_paragraph_above(article_id, paragraph_id, sentence_id))
-            except KeyError:
-                return HttpResponse('Failure. JSON parse failed.')
-        return HttpResponse('Failure. Not a GET request.')
-    else:
-        if request.method == 'GET':
-            try:
-                # Get user tags
-                data = dict(request.GET)
-                print(f'Data: {data}')
-                article_id = data['article_id']
-                paragraph_id = data['paragraph_id']
-                sentence_id = data['sentence_id']
-                print(f'\nids: {article_id}, {paragraph_id}, {sentence_id}\n')
-                text = {
-                    'data': ['Les ', 'fractures ', 'de ', 'pied ', 'peuvent ', 'être ', 'très ', 'dangereuses', ', ',
-                             'nous ', 'apprends ', 'le ', 'Dr.', 'Jacques', '.', 'L\'', 'opération ', 'fût ', 'très ',
-                             'compliquée', '. ', 'Elle ', 's\'', 'est ', 'bien ', 'passée', '. ']
-                }
-                return JsonResponse(text)
-            except KeyError:
-                return HttpResponse('Failure. JSON parse failed.')
-        return HttpResponse('Failure. Not a GET request.')
+    if request.method == 'GET':
+        try:
+            # Get user tags
+            data = dict(request.GET)
+            print(data)
+            article_id = int(data['article_id'][0])
+            paragraph_id = int(data['paragraph_id'][0])
+            sentence_id = int(data['sentence_id'][0])
+            return JsonResponse(load_paragraph_above(article_id, paragraph_id, sentence_id))
+        except KeyError:
+            return HttpResponse('Failure. JSON parse failed.')
+    return HttpResponse('Failure. Not a GET request.')
+
+
+def load_below(request):
+    """
+    Loads the tokens of the paragraph below a given sentence, or the whole paragraph if the sentence is in a paragraph
+    above it.
+
+    :param request:
+        The user request.
+    :return: Json.
+        A Json file containing the the list of tokens of the paragraph above the sentence.
+    """
+    # Session stuff
+    user_id = manage_session_id(request)
+    if request.method == 'GET':
+        try:
+            # Get user tags
+            data = dict(request.GET)
+            article_id = data['article_id']
+            paragraph_id = data['paragraph_id']
+            sentence_id = data['sentence_id']
+            return JsonResponse(load_paragraph_below(article_id, paragraph_id, sentence_id))
+        except KeyError:
+            return JsonResponse({'Success': False})
+    return JsonResponse({'Success': False})
 
 
 @csrf_exempt
@@ -117,24 +95,15 @@ def submit_tags(request):
     user_id = manage_session_id(request)
     if request.method == 'POST':
         try:
-            # Get user tags
             data = json.loads(request.body)
             article_id = data['article_id']
             paragraph_id = data['paragraph_id']
-            sentence_id = data['sentence_id']
+            sent_id = data['sentence_id']
             tags = data['tags']
             authors = data['authors']
 
-            if not DEV_MODE:
-                sentence_labels, sentence_indices, author_indices = parse_user_tags(article_id, paragraph_id,
-                                                                                    sentence_id,
-                                                                                    tags, authors)
-                for i in range(len(sentence_labels)):
-                    add_user_labels_to_db(article_id, user_id, sentence_labels[i], sentence_indices[i], author_indices)
-            else:
-                print(f'\nSubmitted answers: user={user_id}, a={article_id}, p={paragraph_id}, s={sentence_id}, '
-                      f'tags={tags}, authors={authors}\n')
-            return HttpResponse('Success.')
+            add_labels_to_database(user_id, article_id, paragraph_id, sent_id, tags, authors)
+            return JsonResponse({'Success': True})
         except KeyError:
             return HttpResponse('Failure. JSON parse failed.')
     return HttpResponse('Failure. Not a POST request.')

@@ -94,18 +94,19 @@ def load_paragraph_above(article_id, paragraph_id, sentence_id):
     """
     try:
         article = Article.objects.get(id=article_id)
-        tokens = article.tokens['tokens']
-        sentence_ends = article.sentences['sentences']
     except ObjectDoesNotExist:
         return None
 
-    if sentence_id == 0:
+    tokens = article.tokens['tokens']
+    sentence_ends = article.sentences['sentences']
+
+    if sentence_id == 0 or paragraph_id < 0:
         return {'data': []}
 
     first_sent, last_sent = paragraph_sentences(article, paragraph_id)
     last_sent = min(last_sent, sentence_id - 1)
     # If it was the first sentence in the paragraph, load the paragraph above.
-    if first_sent < last_sent and first_sent != 0:
+    if first_sent > last_sent and first_sent != 0:
         first_sent, last_sent = paragraph_sentences(article, paragraph_id - 1)
     if first_sent == 0:
         first_token = 0
@@ -120,7 +121,8 @@ def load_paragraph_above(article_id, paragraph_id, sentence_id):
 def load_paragraph_below(article_id, paragraph_id, sentence_id):
     """
     Finds the lists of tokens for a paragraph below a given sentence. If the sentence is in a paragraph above the
-    requested paragraph, returns the whole paragraph.
+    requested paragraph, returns the whole paragraph. Returns an empty list of tokens if the end of the article has
+    been reached.
 
     :param article_id: int.
         The id of the Article of which we want the tokens for a paragraph.
@@ -133,10 +135,14 @@ def load_paragraph_below(article_id, paragraph_id, sentence_id):
     """
     try:
         article = Article.objects.get(id=article_id)
-        tokens = article.tokens['tokens']
-        sentence_ends = article.sentences['sentences']
     except ObjectDoesNotExist:
         return None
+
+    tokens = article.tokens['tokens']
+    sentence_ends = article.sentences['sentences']
+
+    if paragraph_id >= len(article.paragraphs['paragraphs']):
+        return {'data': []}
 
     first_sent, last_sent = paragraph_sentences(article, paragraph_id)
     first_sent = max(first_sent, sentence_id - 1)

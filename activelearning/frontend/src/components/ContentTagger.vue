@@ -12,6 +12,17 @@
         <v-layout
                 text-center
                 wrap
+                v-if="task==='None'"
+        >
+            <v-flex mb-4>
+                <h2>
+                    Votre travail est terminé. Merci!
+                </h2>
+            </v-flex>
+        </v-layout>
+        <v-layout
+                text-center
+                wrap
                 v-if="task==='sentence'"
         >
             <v-flex mb-4>
@@ -19,17 +30,17 @@
                     {{toggle_text[toggle_selection - 1] }}
                 </h3>
                 <div>
-                    <span>
+                    <span v-if="(paragraph_id - above_loads) > 0">
                         <v-btn small color="blue-grey lighten-4" v-on:click.native=loadTextAbove>&#x21E6;</v-btn>
                     </span>
                     &nbsp;
-                    <span v-for="(word, i) in extra_content" :key="`A-${i}`">
+                    <span v-for="(word, i) in text_above" :key="`A-${i}`">
                         <v-btn
                                 class="text-none"
                                 depressed
                                 v-bind:style="buttonStyle"
-                                v-on:click.native=tagAuthor(i)
-                                v-bind:color=button_color_extra_text(i)
+                                v-on:click.native=tagAuthorAbove(i)
+                                v-bind:color=button_color_above(i)
                         >
                             {{ word }}
                         </v-btn>
@@ -46,7 +57,23 @@
                             {{ word }}
                         </v-btn>
                     </span>
+                    <span v-for="(word, i) in text_below" :key="`C-${i}`">
+                        <v-btn
+                                class="text-none"
+                                depressed
+                                v-bind:style="buttonStyle"
+                                v-on:click.native=tagAuthorBelow(i)
+                                v-bind:color=button_color_below(i)
+                        >
+                            {{ word }}
+                        </v-btn>
+                    </span>
+                    &nbsp;
+                    <span v-if="!no_more_content">
+                        <v-btn small color="blue-grey lighten-4" v-on:click.native=loadTextBelow>&#x21E8;</v-btn>
+                    </span>
                 </div>
+
                 <div>
                     <v-btn class="ma-2" outlined v-on:click.native=clearAnswers>Effacer les Réponses</v-btn>
                     <v-btn class="ma-2" outlined v-on:click.native=submitTags>Aucune Citation</v-btn>
@@ -74,6 +101,16 @@
                 </div>
             </v-flex>
         </v-layout>
+        <v-layout
+                text-center
+                wrap
+        >
+            <v-flex mb-4>
+                <div>
+                    {{article_id}}, {{paragraph_id}}, {{sentence_id}}, {{author_indices}}
+                </div>
+            </v-flex>
+        </v-layout>
     </v-container>
 </template>
 
@@ -86,9 +123,11 @@ export default {
         paragraph_id: 0,
         sentence_id: 0,
         content: ['No sentence has been loaded yet.'],
-        extra_content: [],
+        text_above: [],
+        text_below: [],
         above_loads: 0,
         below_loads: 0,
+        no_more_content: false,
         task: 'sentence',
         // 0: no tag, 1: start, 2: end, 3: author
         sentence_tags: [0],
@@ -115,17 +154,20 @@ export default {
                 type: 'GET',
                 url: 'http://127.0.0.1:8000/api/loadContent/',
                 success: function (data) {
-                    that.article_id = data['article_id'];
-                    that.paragraph_id = data['paragraph_id'];
-                    that.sentence_id = data['sentence_id'];
                     that.task = data['task'];
-                    if (that.task === 'sentence'){
-                        that.content = that.replace_whitespace(data['data']);
-                    }else{
-                        that.content = data['data'];
+                    if (that.task !== 'None'){
+                        that.article_id = data['article_id'];
+                        that.paragraph_id = data['paragraph_id'];
+                        that.sentence_id = data['sentence_id'];
+                        that.task = data['task'];
+                        if (that.task === 'sentence'){
+                            that.content = that.replace_whitespace(data['data']);
+                        }else{
+                            that.content = data['data'];
+                        }
+                        that.sentence_tags = new Array(that.content.length);
+                        that.sentence_tags.fill(0)
                     }
-                    that.sentence_tags = new Array(that.content.length);
-                    that.sentence_tags.fill(0)
                 }
             });
         },
@@ -142,30 +184,32 @@ export default {
                     'sentence_id': that.sentence_id[0],
                 },
                 success: function (data) {
-                    that.extra_content = that.replace_whitespace(data['data']).concat(that.extra_content);
+                    that.text_above = that.replace_whitespace(data['data']).concat(that.text_above);
                     that.above_loads += 1;
                 }
             });
         },
         loadTextBelow: function () {
-            if (this.extra_content.length === 0) {
-                const that = this;
-                $.ajax({
-                    type: 'GET',
-                    url: 'http://127.0.0.1:8000/api/loadAbove/',
-                    contentType: "application/json; charset=utf-8",
-                    dataType: "json",
-                    data: {
-                        'article_id': that.article_id,
-                        'paragraph_id': that.paragraph_id + that.below_loads,
-                        'sentence_id': that.sentence_id[0],
-                    },
-                    success: function (data) {
-                        that.extra_content = that.extra_content.concat(that.replace_whitespace(data['data']));
+            const that = this;
+            $.ajax({
+                type: 'GET',
+                url: 'http://127.0.0.1:8000/api/loadBelow/',
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                data: {
+                    'article_id': that.article_id,
+                    'paragraph_id': that.paragraph_id + that.below_loads,
+                    'sentence_id': that.sentence_id[0],
+                },
+                success: function (data) {
+                    if (data['data'].length === 0){
+                        that.no_more_content = true;
+                    }else {
+                        that.text_below = that.text_below.concat(that.replace_whitespace(data['data']));
                         that.below_loads += 1;
                     }
-                });
-            }
+                }
+            });
         },
         submitTags: function () {
             const that = this;
@@ -215,10 +259,18 @@ export default {
             }
             this.$forceUpdate();
         },
-        tagAuthor: function (index) {
+        tagAuthorAbove: function (index) {
             // Only add the author if it hasn't been tagged yet
-            if (!this.author_indices.includes(index - this.extra_content.length)) {
-                this.author_indices.push(index - this.extra_content.length);
+            if (!this.author_indices.includes(index - this.text_above.length)) {
+                this.author_indices.push(index - this.text_above.length);
+                this.author_indices.sort((a, b) => a - b);
+            }
+        },
+        tagAuthorBelow: function (index) {
+            // Only add the author if it hasn't been tagged yet
+            const relative_index = index + this.content.length;
+            if (!this.author_indices.includes(relative_index)) {
+                this.author_indices.push(relative_index);
                 this.author_indices.sort((a, b) => a - b);
             }
         },
@@ -226,7 +278,8 @@ export default {
             this.toggle_selection = 1;
             this.sentence_tags.fill(0);
             this.author_indices = [];
-            this.extra_content = [];
+            this.text_above = [];
+            this.text_below = [];
             this.above_loads = 0;
             this.below_loads = 0;
             this.$forceUpdate();
@@ -245,8 +298,16 @@ export default {
                 return "white"
             }
         },
-        button_color_extra_text: function (index) {
-            const relative_index = index - this.extra_content.length;
+        button_color_above: function (index) {
+            const relative_index = index - this.text_above.length;
+            if (this.author_indices.includes(relative_index)){
+                return "green lighten-4"
+            }else{
+                return "grey lighten-4"
+            }
+        },
+        button_color_below: function (index) {
+            const relative_index = index + this.content.length;
             if (this.author_indices.includes(relative_index)){
                 return "green lighten-4"
             }else{

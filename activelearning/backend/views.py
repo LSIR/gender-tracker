@@ -26,6 +26,8 @@ def load_content(request):
     tokens (words). If a paragraph needs to be annotated, sentence_id is an empty list, and data is a list containing a
     single string, which is the content of the entire paragraph.
 
+    If no more labelling is required from a user, a simple JSon file will be returned containing only 'task': 'None'.
+
     :param request: The user request
     :return: Json A Json file containing the article_id, paragraph_id, sentence_id, data and task.
     """
@@ -34,8 +36,7 @@ def load_content(request):
     if labelling_task is not None:
         return JsonResponse(labelling_task)
     else:
-        # Make this better
-        return JsonResponse({'data': 'No more text to annotate!'})
+        return JsonResponse({'task': 'None'})
 
 
 def load_above(request):
@@ -54,7 +55,6 @@ def load_above(request):
         try:
             # Get user tags
             data = dict(request.GET)
-            print(data)
             article_id = int(data['article_id'][0])
             paragraph_id = int(data['paragraph_id'][0])
             sentence_id = int(data['sentence_id'][0])
@@ -80,9 +80,9 @@ def load_below(request):
         try:
             # Get user tags
             data = dict(request.GET)
-            article_id = data['article_id']
-            paragraph_id = data['paragraph_id']
-            sentence_id = data['sentence_id']
+            article_id = int(data['article_id'][0])
+            paragraph_id = int(data['paragraph_id'][0])
+            sentence_id = int(data['sentence_id'][0])
             return JsonResponse(load_paragraph_below(article_id, paragraph_id, sentence_id))
         except KeyError:
             return JsonResponse({'Success': False})

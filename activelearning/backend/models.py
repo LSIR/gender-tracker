@@ -1,5 +1,5 @@
 from django.contrib.postgres.fields import JSONField
-from django.db.models.fields import TextField, IntegerField, BooleanField
+from django.db.models.fields import TextField, IntegerField, BooleanField, CharField
 from django.db import models
 
 
@@ -42,7 +42,7 @@ class UserLabel(models.Model):
     # Each user labelling is for a sentence in a particular article
     article = models.ForeignKey(Article, on_delete=models.CASCADE)
     # Stores a unique identifier for the user session that created this label
-    session_id = IntegerField() 
+    session_id = CharField(max_length=50)
     # List of the labels given to each word by the user
     labels = JSONField()
     # The index of the sentence that has these labels

@@ -4,7 +4,7 @@ from backend.xml_parsing import process_article
 
 
 ##############################################################################################
-# Save to Database
+# Helpers
 ##############################################################################################
 
 
@@ -28,37 +28,42 @@ def paragraph_sentences(article, paragraph_index):
     return first_sent, last_sent
 
 
-def label_edges(article, paragraph_index, sentence_indices):
+def label_consensus(tags, authors):
     """
-    Finds the index of the first and last token and the index of the first and last sentence, for a list of sentences
-    or a paragraph.
+    The percentage of labels having the same response.
+
+    :param tags: list(list(int)).
+        The list of tags that each user reported.
+    :param authors: list(list(int)).
+        The list of author indices that each user reported.
+    :return: float.
+        A consensus between 0 and 1.
+    """
+    return 0
+
+
+def is_sentence_labelled(article, sentence_id, min_users, min_consensus):
+    """
+    Determines if there is a consensus among enough users so that the label is considered correct.
 
     :param article: Article.
-        The article that contains the paragraph.
-    :param paragraph_index: int.
-        The index of the paragraph
-    :param sentence_indices: list(int).
-        The indices of the sentences. Empty list if the task is for an entire paragraph
-    :return: dictionary:
-        'token': (int, int). The indices of the first and last token in the paragraph.
-        'sentence': (int, int). The indices of the first and last sentence in the paragraph.
-    """
-    sent_ends = article.sentences['sentences']
-    if len(sentence_indices) == 0:
-        first_sent, last_sent = paragraph_sentences(article, paragraph_index)
-    else:
-        first_sent = sentence_indices[0]
-        last_sent = sentence_indices[-1]
 
-    if first_sent == 0:
-        first_token = 0
+    :param sentence_id: int.
+
+    :param min_users: int.
+
+    :param min_consensus: float.
+
+    :return: boolean.
+
+    """
+    sentence_labels = UserLabel.objects.filter(article=article, sentence_index=sentence_id)
+    admin_label = [label for label in sentence_labels.filter(admin_label=True)]
+    if len(admin_label) > 0:
+        return True
     else:
-        first_token = sent_ends[first_sent - 1] + 1
-    last_token = sent_ends[last_sent]
-    return {
-        'token': (first_token, last_token),
-        'sentence': (first_sent, last_sent),
-    }
+        labels = [label for label in sentence_labels]
+
 
 
 ##############################################################################################

@@ -6,7 +6,7 @@ from backend.helpers import paragraph_sentences
 
 MIN_USER_LABELS = 4
 
-ARTICLE_LOADS = 5
+ARTICLE_LOADS = 10
 
 COUNT_THRESHOLD = 3
 

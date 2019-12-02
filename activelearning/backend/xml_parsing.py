@@ -137,3 +137,35 @@ def process_article(article_text, nlp):
         'people': people_indices,
         'in_quotes': in_quotes,
     }
+
+
+def database_to_xml(output_path):
+    """
+    Extracts an annotated XML file for all articles that contain enough labels for each sentence.
+
+    :param output_path: string.
+        The path to the directory where the XML files need to be stored.
+    :return: None.
+    """
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

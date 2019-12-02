@@ -31,7 +31,7 @@ def load_content(request):
     :param request: The user request
     :return: Json A Json file containing the article_id, paragraph_id, sentence_id, data and task.
     """
-    user_id = manage_session_id(request)
+    user_id = request.session.session_key
     labelling_task = request_labelling_task(user_id)
     if labelling_task is not None:
         return JsonResponse(labelling_task)
@@ -49,8 +49,6 @@ def load_above(request):
     :return: Json.
         A Json file containing the the list of tokens of the paragraph above the sentence.
     """
-    # Session stuff
-    user_id = manage_session_id(request)
     if request.method == 'GET':
         try:
             # Get user tags
@@ -74,8 +72,6 @@ def load_below(request):
     :return: Json.
         A Json file containing the the list of tokens of the paragraph above the sentence.
     """
-    # Session stuff
-    user_id = manage_session_id(request)
     if request.method == 'GET':
         try:
             # Get user tags
@@ -92,7 +88,7 @@ def load_below(request):
 @csrf_exempt
 def submit_tags(request):
     # Session stuff
-    user_id = manage_session_id(request)
+    user_id = request.session.session_key
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
@@ -107,20 +103,3 @@ def submit_tags(request):
         except KeyError:
             return HttpResponse('Failure. JSON parse failed.')
     return HttpResponse('Failure. Not a POST request.')
-
-
-def manage_session_id(request):
-    """
-    Given a request, checks if the user already has a session id.
-    If he doesn't, sets one that exipres one COOKIE_LIFE_SPAN later. 
-    """
-    # Clears cookies that have expired
-    request.session.clear_expired()
-    # If the user already doesn't have a session yet,
-    # set a cookie that expires COOKIE_LIFE_SPAN hour later
-    if not request.session.has_key('user'):
-        # How to generate this?
-        random_user = random.randint(0, 1000)
-        request.session['user'] = f'{random_user}'
-        request.session.set_expiry(COOKIE_LIFE_SPAN)
-    return request.session['user']

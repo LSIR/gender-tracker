@@ -1,6 +1,5 @@
 from backend.models import Article, UserLabel
 from django.core.exceptions import ObjectDoesNotExist
-from backend.xml_parsing import process_article
 
 
 ##############################################################################################
@@ -28,23 +27,31 @@ def paragraph_sentences(article, paragraph_index):
     return first_sent, last_sent
 
 
-def label_consensus(tags, authors):
+def label_consensus(labels, authors):
     """
-    The percentage of labels having the same response.
+    Computes the (label, author) pair that is most common in the user labels, as well as the percentage of responses
+    that contain them
 
-    :param tags: list(list(int)).
+    :param labels: list(list(int)).
         The list of tags that each user reported.
     :param authors: list(list(int)).
         The list of author indices that each user reported.
-    :return: float.
-        A consensus between 0 and 1.
+    :return: Tuple(list(int), list(int), float).
+        list(int): The labels for each token.
+        list(int): The author indices.
+        float: A consensus between 0 and 1.
     """
-    return 0
+    label_counts = [[label, labels.count(label)] for label in set(labels)]
+    author_counts = [[author, authors.count(author)] for author in set(authors)]
+    max_label_count = max(label_counts, key=lambda x: x[1])
+    max_author_count = max(author_counts, key=lambda x: x[1])
+    return max_label_count[0], max_author_count[0], (max_label_count[1] + max_author_count[1]) / (2 * len(labels))
 
 
 def is_sentence_labelled(article, sentence_id, min_users, min_consensus):
     """
-    Determines if there is a consensus among enough users so that the label is considered correct.
+    Determines if there is a consensus among enough users so that the label is considered correct. If a consensus
+    exists, returns the labels and authors.
 
     :param article: Article.
 
@@ -60,99 +67,45 @@ def is_sentence_labelled(article, sentence_id, min_users, min_consensus):
     sentence_labels = UserLabel.objects.filter(article=article, sentence_index=sentence_id)
     admin_label = [label for label in sentence_labels.filter(admin_label=True)]
     if len(admin_label) > 0:
-        return True
+        admin_label = admin_label[0]
+        return admin_label.labels['labels'], admin_label.author_index['author_index']
     else:
-        labels = [label for label in sentence_labels]
+        labels = [label.labels['labels'] for label in sentence_labels]
+        authors = [label.author_index['author_index'] for label in sentence_labels]
+        if len(labels) > min_users:
+            labels, authors, consensus = label_consensus(labels, authors)
+            if consensus > min_consensus:
+                return labels, authors
+
+    return None
 
 
-
-##############################################################################################
-# Save to Database
-##############################################################################################
-
-
-def add_article_to_db(path, nlp, admin_article=False):
+def is_article_labelled(article, min_users, min_consensus):
     """
-    Loads an article stored as an XML file, and adds it to the database after having processed it.
+    Determines if all labels in the article have a consensus label. If that's the case, returns them. Otherwise
+    returns None.
 
-    :param path: string.
-        The URL of the stored XML file
-    :param nlp: spaCy.Language.
-        The language model used to tokenize the text.
-    :param admin_article: boolean.
-        Can this article only be seen by admins.
-    :return: Article.
-        The article created
+    :param article: Article.
+
+    :param min_users: int.
+
+    :param min_consensus: float.
+
+    :return: boolean.
+
     """
-    # Loading an xml file as a string
-    with open(path, 'r') as file:
-        article_text = file.read()
-    
-    # Process the file
-    data = process_article(article_text, nlp)
-    label_counts = len(data['s']) * [0]
-    label_overlap = len(data['s']) * [0]
-    confidence = len(data['s']) * [0]
-    return Article.objects.create(
-        text=article_text,
-        people={'people': data['people']},
-        tokens={'tokens': data['tokens']},
-        paragraphs={'paragraphs': data['p']},
-        sentences={'sentences': data['s']},
-        label_counts={
-            'label_counts': label_counts,
-            'min_label_counts': 0
-        },
-        label_overlap={'label_overlap': label_overlap},
-        in_quotes={'in_quotes': data['in_quotes']},
-        confidence={
-            'confidence': confidence,
-            'min_confidence': 0,
-        },
-        admin_article=admin_article,
-    )
+    all_labels = []
+    all_authors = []
+    for s in range(len(article.sentences['sentences'])):
+        data = is_sentence_labelled(article, s, min_users, min_consensus)
+        if data is None:
+            return None
+        else:
+            labels, authors = data
+            all_labels.append(labels)
+            all_authors.append(authors)
 
-
-def add_user_labels_to_db(article_id, session_id, labels, sentence_index, author_index, admin=False):
-    """
-    Adds a new set of user labels to the database for a given user annotation.
-
-    :param article_id: int.
-        The key of the article that was annotated
-    :param session_id: int.
-        The users session id
-    :param labels: list(int).
-        The labels the user created for the sentence
-    :param sentence_index: int.
-        The index of the sentence that was labelled in the article
-    :param author_index: list(int).
-        The indices of the tokens that are authors for this sentence
-    :return: UserLabel.
-        The UserLabel created
-    """
-    # Get the article to which these labels belong
-    try:
-        article = Article.objects.get(id=article_id)
-    except ObjectDoesNotExist:
-        return None
-
-    label_counts = article.label_counts['label_counts']
-    # Increase the label count for the given tokens in the Article database
-    label_counts[sentence_index] += 1
-    article.label_counts = {
-            'label_counts': label_counts,
-            'min_label_counts': min(label_counts)
-        }
-    article.save()
-
-    return UserLabel.objects.create(
-            article=article,
-            session_id=session_id,
-            labels={'labels': labels},
-            sentence_index=sentence_index,
-            author_index={'author_index': author_index},
-            admin_label=admin,
-    )
+    return all_labels, all_authors
 
 
 ##############################################################################################

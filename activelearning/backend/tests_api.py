@@ -1,7 +1,8 @@
 from django.test import TestCase
 from django.test import Client
 from backend.models import Article, UserLabel
-from backend.helpers import add_article_to_db, change_confidence
+from backend.helpers import change_confidence
+from backend.task_parsing import add_article_to_db
 import spacy
 import json
 

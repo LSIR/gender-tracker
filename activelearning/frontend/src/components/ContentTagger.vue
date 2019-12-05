@@ -282,6 +282,7 @@ export default {
             this.text_below = [];
             this.above_loads = 0;
             this.below_loads = 0;
+            this.no_more_content = false;
             this.$forceUpdate();
         },
         submit_paragraph: function (tag) {

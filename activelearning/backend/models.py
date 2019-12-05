@@ -7,7 +7,7 @@ class Article(models.Model):
     """
     Represents an article table
     """
-    name = "Article"
+    name = CharField(max_length=200)
     # String representation of the article's XML file.
     text = TextField()
     # List of unique people cited in the article
@@ -38,7 +38,6 @@ class UserLabel(models.Model):
     """
     Lists of labels given by users to sentences in the paragraph.
     """
-    name = "User Labels"
     # Each user labelling is for a sentence in a particular article
     article = models.ForeignKey(Article, on_delete=models.CASCADE)
     # Stores a unique identifier for the user session that created this label

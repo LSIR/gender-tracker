@@ -1,6 +1,6 @@
 from django.test import TestCase
 from backend.models import Article
-from backend.helpers import add_article_to_db
+from backend.task_parsing import add_article_to_db
 import spacy
 import json
 

@@ -145,7 +145,7 @@ def load_paragraph_below(article_id, paragraph_id, sentence_id):
         return {'data': []}
 
     first_sent, last_sent = paragraph_sentences(article, paragraph_id)
-    first_sent = max(first_sent, sentence_id - 1)
+    first_sent = max(first_sent, sentence_id + 1)
     if first_sent == 0:
         first_token = 0
     else:

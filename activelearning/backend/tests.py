@@ -1,7 +1,7 @@
 from django.test import TestCase
 from backend.models import Article, UserLabel
-from backend.helpers import add_article_to_db, add_user_labels_to_db
 from backend.task_loading import load_hardest_articles, request_labelling_task
+from backend.task_parsing import add_user_labels_to_db, add_article_to_db
 import spacy
 import random
 

@@ -1,0 +1,23 @@
+# Contains tasks for managing ufw
+- name: UFW reset
+  ufw:
+    state: reset
+- name: Allow everything and enable UFW
+  ufw:
+    state: enabled
+    policy: deny
+- name: Allow all access to tcp port 22
+  ufw:
+    rule: allow
+    port: 22
+    proto: tcp
+- name: Allow all access to tcp port 80
+  ufw:
+    rule: allow
+    port: 80
+    proto: tcp
+- name: Allow all access to tcp port 443
+  ufw:
+    rule: allow
+    port: 443
+    proto: tcp

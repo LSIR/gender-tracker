@@ -1,0 +1,16 @@
+- name: Install pip
+  apt:
+    name: python3-pip
+    state: present
+- name: Install zsh
+  apt:
+    name: zsh
+    state: present
+- name: Install git
+  apt:
+    name: git
+    state: present
+- name: Install nginx
+  apt:
+    name: nginx
+    state: present

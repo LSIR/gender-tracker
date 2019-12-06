@@ -1,0 +1,11 @@
+# - name: copy nginx ssl cert
+#   copy: src=etc/nginx/cert.pem dest=/etc/nginx/cert.pem mode=600
+# - name: copy nginx ssl key
+#   copy: src=etc/nginx/key.pem dest=/etc/nginx/key.pem mode=600
+- name: copy nginx config
+  copy: src=nginx_default dest=/etc/nginx/sites-available/default mode=preserve
+- name: reload nginx
+  systemd:
+    name: nginx.service
+    state: reloaded
+    enabled: yes

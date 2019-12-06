@@ -1,0 +1,30 @@
+FROM conda/miniconda3:latest
+
+# python envs
+ENV PYTHONFAULTHANDLER=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONHASHSEED=random \
+    PIP_NO_CACHE_DIR=off \
+    PIP_DISABLE_PIP_VERSION_CHECK=on \
+    PIP_DEFAULT_TIMEOUT=100
+
+# RUN apt-get update --fix-missing && \
+#     apt-get install -y libmagic1 cmake g++ && \
+#     apt-get clean && \
+#     rm -rf /var/lib/apt/lists/*
+
+# Copy SSH key to access private github repos
+# COPY ssh /root/.ssh
+# RUN chmod 700 /root/.ssh/id_rsa
+
+COPY environment.yml .
+RUN /bin/bash -c "source activate base  && conda env update -f=environment.yml && \
+     conda clean -aqy "
+RUN pip install gunicorn==19.9.0
+# upload scripts
+COPY ./ /app/
+ENV ENVIRONMENT=production
+
+WORKDIR /app/
+ENTRYPOINT ["/app/entrypoint.sh"]
+CMD ["gunicorn", "activelearning.wsgi:application", "--bind", "0.0.0.0:8000", "-t", "3600"]

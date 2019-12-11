@@ -21,6 +21,13 @@ def label_edges(article, paragraph_index, sentence_indices):
         'token': (int, int). The indices of the first and last token in the paragraph.
         'sentence': (int, int). The indices of the first and last sentence in the paragraph.
     """
+    if paragraph_index < 0 or len(article.paragraphs['paragraphs']) <= paragraph_index:
+        return None
+
+    if len(sentence_indices) > 0 and (sentence_indices[0] < 0 or
+                                      sentence_indices[-1] > len(article.sentences['sentences'])):
+        return None
+
     sent_ends = article.sentences['sentences']
     if len(sentence_indices) == 0:
         first_sent, last_sent = paragraph_sentences(article, paragraph_index)
@@ -39,7 +46,7 @@ def label_edges(article, paragraph_index, sentence_indices):
     }
 
 
-def add_labels_to_database(user_id, article_id, paragraph_index, sentence_indices, tags, authors):
+def add_labels_to_database(user_id, article_id, paragraph_index, sentence_indices, tags, authors, admin):
     """
     Computes the indices of tokens that are authors and cleans the user tags to only contain words that are in the
     quotes, and not the tags for authors.
@@ -56,6 +63,8 @@ def add_labels_to_database(user_id, article_id, paragraph_index, sentence_indice
         The user tags
     :param authors: list(int).
         The relative position of the author of the quote, if there is one.
+    :param admin: bool.
+        If the user that created the labels is an admin
     :return: list(list(int), list(int), list(int)).
         The list(token label) for each labelled sentence, the list of sentence indices, and the list of absolute
         position of the author of this quote.
@@ -87,7 +96,7 @@ def add_labels_to_database(user_id, article_id, paragraph_index, sentence_indice
         sentence_start = sent_ends[index] + 1
 
     for i in range(len(sentence_labels)):
-        add_user_labels_to_db(article_id, user_id, sentence_labels[i], sentence_indices[i], author_indices)
+        add_user_labels_to_db(article_id, user_id, sentence_labels[i], sentence_indices[i], author_indices, admin)
 
 
 def add_user_labels_to_db(article_id, session_id, labels, sentence_index, author_index, admin=False):
@@ -104,6 +113,8 @@ def add_user_labels_to_db(article_id, session_id, labels, sentence_index, author
         The index of the sentence that was labelled in the article
     :param author_index: list(int).
         The indices of the tokens that are authors for this sentence
+    :param admin: bool.
+        If the user is an admin.
     :return: UserLabel.
         The UserLabel created
     """

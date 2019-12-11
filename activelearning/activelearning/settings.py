@@ -149,7 +149,7 @@ WEBPACK_LOADER = {
 }
 
 # Doesn't need this when I run at http://127.0.0.1:8000/
-# Added by Niels to allow different orgins for the backend and the frontend
+# Added by Niels to allow different origins for the backend and the frontend
 # https://github.com/adamchainz/django-cors-headers
 
 """

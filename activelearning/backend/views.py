@@ -3,7 +3,7 @@ from django.views.decorators.csrf import csrf_exempt
 from .task_loading import request_labelling_task, load_paragraph_above, load_paragraph_below
 from .task_parsing import add_labels_to_database
 import json
-import random
+import uuid
 
 # The life span of a cookie, in seconds
 COOKIE_LIFE_SPAN = 1 * 60 * 60
@@ -31,7 +31,7 @@ def load_content(request):
     :param request: The user request
     :return: Json A Json file containing the article_id, paragraph_id, sentence_id, data and task.
     """
-    user_id = request.session.session_key
+    user_id = session_load(request)
     labelling_task = request_labelling_task(user_id)
     if labelling_task is not None:
         return JsonResponse(labelling_task)
@@ -58,8 +58,8 @@ def load_above(request):
             sentence_id = int(data['sentence_id'][0])
             return JsonResponse(load_paragraph_above(article_id, paragraph_id, sentence_id))
         except KeyError:
-            return HttpResponse('Failure. JSON parse failed.')
-    return HttpResponse('Failure. Not a GET request.')
+            return JsonResponse({'Success': False, 'reason': 'KeyError'})
+    return JsonResponse({'Success': False, 'reason': 'not GET'})
 
 
 def load_below(request):
@@ -81,14 +81,21 @@ def load_below(request):
             sentence_id = int(data['sentence_id'][0])
             return JsonResponse(load_paragraph_below(article_id, paragraph_id, sentence_id))
         except KeyError:
-            return JsonResponse({'Success': False})
-    return JsonResponse({'Success': False})
+            return JsonResponse({'Success': False, 'reason': 'KeyError'})
+    return JsonResponse({'Success': False, 'reason': 'not GET'})
 
 
 @csrf_exempt
 def submit_tags(request):
+    """
+
+    :param request:
+    :return:
+    """
     # Session stuff
-    user_id = request.session.session_key
+    user_id = session_post(request)
+    if user_id is None:
+        return JsonResponse({'success': False, 'reason': 'cookies'})
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
@@ -98,8 +105,53 @@ def submit_tags(request):
             tags = data['tags']
             authors = data['authors']
 
-            add_labels_to_database(user_id, article_id, paragraph_id, sent_id, tags, authors)
-            return JsonResponse({'Success': True})
+            add_labels_to_database(user_id, article_id, paragraph_id, sent_id, tags, authors, DEV_MODE)
+            return JsonResponse({'success': True})
         except KeyError:
-            return HttpResponse('Failure. JSON parse failed.')
-    return HttpResponse('Failure. Not a POST request.')
+            return JsonResponse({'success': False, 'reason': 'KeyError'})
+    return JsonResponse({'success': False, 'reason': 'not POST'})
+
+
+def session_load(request):
+    """
+
+    :param request:
+    :return:
+    """
+    if 'id' in request.session:
+        return request.session['id']
+    else:
+        request.session.set_test_cookie()
+        user_id = str(uuid.uuid1())
+        request.session['id'] = user_id
+        return user_id
+
+
+def session_post(request):
+    """
+
+    :param request:
+    :return:
+    """
+    if 'id' not in request.session:
+        return None
+
+    return request.session['id']
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

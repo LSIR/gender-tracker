@@ -16,9 +16,12 @@ def paragraph_sentences(article, paragraph_index):
     :param paragraph_index: int.
         The index of the paragraph
     :return: (int, int).
-        The indices of the first and last sentence in the paragraph.
+        The indices of the first and last sentence in the paragraph. Returns (-1, -1) if the index of the paragraph is
+        not valid.
     """
     par_ends = article.paragraphs['paragraphs']
+    if paragraph_index < 0 or len(par_ends) <= paragraph_index:
+        return -1, -1
     if paragraph_index == 0:
         first_sent = 0
     else:
@@ -41,11 +44,15 @@ def label_consensus(labels, authors):
         list(int): The author indices.
         float: A consensus between 0 and 1.
     """
-    label_counts = [[label, labels.count(label)] for label in set(labels)]
-    author_counts = [[author, authors.count(author)] for author in set(authors)]
+    # Set of tuples as lists can't be hashed in Python
+    label_sets = set(tuple(i) for i in labels)
+    author_sets = set(tuple(i) for i in authors)
+    label_counts = [[label, labels.count(list(label))] for label in label_sets]
+    author_counts = [[author, authors.count(list(author))] for author in author_sets]
     max_label_count = max(label_counts, key=lambda x: x[1])
     max_author_count = max(author_counts, key=lambda x: x[1])
-    return max_label_count[0], max_author_count[0], (max_label_count[1] + max_author_count[1]) / (2 * len(labels))
+    return list(max_label_count[0]), list(max_author_count[0]),\
+        (max_label_count[1] + max_author_count[1]) / (2 * len(labels))
 
 
 def is_sentence_labelled(article, sentence_id, min_users, min_consensus):
@@ -54,30 +61,30 @@ def is_sentence_labelled(article, sentence_id, min_users, min_consensus):
     exists, returns the labels and authors.
 
     :param article: Article.
-
+        The article instance to which the sentence belongs.
     :param sentence_id: int.
-
+        The index of the sentence in the article.
     :param min_users: int.
-
+        The minimum percentage of users that have the same labelling for a sentence to be considered labelled.
     :param min_consensus: float.
-
+        The minimum number of users needed for a sentence to be considered labelled.
     :return: boolean.
-
+        True if the sentence is considered labelled, false otherwise.
     """
     sentence_labels = UserLabel.objects.filter(article=article, sentence_index=sentence_id)
     admin_label = [label for label in sentence_labels.filter(admin_label=True)]
     if len(admin_label) > 0:
         admin_label = admin_label[0]
-        return admin_label.labels['labels'], admin_label.author_index['author_index']
+        return True
     else:
         labels = [label.labels['labels'] for label in sentence_labels]
         authors = [label.author_index['author_index'] for label in sentence_labels]
-        if len(labels) > min_users:
+        if len(labels) >= min_users:
             labels, authors, consensus = label_consensus(labels, authors)
-            if consensus > min_consensus:
-                return labels, authors
+            if consensus >= min_consensus:
+                return True
 
-    return None
+    return False
 
 
 def is_article_labelled(article, min_users, min_consensus):
@@ -86,26 +93,20 @@ def is_article_labelled(article, min_users, min_consensus):
     returns None.
 
     :param article: Article.
-
+        The article instance.
     :param min_users: int.
-
+        The minimum number of users needed for a sentence to be considered labelled.
     :param min_consensus: float.
-
+        The minimum percentage of users that have the same labelling for a sentence to be considered labelled.
     :return: boolean.
-
+        True if all sentences in the article are considered labelled, false otherwise.
     """
-    all_labels = []
-    all_authors = []
     for s in range(len(article.sentences['sentences'])):
         data = is_sentence_labelled(article, s, min_users, min_consensus)
-        if data is None:
+        if not data:
             return None
-        else:
-            labels, authors = data
-            all_labels.append(labels)
-            all_authors.append(authors)
 
-    return all_labels, all_authors
+    return True
 
 
 ##############################################################################################

@@ -72,7 +72,8 @@ class ApiTestCase(TestCase):
             'tags': tags,
             'authors': relative_authors,
         }
-        client.post('/api/submitTags/', data, content_type='application/json')
+        response = client.post('/api/submitTags/', data, content_type='application/json')
+        self.assertTrue(json.loads(response.content)['success'])
 
     def setUp(self):
         # Add the articles to the database
@@ -84,7 +85,7 @@ class ApiTestCase(TestCase):
         """
         c = Client()
         response = c.get('/api/loadContent/')
-        user_id = c.session.get('user')
+        user_id = c.session['id']
         article_id, paragraph_id, sentence_ids, text, task = parse_load_data(response)
         if task == 'sentence':
             tags = len(text) * [0]
@@ -122,6 +123,8 @@ class ApiTestCase(TestCase):
 
     def test_tag_multiple_sentences(self):
         c = Client()
+        # To set a session key
+        response = c.get('/api/loadContent/')
         article = Article.objects.all()[0]
         article_id = article.id
         paragraph_id = 0
@@ -204,7 +207,7 @@ class ApiTestCase(TestCase):
         c1.post('/api/submitTags/', data, content_type='application/json')
 
         article = Article.objects.get(id=article_id)
-        user_id = c1.session.get('user')
+        user_id = c1.session['id']
         # Check that the labels have been added for both sentences
         label1 = UserLabel.objects.filter(article=article, session_id=user_id, sentence_index=sentence_index)[0]
         label2 = UserLabel.objects.filter(article=article, session_id=user_id, sentence_index=sentence_index + 1)[0]

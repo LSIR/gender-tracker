@@ -6,7 +6,6 @@ from backend.helpers import *
 import spacy
 import random
 
-
 # Load the language model
 nlp = spacy.load('fr_core_news_md')
 
@@ -57,45 +56,45 @@ class HelperTestCase(TestCase):
         a1 = [66]
         a2 = [66, 67]
         a3 = [65, 66]
-        add_user_labels_to_db(self.a1.id, 1111, label1, 0, a1, True)
+        add_user_label_to_db(1111, self.a1.id, 0, label1, a1, True)
         self.assertTrue(is_sentence_labelled(self.a1, 0, 3, 0.75))
 
-        add_user_labels_to_db(self.a1.id, 1111, label2, 4, a1, True)
-        add_user_labels_to_db(self.a1.id, 2222, label3, 4, a2, False)
+        add_user_label_to_db(1111, self.a1.id, 4, label2, a1, True)
+        add_user_label_to_db(2222, self.a1.id, 4, label3, a2, False)
         self.assertTrue(is_sentence_labelled(self.a1, 4, 3, 0.75))
 
         # When no admin label is present
-        add_user_labels_to_db(self.a1.id, 3333, label4, 6, a1, False)
-        add_user_labels_to_db(self.a1.id, 4444, label1, 6, a1, False)
-        add_user_labels_to_db(self.a1.id, 5555, label2, 6, a2, False)
-        add_user_labels_to_db(self.a1.id, 6666, label2, 6, a3, False)
+        add_user_label_to_db(3333, self.a1.id, 6, label4, a1, False)
+        add_user_label_to_db(4444, self.a1.id, 6, label1, a1, False)
+        add_user_label_to_db(5555, self.a1.id, 6, label2, a2, False)
+        add_user_label_to_db(6666, self.a1.id, 6, label2, a3, False)
         self.assertFalse(is_sentence_labelled(self.a1, 6, 3, 0.75))
 
-        add_user_labels_to_db(self.a1.id, 3333, label1, 7, a1, False)
-        add_user_labels_to_db(self.a1.id, 4444, label2, 7, a1, False)
-        add_user_labels_to_db(self.a1.id, 5555, label3, 7, a1, False)
-        add_user_labels_to_db(self.a1.id, 6666, label4, 7, a1, False)
+        add_user_label_to_db(3333, self.a1.id, 7, label1, a1, False)
+        add_user_label_to_db(4444, self.a1.id, 7, label2, a1, False)
+        add_user_label_to_db(5555, self.a1.id, 7, label3, a1, False)
+        add_user_label_to_db(6666, self.a1.id, 7, label4, a1, False)
         self.assertFalse(is_sentence_labelled(self.a1, 7, 4, 0.75))
 
-        add_user_labels_to_db(self.a1.id, 3333, label1, 11, a1, False)
-        add_user_labels_to_db(self.a1.id, 4444, label1, 11, a1, False)
-        add_user_labels_to_db(self.a1.id, 5555, label2, 11, a2, False)
+        add_user_label_to_db(3333, self.a1.id, 11, label1, a1, False)
+        add_user_label_to_db(4444, self.a1.id, 11, label1, a1, False)
+        add_user_label_to_db(5555, self.a1.id, 11, label2, a2, False)
         self.assertFalse(is_sentence_labelled(self.a1, 11, 3, 0.75))
 
-        add_user_labels_to_db(self.a1.id, 3333, label1, 8, a1, False)
-        add_user_labels_to_db(self.a1.id, 4444, label1, 8, a1, False)
-        add_user_labels_to_db(self.a1.id, 5555, label3, 8, a1, False)
-        add_user_labels_to_db(self.a1.id, 6666, label4, 8, a1, False)
+        add_user_label_to_db(3333, self.a1.id, 8, label1, a1, False)
+        add_user_label_to_db(4444, self.a1.id, 8, label1, a1, False)
+        add_user_label_to_db(5555, self.a1.id, 8, label3, a1, False)
+        add_user_label_to_db(6666, self.a1.id, 8, label4, a1, False)
         self.assertTrue(is_sentence_labelled(self.a1, 8, 3, 0.75))
 
-        add_user_labels_to_db(self.a1.id, 3333, label1, 9, a1, False)
-        add_user_labels_to_db(self.a1.id, 4444, label1, 9, a1, False)
-        add_user_labels_to_db(self.a1.id, 5555, label1, 9, a1, False)
+        add_user_label_to_db(3333, self.a1.id, 9, label1, a1, False)
+        add_user_label_to_db(4444, self.a1.id, 9, label1, a1, False)
+        add_user_label_to_db(5555, self.a1.id, 9, label1, a1, False)
         self.assertTrue(is_sentence_labelled(self.a1, 9, 3, 0.75))
 
-        add_user_labels_to_db(self.a1.id, 3333, label1, 10, a1, False)
-        add_user_labels_to_db(self.a1.id, 4444, label1, 10, a1, False)
-        add_user_labels_to_db(self.a1.id, 5555, label2, 10, a1, False)
+        add_user_label_to_db(3333, self.a1.id, 10, label1, a1, False)
+        add_user_label_to_db(4444, self.a1.id, 10, label1, a1, False)
+        add_user_label_to_db(5555, self.a1.id, 10, label2, a1, False)
         self.assertTrue(is_sentence_labelled(self.a1, 10, 3, 0.75))
 
     def test_is_article_labelled(self):
@@ -105,10 +104,10 @@ class HelperTestCase(TestCase):
         labels = [1, 1, 0, 0, 0]
         author = [37]
         for s in sentence_ids[1:]:
-            add_user_labels_to_db(self.a1.id, user_id, labels, s, author, True)
+            add_user_label_to_db(user_id, self.a1.id, s, labels, author, True)
         self.assertFalse(is_article_labelled(self.a1, 10, 0.999))
         # All admin labels
-        add_user_labels_to_db(self.a1.id, user_id, labels, 0, author, True)
+        add_user_label_to_db(user_id, self.a1.id, 0, labels, author, True)
         self.assertTrue(is_article_labelled(self.a1, 10, 0.999))
 
     def test_change_confidence(self):
@@ -165,52 +164,147 @@ class TaskParsingTestCase(TestCase):
         self.assertIsNone(label_edges(self.a1, 0, [1000]))
 
     def test_add_labels_to_database(self):
+        # Single sentence label
+        article_id = self.a1.id
+        session_id = '0000'
+        tags = 21 * [0]
+        paragraph_index = 0
+        sentence_indices = [1]
+        rel_author_index = [-2, -1]
+        true_author_index = [19, 20]
+        add_labels_to_database(session_id, article_id, paragraph_index, sentence_indices, tags, rel_author_index, False)
+        all_labels = [label for label in UserLabel.objects.all()]
+        self.assertEquals(len(all_labels), 1)
+        label = all_labels[0]
+        self.assertEquals(label.article, self.a1)
+        self.assertEquals(label.session_id, session_id)
+        self.assertEquals(label.labels['labels'], tags)
+        self.assertEquals(label.sentence_index, sentence_indices[0])
+        self.assertEquals(label.author_index['author_index'], true_author_index)
+
+        # Two sentence label
+        session_id = '1234'
+        tags = 45 * [0]
+        paragraph_index = 0
+        sentence_indices = [0, 1]
+        rel_author_index = [12, 13]
+        true_author_index = [12, 13]
+        add_labels_to_database(session_id, article_id, paragraph_index, sentence_indices, tags, rel_author_index, False)
+        self.assertEquals(len(UserLabel.objects.all()), 3)
+        all_labels = [label for label in UserLabel.objects.filter(session_id='1234')]
+        self.assertEquals(len(all_labels), 2)
+        if all_labels[0].sentence_index == 0:
+            label = all_labels[0]
+            label_1 = all_labels[1]
+        else:
+            label = all_labels[1]
+            label_1 = all_labels[0]
+        self.assertEquals(label.article, self.a1)
+        self.assertEquals(label.session_id, session_id)
+        self.assertEquals(label.labels['labels'], 21 * [0])
+        self.assertEquals(label.sentence_index, 0)
+        self.assertEquals(label.author_index['author_index'], true_author_index)
+        self.assertEquals(label_1.article, self.a1)
+        self.assertEquals(label_1.session_id, session_id)
+        self.assertEquals(label_1.labels['labels'], 24 * [0])
+        self.assertEquals(label_1.sentence_index, 1)
+        self.assertEquals(label_1.author_index['author_index'], true_author_index)
+
+    def test_add_user_label_to_db(self):
         article_id = self.a1.id
         session_id = '0000'
         labels = [0, 0, 0, 1]
         sentence_index = 0
         author_index = [0]
-        add_user_labels_to_db(article_id, session_id, labels, sentence_index, author_index, admin=False)
+        add_user_label_to_db(session_id, article_id, sentence_index, labels, author_index, admin=False)
+        all_labels = [label for label in UserLabel.objects.all()]
+        self.assertEquals(len(all_labels), 1)
+        label = all_labels[0]
+        self.assertEquals(label.article, self.a1)
+        self.assertEquals(label.session_id, session_id)
+        self.assertEquals(label.labels['labels'], labels)
+        self.assertEquals(label.sentence_index, sentence_index)
+        self.assertEquals(label.author_index['author_index'], author_index)
 
-    def test_add_user_labels_to_db(self):
-        """  """
-        return
-
-    def test_add_article_to_db(self):
-        """  """
-        return
+        session_id_1 = '1234'
+        labels_1 = [1, 1, 0, 1]
+        sentence_index_1 = 12
+        author_index_1 = [88, 89, 90, 91]
+        add_user_label_to_db(session_id_1, article_id, sentence_index_1, labels_1, author_index_1, admin=True)
+        all_labels = [label for label in UserLabel.objects.all()]
+        self.assertEquals(len(all_labels), 2)
+        if all_labels[0].session_id == '0000':
+            label = all_labels[0]
+            label_1 = all_labels[1]
+        else:
+            label = all_labels[1]
+            label_1 = all_labels[0]
+        self.assertEquals(label.article, self.a1)
+        self.assertEquals(label.session_id, session_id)
+        self.assertEquals(label.labels['labels'], labels)
+        self.assertEquals(label.sentence_index, sentence_index)
+        self.assertEquals(label.author_index['author_index'], author_index)
+        self.assertEquals(label_1.article, self.a1)
+        self.assertEquals(label_1.session_id, session_id_1)
+        self.assertEquals(label_1.labels['labels'], labels_1)
+        self.assertEquals(label_1.sentence_index, sentence_index_1)
+        self.assertEquals(label_1.author_index['author_index'], author_index_1)
 
 
 class TaskLoadingTestCase(TestCase):
 
     def setUp(self):
         # Add the articles to the database
-        a1 = add_article_to_db('../data/article01.xml', nlp)
-        a2 = add_article_to_db('../data/article02clean.xml', nlp)
-        a3 = add_article_to_db('../data/article03clean.xml', nlp)
-
-        # Default values
-        session_id = 1111
-        labels = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-
-        # Add a user label for article 1
-        add_user_labels_to_db(a1.id, session_id, labels, 7, [66])
-
-    def test_form_sentence_json(self):
-        """  """
-        return
-
-    def test_form_paragraph_json(self):
-        """  """
-        return
+        self.a1 = add_article_to_db('../data/article01.xml', nlp)
+        self.a2 = add_article_to_db('../data/article02clean.xml', nlp)
+        self.a3 = add_article_to_db('../data/article03clean.xml', nlp)
 
     def test_load_paragraph_above(self):
-        """  """
+        data = load_paragraph_above(self.a1.id, 0, 0)
+        self.assertEquals(data['data'], [])
+        data = load_paragraph_above(self.a1.id, 0, 1)
+        self.assertEquals(data['data'], ["Comment ", "les ", "chouettes ", "effraies ", "au ", "plumage ", "blanc",
+                                         ", ", "particulièrement ", "visibles ", "la ", "nuit", ", ", "parviennent",
+                                         "-", "elles ", "à ", "attraper ", "des ", "proies", "? "])
+        data = load_paragraph_above(self.a1.id, 1, 2)
+        self.assertEquals(data['data'], ["Comment ", "les ", "chouettes ", "effraies ", "au ", "plumage ", "blanc",
+                                         ", ", "particulièrement ", "visibles ", "la ", "nuit", ", ", "parviennent",
+                                         "-", "elles ", "à ", "attraper ", "des ", "proies", "? ", "L’", "énigme ",
+                                         "était ", "cachée ", "dans ", "les ", "cycles ", "de ", "la ", "lune ",
+                                         "et ", "dans ", "un ", "curieux ", "comportement ", "de ", "ses ", "proies",
+                                         ", ", "révèle ", "une ", "étude ", "lausannoise", "."])
         return
 
     def test_load_paragraph_below(self):
-        """  """
-        return
+        data = load_paragraph_below(self.a1.id, 0, 0)
+        self.assertEquals(data['data'], ["L’", "énigme ", "était ", "cachée ", "dans ", "les ", "cycles ", "de ", "la ",
+                                         "lune ", "et ", "dans ", "un ", "curieux ", "comportement ", "de ", "ses ",
+                                         "proies", ", ", "révèle ", "une ", "étude ", "lausannoise", "."])
+        data = load_paragraph_below(self.a1.id, 0, 1)
+        self.assertEquals(data['data'], ["Les ", "nuits ", "de ", "pleine ", "lune", ", ", "tous ", "les ",
+                                         "sortilèges ", "sont ", "de ", "mise", ". ", "Les ", "loups-garous ", "se ",
+                                         "déchaînent", "; ", "les ", "vampires ", "se ", "régénèrent", "; ", "et ",
+                                         "les ", "jeunes ", "filles ", "se ", "muent ", "en ", "sirènes", ". ", "Même ",
+                                         "les ", "chouettes ", "effraies ", "(", "Tyto ", "alba", ") ", "sont ", "de ",
+                                         "la ", "partie", ". ", "Comme ", "chaque ", "nuit", ", ", "elles ", "partent ",
+                                         "en ", "chasse", ". ", "Mais ", "\"", "les ", "nuits ", "de ", "pleine ",
+                                         "lune", ", ", "les ", "plus ", "claires ", "d’", "entre ", "elles ",
+                                         "resplendissent ", "comme ", "des ", "soleils", "\"", ", ", "observe ",
+                                         "Alexandre ", "Roulin", ", ", "de ", "l’", "Université ", "de ", "Lausanne",
+                                         ". ", "Comme ", "camouflage ", "vis-à-vis ", "des ", "proies", ", ", "il ",
+                                         "y ", "a ", "mieux", "!"])
+        data = load_paragraph_below(self.a1.id, 1, 2)
+        self.assertEquals(data['data'], ["Les ", "loups-garous ", "se ",
+                                         "déchaînent", "; ", "les ", "vampires ", "se ", "régénèrent", "; ", "et ",
+                                         "les ", "jeunes ", "filles ", "se ", "muent ", "en ", "sirènes", ". ", "Même ",
+                                         "les ", "chouettes ", "effraies ", "(", "Tyto ", "alba", ") ", "sont ", "de ",
+                                         "la ", "partie", ". ", "Comme ", "chaque ", "nuit", ", ", "elles ", "partent ",
+                                         "en ", "chasse", ". ", "Mais ", "\"", "les ", "nuits ", "de ", "pleine ",
+                                         "lune", ", ", "les ", "plus ", "claires ", "d’", "entre ", "elles ",
+                                         "resplendissent ", "comme ", "des ", "soleils", "\"", ", ", "observe ",
+                                         "Alexandre ", "Roulin", ", ", "de ", "l’", "Université ", "de ", "Lausanne",
+                                         ". ", "Comme ", "camouflage ", "vis-à-vis ", "des ", "proies", ", ", "il ",
+                                         "y ", "a ", "mieux", "!"])
 
     def test_load_hardest_articles(self):
         """Checks that the method to extract the hardest articles to predict works"""

@@ -48,8 +48,8 @@ def label_edges(article, paragraph_index, sentence_indices):
 
 def add_labels_to_database(user_id, article_id, paragraph_index, sentence_indices, tags, authors, admin):
     """
-    Computes the indices of tokens that are authors and cleans the user tags to only contain words that are in the
-    quotes, and not the tags for authors.
+    Given the raw data the user generated (article id, paragraph, sentences tagged, labels, and authors for the quotes
+    found), separates the labels into labels for individual sentences and adds them to the database.
 
     :param user_id: string.
         The id of the user who created the labels.
@@ -96,21 +96,21 @@ def add_labels_to_database(user_id, article_id, paragraph_index, sentence_indice
         sentence_start = sent_ends[index] + 1
 
     for i in range(len(sentence_labels)):
-        add_user_labels_to_db(article_id, user_id, sentence_labels[i], sentence_indices[i], author_indices, admin)
+        add_user_label_to_db(user_id, article_id, sentence_indices[i], sentence_labels[i], author_indices, admin)
 
 
-def add_user_labels_to_db(article_id, session_id, labels, sentence_index, author_index, admin=False):
+def add_user_label_to_db(user_id, article_id, sentence_index, labels, author_index, admin):
     """
-    Adds a new set of user labels to the database for a given user annotation.
+    Adds a new user label to the database for a given user annotation.
 
+    :param user_id: int.
+        The users session id
     :param article_id: int.
         The key of the article that was annotated
-    :param session_id: int.
-        The users session id
+        :param sentence_index: int.
+        The index of the sentence that was labelled in the article
     :param labels: list(int).
         The labels the user created for the sentence
-    :param sentence_index: int.
-        The index of the sentence that was labelled in the article
     :param author_index: list(int).
         The indices of the tokens that are authors for this sentence
     :param admin: bool.
@@ -135,7 +135,7 @@ def add_user_labels_to_db(article_id, session_id, labels, sentence_index, author
 
     return UserLabel.objects.create(
             article=article,
-            session_id=session_id,
+            session_id=user_id,
             labels={'labels': labels},
             sentence_index=sentence_index,
             author_index={'author_index': author_index},

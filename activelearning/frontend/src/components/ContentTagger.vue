@@ -30,50 +30,55 @@
                     {{toggle_text[toggle_selection - 1] }}
                 </h3>
                 <div>
-                    <span v-if="(paragraph_id - above_loads) > 0">
-                        <v-btn small color="blue-grey lighten-4" v-on:click.native=loadTextAbove>&#x21E6;</v-btn>
-                    </span>
+                    <div v-if="above_load_id >= 0">
+                        <v-btn small color="red lighten-1" v-on:click.native=loadTextAbove>&#x21E7;</v-btn>
+                    </div>
+                    <div v-if="text_above.length > 0">
+                        <span v-for="(word, i) in text_above" :key="`A-${i}`">
+                            <v-btn
+                                    class="text-none"
+                                    depressed
+                                    v-bind:style="buttonStyle"
+                                    v-on:click.native=tagAuthorAbove(i)
+                                    v-bind:color=button_color_above(i)
+                            >
+                                {{ word }}
+                            </v-btn>
+                        </span>
+                    </div>
                     &nbsp;
-                    <span v-for="(word, i) in text_above" :key="`A-${i}`">
-                        <v-btn
-                                class="text-none"
-                                depressed
-                                v-bind:style="buttonStyle"
-                                v-on:click.native=tagAuthorAbove(i)
-                                v-bind:color=button_color_above(i)
-                        >
-                            {{ word }}
-                        </v-btn>
-                    </span>
+                    <div>
+                        <span v-for="(word, i) in content" :key="`B-${i}`">
+                            <v-btn
+                                    class="text-none"
+                                    depressed
+                                    v-bind:style="buttonStyle"
+                                    v-on:click.native=tagWord(i)
+                                    v-bind:color=button_color(i)
+                            >
+                                {{ word }}
+                            </v-btn>
+                        </span>
+                    </div>
                     &nbsp;
-                    <span v-for="(word, i) in content" :key="`B-${i}`">
-                        <v-btn
-                                class="text-none"
-                                depressed
-                                v-bind:style="buttonStyle"
-                                v-on:click.native=tagWord(i)
-                                v-bind:color=button_color(i)
-                        >
-                            {{ word }}
-                        </v-btn>
-                    </span>
-                    <span v-for="(word, i) in text_below" :key="`C-${i}`">
-                        <v-btn
-                                class="text-none"
-                                depressed
-                                v-bind:style="buttonStyle"
-                                v-on:click.native=tagAuthorBelow(i)
-                                v-bind:color=button_color_below(i)
-                        >
-                            {{ word }}
-                        </v-btn>
-                    </span>
-                    &nbsp;
-                    <span v-if="!no_more_content">
-                        <v-btn small color="blue-grey lighten-4" v-on:click.native=loadTextBelow>&#x21E8;</v-btn>
-                    </span>
+                    <div>
+                        <span v-for="(word, i) in text_below" :key="`C-${i}`">
+                            <v-btn
+                                    class="text-none"
+                                    depressed
+                                    v-bind:style="buttonStyle"
+                                    v-on:click.native=tagAuthorBelow(i)
+                                    v-bind:color=button_color_below(i)
+                            >
+                                {{ word }}
+                            </v-btn>
+                        </span>
+                    </div>
+                    <div v-if="!no_more_content">
+                        <v-btn small color="red lighten-1" v-on:click.native=loadTextBelow>&#x21E9;</v-btn>
+                    </div>
                 </div>
-
+                &nbsp;
                 <div>
                     <v-btn class="ma-2" outlined v-on:click.native=clearAnswers>Effacer les Réponses</v-btn>
                     <v-btn class="ma-2" outlined v-on:click.native=submitTags>Aucune Citation</v-btn>
@@ -88,15 +93,15 @@
         >
             <v-flex mb-4>
                 <h3>
-                    Does this paragraph contain reported speech?
+                    Est-ce qu'une citation est présente dans ce paragraphe?
                 </h3>
                 <div>
                     {{ content[0] }}
                 </div>
                 <div>
                     <v-btn-toggle tile>
-                        <v-btn class="ma-2" color="white" v-on:click.native=submit_paragraph(1)>Yes</v-btn>
-                        <v-btn class="ma-2" color="white" v-on:click.native=submit_paragraph(0)>No</v-btn>
+                        <v-btn class="ma-2" color="white" v-on:click.native=submit_paragraph(1)>Oui</v-btn>
+                        <v-btn class="ma-2" color="white" v-on:click.native=submit_paragraph(0)>Non</v-btn>
                     </v-btn-toggle>
                 </div>
             </v-flex>
@@ -104,11 +109,26 @@
         <v-layout
                 text-center
                 wrap
+                v-if="task==='cookies'"
         >
             <v-flex mb-4>
+                <h3>
+                    Oops! Il semblerait que les cookies ne soient pas activés dans votre browser.
+                </h3>
                 <div>
-                    {{article_id}}, {{paragraph_id}}, {{sentence_id}}, {{author_indices}}
+                    Nous utilisons des cookies pour vérifier que la même personne n'analyse pas la même phrase
+                    plusieures fois.
                 </div>
+            </v-flex>
+        </v-layout>
+        <v-layout text-center wrap>
+            <v-flex xs12>
+                <v-img
+                        :src="require('../assets/epfl_logo.svg')"
+                        class="my-3"
+                        contain
+                        height="40"
+                ></v-img>
             </v-flex>
         </v-layout>
     </v-container>
@@ -125,8 +145,8 @@ export default {
         content: ['No sentence has been loaded yet.'],
         text_above: [],
         text_below: [],
-        above_loads: 0,
-        below_loads: 0,
+        above_load_id: 0,
+        below_load_id: 0,
         no_more_content: false,
         task: 'sentence',
         // 0: no tag, 1: start, 2: end, 3: author
@@ -158,6 +178,8 @@ export default {
                     if (that.task !== 'None'){
                         that.article_id = data['article_id'];
                         that.paragraph_id = data['paragraph_id'];
+                        that.above_load_id = that.paragraph_id;
+                        that.below_load_id = that.paragraph_id;
                         that.sentence_id = data['sentence_id'];
                         that.task = data['task'];
                         if (that.task === 'sentence'){
@@ -180,12 +202,14 @@ export default {
                 dataType: "json",
                 data: {
                     'article_id': that.article_id,
-                    'paragraph_id': that.paragraph_id - that.above_loads,
+                    'paragraph_id': that.above_load_id,
                     'sentence_id': that.sentence_id[0],
                 },
                 success: function (data) {
-                    that.text_above = that.replace_whitespace(data['data']).concat(that.text_above);
-                    that.above_loads += 1;
+                    const tokens = data['data'];
+                    const p_id = data['paragraph'];
+                    that.text_above = that.replace_whitespace(tokens).concat(that.text_above);
+                    that.above_load_id = p_id - 1;
                 }
             });
         },
@@ -198,15 +222,17 @@ export default {
                 dataType: "json",
                 data: {
                     'article_id': that.article_id,
-                    'paragraph_id': that.paragraph_id + that.below_loads,
+                    'paragraph_id': that.below_load_id,
                     'sentence_id': that.sentence_id[0],
                 },
                 success: function (data) {
                     if (data['data'].length === 0){
                         that.no_more_content = true;
                     }else {
-                        that.text_below = that.text_below.concat(that.replace_whitespace(data['data']));
-                        that.below_loads += 1;
+                        const tokens = data['data'];
+                        const p_id = data['paragraph'];
+                        that.text_below = that.text_below.concat(that.replace_whitespace(tokens));
+                        that.below_load_id = p_id + 1;
                     }
                 }
             });
@@ -225,9 +251,12 @@ export default {
                 }),
                 contentType: "application/json; charset=utf-8",
                 dataType: "json",
-                success: function () {
+                success: function (response) {
+                    if (response['reason'] == 'cookies') {
+                        that.task = 'cookies'
+                    }
                     that.loadContent()
-                }
+                },
             });
         },
         tagWord: function (index) {
@@ -280,8 +309,8 @@ export default {
             this.author_indices = [];
             this.text_above = [];
             this.text_below = [];
-            this.above_loads = 0;
-            this.below_loads = 0;
+            this.above_load_id = 0;
+            this.below_load_id = 0;
             this.no_more_content = false;
             this.$forceUpdate();
         },
@@ -304,7 +333,7 @@ export default {
             if (this.author_indices.includes(relative_index)){
                 return "green lighten-4"
             }else{
-                return "grey lighten-4"
+                return "white"
             }
         },
         button_color_below: function (index) {
@@ -312,7 +341,7 @@ export default {
             if (this.author_indices.includes(relative_index)){
                 return "green lighten-4"
             }else{
-                return "grey lighten-4"
+                return "white"
             }
         },
         replace_whitespace: function (text_array){

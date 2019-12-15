@@ -81,7 +81,8 @@ def form_paragraph_json(article, paragraph_id):
 def load_paragraph_above(article_id, paragraph_id, sentence_id):
     """
     Finds the lists of tokens for a paragraph above a given sentence. If the sentence is in a paragraph below the
-    requested paragraph, returns the whole paragraph.
+    requested paragraph, returns the whole paragraph. If the sentence is the first of the paragraph, returns the
+    paragraph above.
 
     :param article_id: int.
         The id of the Article of which we want the tokens for a paragraph.
@@ -89,8 +90,9 @@ def load_paragraph_above(article_id, paragraph_id, sentence_id):
         The index of the paragraph for which we want the tokens.
     :param sentence_id: int.
         The index of the sentence for which we want the tokens above.
-    :return: list(string).
-        The tokens in paragraph paragraph_id.
+    :return: dict.
+        data: list(string). The tokens in paragraph paragraph_id.
+        paragraph: int. The index of the paragraph returned.
     """
     try:
         article = Article.objects.get(id=article_id)
@@ -101,9 +103,16 @@ def load_paragraph_above(article_id, paragraph_id, sentence_id):
     sentence_ends = article.sentences['sentences']
 
     if sentence_id == 0 or paragraph_id < 0:
-        return {'data': []}
+        return {'data': [], 'paragraph': -1}
 
     first_sent, last_sent = paragraph_sentences(article, paragraph_id)
+
+    if sentence_id == first_sent and paragraph_id == 0:
+        return {'data': [], 'paragraph': -1}
+    elif sentence_id == first_sent:
+        paragraph_id -= 1
+        first_sent, last_sent = paragraph_sentences(article, paragraph_id)
+
     last_sent = min(last_sent, sentence_id - 1)
     # If it was the first sentence in the paragraph, load the paragraph above.
     if first_sent > last_sent and first_sent != 0:
@@ -115,6 +124,7 @@ def load_paragraph_above(article_id, paragraph_id, sentence_id):
     last_token = sentence_ends[last_sent]
     return {
         'data': tokens[first_token:last_token + 1],
+        'paragraph': paragraph_id,
     }
 
 
@@ -122,7 +132,7 @@ def load_paragraph_below(article_id, paragraph_id, sentence_id):
     """
     Finds the lists of tokens for a paragraph below a given sentence. If the sentence is in a paragraph above the
     requested paragraph, returns the whole paragraph. Returns an empty list of tokens if the end of the article has
-    been reached.
+    been reached. If the sentence is the last of the paragraph, returns th paragraph below.
 
     :param article_id: int.
         The id of the Article of which we want the tokens for a paragraph.
@@ -130,8 +140,9 @@ def load_paragraph_below(article_id, paragraph_id, sentence_id):
         The index of the paragraph for which we want the tokens.
     :param sentence_id: int.
         The index of the sentence for which we want the tokens below.
-    :return: list(string).
-        The tokens in paragraph paragraph_id.
+    :return: dict.
+        data: list(string). The tokens in paragraph paragraph_id.
+        paragraph: int. The index of the paragraph returned.
     """
     try:
         article = Article.objects.get(id=article_id)
@@ -142,9 +153,17 @@ def load_paragraph_below(article_id, paragraph_id, sentence_id):
     sentence_ends = article.sentences['sentences']
 
     if paragraph_id >= len(article.paragraphs['paragraphs']):
-        return {'data': []}
+        return {'data': [], 'paragraph': -1}
 
     first_sent, last_sent = paragraph_sentences(article, paragraph_id)
+
+    if sentence_id == last_sent:
+        if paragraph_id == len(article.paragraphs['paragraphs']) - 1:
+            return {'data': [], 'paragraph': -1}
+        else:
+            paragraph_id += 1
+            first_sent, last_sent = paragraph_sentences(article, paragraph_id)
+
     first_sent = max(first_sent, sentence_id + 1)
     if first_sent == 0:
         first_token = 0
@@ -153,6 +172,7 @@ def load_paragraph_below(article_id, paragraph_id, sentence_id):
     last_token = sentence_ends[last_sent]
     return {
         'data': tokens[first_token:last_token + 1],
+        'paragraph': paragraph_id,
     }
 
 

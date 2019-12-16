@@ -29,54 +29,79 @@
                 <h3>
                     {{toggle_text[toggle_selection - 1] }}
                 </h3>
+                <div v-if="above_load_id >= 0">
+                    <v-btn small color="red lighten-1" v-on:click.native=loadTextAbove>&#x21E7;</v-btn>
+                </div>
+            </v-flex>
+        </v-layout>
+        <v-layout
+                text-left
+                wrap
+                v-if="task==='sentence'"
+        >
+            <v-flex mb-4>
+                <span>{{author_indices}}, {{sentence_tags}}</span>
                 <div>
-                    <div v-if="above_load_id >= 0">
-                        <v-btn small color="red lighten-1" v-on:click.native=loadTextAbove>&#x21E7;</v-btn>
-                    </div>
                     <div v-if="text_above.length > 0">
-                        <span v-for="(word, i) in text_above" :key="`A-${i}`">
-                            <v-btn
-                                    class="text-none"
-                                    depressed
-                                    v-bind:style="buttonStyle"
-                                    v-on:click.native=tagAuthorAbove(i)
-                                    v-bind:color=button_color_above(i)
-                            >
-                                {{ word }}
-                            </v-btn>
-                        </span>
+                        <div v-for="(par, i) in text_above" :key="`D-${i}`">
+                            <span v-for="(word, j) in par" :key="`A-${j}`">
+                                <v-btn
+                                        class="text-none"
+                                        depressed
+                                        v-bind:style="buttonStyle"
+                                        v-on:click.native="tagAuthorAbove(i, j)"
+                                        v-bind:color="button_color_above(i, j)"
+                                >
+                                    {{ word }}
+                                </v-btn>
+                            </span>
+                            <br>
+                            <br>
+                        </div>
                     </div>
-                    &nbsp;
+                    <br>
                     <div>
                         <span v-for="(word, i) in content" :key="`B-${i}`">
                             <v-btn
                                     class="text-none"
                                     depressed
                                     v-bind:style="buttonStyle"
-                                    v-on:click.native=tagWord(i)
-                                    v-bind:color=button_color(i)
+                                    v-on:click.native="tagWord(i)"
+                                    v-bind:color="button_color(i)"
                             >
                                 {{ word }}
                             </v-btn>
                         </span>
                     </div>
-                    &nbsp;
+                    <br>
                     <div>
-                        <span v-for="(word, i) in text_below" :key="`C-${i}`">
-                            <v-btn
-                                    class="text-none"
-                                    depressed
-                                    v-bind:style="buttonStyle"
-                                    v-on:click.native=tagAuthorBelow(i)
-                                    v-bind:color=button_color_below(i)
-                            >
-                                {{ word }}
-                            </v-btn>
-                        </span>
+                        <div v-for="(par, i) in text_below" :key="`D-${i}`">
+                            <span v-for="(word, j) in par" :key="`C-${j}`">
+                                <v-btn
+                                        class="text-none"
+                                        depressed
+                                        v-bind:style="buttonStyle"
+                                        v-on:click.native="tagAuthorBelow(i, j)"
+                                        v-bind:color="button_color_below(i, j)"
+                                >
+                                    {{ word }}
+                                </v-btn>
+                            </span>
+                            <br>
+                            <br>
+                        </div>
                     </div>
-                    <div v-if="!no_more_content">
-                        <v-btn small color="red lighten-1" v-on:click.native=loadTextBelow>&#x21E9;</v-btn>
-                    </div>
+                </div>
+            </v-flex>
+        </v-layout>
+        <v-layout
+                text-center
+                wrap
+                v-if="task==='sentence'"
+        >
+            <v-flex mb-4>
+                <div v-if="!no_more_content">
+                    <v-btn small color="red lighten-1" v-on:click.native=loadTextBelow>&#x21E9;</v-btn>
                 </div>
                 &nbsp;
                 <div>
@@ -223,7 +248,7 @@ export default {
                     const tokens = data['data'];
                     const p_id = data['paragraph'];
                     if (tokens.length > 0 && p_id >= 0){
-                        that.text_above = that.replace_whitespace(tokens).concat(that.text_above);
+                        that.text_above.unshift(that.replace_whitespace(tokens));
                     }
                     that.above_load_id = p_id - 1;
                 },
@@ -251,7 +276,7 @@ export default {
                         const tokens = data['data'];
                         const p_id = data['paragraph'];
                         if (tokens.length > 0 && p_id >= 0){
-                            that.text_below = that.text_below.concat(that.replace_whitespace(tokens));
+                            that.text_below.push(that.replace_whitespace(tokens));
                         }
                         that.below_load_id = p_id + 1;
                         if (p_id === -1){
@@ -321,16 +346,27 @@ export default {
             }
             this.$forceUpdate();
         },
-        tagAuthorAbove: function (index) {
+        tagAuthorAbove: function (par_index, word_index) {
+            let words_before = 0;
+            const total_length = this.text_above.map(x => x.length).reduce((x, y) => x + y);
+            if (par_index > 0){
+                const end = this.text_above.length;
+                words_before = this.text_above.slice(end - par_index, end).map(x => x.length).reduce((x, y) => x + y);
+            }
+            word_index = word_index + words_before;
             // Only add the author if it hasn't been tagged yet
-            if (!this.author_indices.includes(index - this.text_above.length)) {
-                this.author_indices.push(index - this.text_above.length);
+            if (!this.author_indices.includes(word_index - total_length)) {
+                this.author_indices.push(word_index - total_length);
                 this.author_indices.sort((a, b) => a - b);
             }
         },
-        tagAuthorBelow: function (index) {
+        tagAuthorBelow: function (par_index, word_index) {
+            let words_before = 0;
+            if (par_index > 0){
+                words_before = this.text_below.slice(0, par_index).map(x => x.length).reduce((x, y) => x + y);
+            }
             // Only add the author if it hasn't been tagged yet
-            const relative_index = index + this.content.length;
+            const relative_index = word_index + words_before + this.content.length;
             if (!this.author_indices.includes(relative_index)) {
                 this.author_indices.push(relative_index);
                 this.author_indices.sort((a, b) => a - b);
@@ -361,16 +397,26 @@ export default {
                 return "white"
             }
         },
-        button_color_above: function (index) {
-            const relative_index = index - this.text_above.length;
+        button_color_above: function (index, word) {
+            let words_before = 0;
+            const total_length = this.text_above.map(x => x.length).reduce((x, y) => x + y);
+            if (index > 0){
+                const end = this.text_above.length;
+                words_before = this.text_above.slice(end - index, end).map(x => x.length).reduce((x, y) => x + y);
+            }
+            const relative_index = word + words_before - total_length;
             if (this.author_indices.includes(relative_index)){
                 return "green lighten-4"
             }else{
                 return "white"
             }
         },
-        button_color_below: function (index) {
-            const relative_index = index + this.content.length;
+        button_color_below: function (index, word) {
+            let words_before = 0;
+            if (index > 0){
+                words_before = this.text_below.slice(0, index).map(x => x.length).reduce((x, y) => x + y);
+            }
+            const relative_index = word + words_before + this.content.length;
             if (this.author_indices.includes(relative_index)){
                 return "green lighten-4"
             }else{

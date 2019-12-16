@@ -109,7 +109,7 @@
         <v-layout
                 text-center
                 wrap
-                v-if="task==='cookies'"
+                v-if="task ==='cookies'"
         >
             <v-flex mb-4>
                 <h3>
@@ -118,6 +118,20 @@
                 <div>
                     Nous utilisons des cookies pour vérifier que la même personne n'analyse pas la même phrase
                     plusieures fois.
+                </div>
+            </v-flex>
+        </v-layout>
+        <v-layout
+                text-center
+                wrap
+                v-if="task ==='error'"
+        >
+            <v-flex mb-4>
+                <h3>
+                    Oops!
+                </h3>
+                <div>
+                    Nous avons des difficultés internes. Merci de revenir plus tard.
                 </div>
             </v-flex>
         </v-layout>
@@ -208,8 +222,13 @@ export default {
                 success: function (data) {
                     const tokens = data['data'];
                     const p_id = data['paragraph'];
-                    that.text_above = that.replace_whitespace(tokens).concat(that.text_above);
+                    if (tokens.length > 0 && p_id >= 0){
+                        that.text_above = that.replace_whitespace(tokens).concat(that.text_above);
+                    }
                     that.above_load_id = p_id - 1;
+                },
+                error: function () {
+                    that.task = 'error'
                 }
             });
         },
@@ -226,14 +245,22 @@ export default {
                     'sentence_id': that.sentence_id[0],
                 },
                 success: function (data) {
-                    if (data['data'].length === 0){
+                    if (data['data'].length === 0) {
                         that.no_more_content = true;
-                    }else {
+                    } else {
                         const tokens = data['data'];
                         const p_id = data['paragraph'];
-                        that.text_below = that.text_below.concat(that.replace_whitespace(tokens));
+                        if (tokens.length > 0 && p_id >= 0){
+                            that.text_below = that.text_below.concat(that.replace_whitespace(tokens));
+                        }
                         that.below_load_id = p_id + 1;
+                        if (p_id === -1){
+                            that.no_more_content = true
+                        }
                     }
+                },
+                error: function () {
+                    that.task = 'error'
                 }
             });
         },
@@ -252,11 +279,17 @@ export default {
                 contentType: "application/json; charset=utf-8",
                 dataType: "json",
                 success: function (response) {
-                    if (response['reason'] == 'cookies') {
+                    if (response['success'] === true){
+                        that.loadContent()
+                    }else if (response['reason'] === 'cookies'){
                         that.task = 'cookies'
+                    }else{
+                        that.task = 'error'
                     }
-                    that.loadContent()
                 },
+                error: function () {
+                    that.task = 'error'
+                }
             });
         },
         tagWord: function (index) {
@@ -309,8 +342,8 @@ export default {
             this.author_indices = [];
             this.text_above = [];
             this.text_below = [];
-            this.above_load_id = 0;
-            this.below_load_id = 0;
+            this.above_load_id = this.paragraph_id;
+            this.below_load_id = this.paragraph_id;
             this.no_more_content = false;
             this.$forceUpdate();
         },

@@ -40,7 +40,6 @@
                 v-if="task==='sentence'"
         >
             <v-flex mb-4>
-                <span>{{author_indices}}, {{sentence_tags}}</span>
                 <div>
                     <div v-if="text_above.length > 0">
                         <div v-for="(par, i) in text_above" :key="`D-${i}`">

@@ -18,18 +18,20 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         path = options['path']
         print(f'Loading data from: {path}')
-        print('Loading language model...')
-        nlp = spacy.load('fr_core_news_md')
         try:
             if options['dir']:
                 articles = []
                 article_files = [join(path, article) for article in listdir(path)
                                  if isfile(join(path, article)) and len(article) > 4 and article[-3:] == 'xml']
+                print('Loading language model...')
+                nlp = spacy.load('fr_core_news_md')
                 for article_path in article_files:
-                    articles = articles.append(add_article_to_db(article_path, nlp))
+                    articles.append(add_article_to_db(article_path, nlp))
             else:
+                print('Loading language model...')
+                nlp = spacy.load('fr_core_news_md')
                 articles = [add_article_to_db(path, nlp)]
         except IOError:
-            raise CommandError('Article could not be added')
+            raise CommandError('Article could not be added. IOError.')
 
         self.stdout.write(self.style.SUCCESS(f'Successfully added {len(articles)} article(s).'))

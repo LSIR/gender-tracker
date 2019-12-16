@@ -26,7 +26,7 @@ class Command(BaseCommand):
                 article_files = [join(path, article) for article in listdir(path)
                                  if isfile(join(path, article)) and len(article) > 4 and article[-3:] == 'xml']
                 for article_path in article_files:
-                    articles = articles.append[add_article_to_db(article_path, nlp)]
+                    articles = articles.append(add_article_to_db(article_path, nlp))
             else:
                 articles = [add_article_to_db(path, nlp)]
         except IOError:

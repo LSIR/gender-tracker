@@ -96,7 +96,7 @@ def process_article(article_text, nlp):
     """
     root = ET.fromstring(article_text)
     # Tries to extract the article title
-    title_elements = list(root.findall('p'))
+    title_elements = list(root.findall('titre'))
     if len(title_elements) == 1:
         article_name = get_element_text(title_elements[0])
     else:

@@ -12,8 +12,7 @@ COOKIE_LIFE_SPAN = 1 * 60 * 60
 USER_ID = 1111
 
 # If in dev mode, don't touch the database:
-DEV_MODE = True
-LSIR_TAGGER = False
+ADMIN_TAGGER = False
 
 
 def load_content(request):
@@ -105,7 +104,7 @@ def submit_tags(request):
             tags = data['tags']
             authors = data['authors']
 
-            add_labels_to_database(user_id, article_id, paragraph_id, sent_id, tags, authors, DEV_MODE)
+            add_labels_to_database(user_id, article_id, paragraph_id, sent_id, tags, authors, ADMIN_TAGGER)
             return JsonResponse({'success': True})
         except KeyError:
             return JsonResponse({'success': False, 'reason': 'KeyError'})

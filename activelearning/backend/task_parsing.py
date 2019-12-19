@@ -166,6 +166,7 @@ def add_article_to_db(path, nlp, admin_article=False):
     label_overlap = len(data['s']) * [0]
     confidence = len(data['s']) * [0]
     return Article.objects.create(
+        name=data['name'],
         text=article_text,
         people={'people': data['people']},
         tokens={'tokens': data['tokens']},

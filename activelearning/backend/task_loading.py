@@ -188,7 +188,7 @@ def load_hardest_articles(n):
     """
     # Return only articles that don't have enough labels for all sentences
     return Article.objects.filter(label_counts__min_label_counts__lt=MIN_USER_LABELS) \
-               .order_by('confidence__min_confidence')[:n]
+               .order_by('confidence__min_confidence', 'id')[:n]
 
 
 def quote_start_sentence(sentence_ends, in_quote, token_index):

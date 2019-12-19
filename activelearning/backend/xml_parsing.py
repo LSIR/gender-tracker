@@ -97,7 +97,7 @@ def process_article(article_text, nlp):
     root = ET.fromstring(article_text)
     # Tries to extract the article title
     title_elements = list(root.findall('titre'))
-    if len(title_elements) == 1:
+    if len(title_elements) > 0:
         article_name = get_element_text(title_elements[0])
     else:
         article_name = 'No article title'
@@ -149,14 +149,15 @@ def process_article(article_text, nlp):
     }
 
 
-def resolve_overlapping_authors(author_indices):
+def resolve_overlapping_people(people_indices):
     """
+    Group people indices into groups representing the same physical person.
 
+    :param people_indices:
 
-    :param author_indices:
     :return:
     """
-    return author_indices
+    return people_indices
 
 
 def add_tags_to_tokens(tokens, labels, authors):
@@ -172,9 +173,8 @@ def add_tags_to_tokens(tokens, labels, authors):
     :return: list(string).
         The list of tokens with tags appended to each token that requires one.
     """
-    # {start_token: author_id}
     authors_ids = {}
-    for index, author in enumerate(resolve_overlapping_authors(authors)):
+    for index, author in enumerate(resolve_overlapping_people(authors)):
         start_token = author[0]
         end_token = author[-1]
         tokens[start_token] = f'<author a={index}>' + tokens[start_token]

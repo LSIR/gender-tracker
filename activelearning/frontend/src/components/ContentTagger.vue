@@ -1,6 +1,6 @@
 <template>
     <v-container
-        style="width: 800px;"
+        style="width: 800px; background-color: white;"
     >
         <v-layout text-center wrap>
             <v-flex mb-4>

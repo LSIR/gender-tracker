@@ -5,7 +5,7 @@ COPY package*.json ./
 RUN npm install
 COPY . .
 ENV VUE_APP_BASEPATH="/"
-ENV VUE_APP_FLASK_HOST="/platform_v2_api/api"
+ENV VUE_APP_FLASK_HOST="/api"
 RUN npm run build
 
 # production stage

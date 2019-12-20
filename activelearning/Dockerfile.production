@@ -20,7 +20,8 @@ ENV PYTHONFAULTHANDLER=1 \
 COPY environment.yml .
 RUN /bin/bash -c "source activate base  && conda env update -f=environment.yml && \
      conda clean -aqy "
-RUN pip install gunicorn==19.9.0
+# FIXME Add this to environment 
+RUN pip install gunicorn==19.9.0 psycopg2-binary django-environ
 # upload scripts
 COPY ./ /app/
 ENV ENVIRONMENT=production

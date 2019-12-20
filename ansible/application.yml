@@ -21,7 +21,7 @@
     ports: 127.0.0.1:5432:5432
     volumes:
       - /root/pgdata:/var/lib/postgresql/data
-    env: POSTGRES_PASSWORD=PaDV3CBncgeEXhWe
+    env_file: /etc/gendertracker.prod.env
     networks: 
       - name: gendertracker-network
 - name: Create gender tracker frontend container
@@ -29,6 +29,7 @@
     restart_policy: always
     name: gendertracker-frontend
     hostname: gendertracker-frontend
+    pull: true
     image: lsirepfl/gendertracker-frontend:latest
     ports: "127.0.0.1:8001:80"
     env_file: /etc/gendertracker.prod.env
@@ -39,6 +40,7 @@
     restart_policy: always
     name: gendertracker-backend
     hostname: gendertracker-backend
+    pull: true
     image: lsirepfl/gendertracker-backend:latest
     ports: "127.0.0.1:8002:80"
     env_file: /etc/gendertracker.prod.env

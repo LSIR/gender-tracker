@@ -44,5 +44,3 @@ Create your user:
 Start the application server
 
 ```python manage.py runserver```
-
-

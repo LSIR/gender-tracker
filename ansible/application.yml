@@ -42,7 +42,7 @@
     hostname: gendertracker-backend
     pull: true
     image: lsirepfl/gendertracker-backend:latest
-    ports: "127.0.0.1:8002:80"
+    ports: "127.0.0.1:8002:8000"
     env_file: /etc/gendertracker.prod.env
     networks: 
       - name: gendertracker-network

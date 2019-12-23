@@ -43,12 +43,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'webpack_loader',
     # Added by Niels. CORS Headers. Doesn't need this when I run at http://127.0.0.1:8000/
     #'corsheaders',
     # Added by Niels. Server
     'backend',
 ]
+
+if env('ENVIRONMENT') != 'production':
+    INSTALLED_APPS.append('webpack_loader')
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -95,7 +97,7 @@ DATABASES = {
         'NAME': env('POSTGRES_NAME'),
         'USER': env('POSTGRES_USER'),
         'PASSWORD': env('POSTGRES_PASSWORD'),
-        'HOST': 'localhost',
+        'HOST': env('POSTGRES_HOST'),
         'PORT': '5432',
     }
 }

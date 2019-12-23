@@ -161,12 +161,12 @@
         </v-layout>
         <v-layout text-center wrap>
             <v-flex xs12>
-                <v-img
+                <!--<v-img
                         :src="require('../assets/epfl_logo.svg')"
                         class="my-3"
                         contain
                         height="40"
-                ></v-img>
+                        ></v-img> -->
             </v-flex>
         </v-layout>
     </v-container>
@@ -210,7 +210,7 @@ export default {
             const that = this;
             $.ajax({
                 type: 'GET',
-                url: 'http://127.0.0.1:8000/api/loadContent/',
+                url: '/api/loadContent/',
                 success: function (data) {
                     that.task = data['task'];
                     if (that.task !== 'None'){
@@ -235,7 +235,7 @@ export default {
             const that = this;
             $.ajax({
                 type: 'GET',
-                url: 'http://127.0.0.1:8000/api/loadAbove/',
+                url: '/api/loadAbove/',
                 contentType: "application/json; charset=utf-8",
                 dataType: "json",
                 data: {
@@ -260,7 +260,7 @@ export default {
             const that = this;
             $.ajax({
                 type: 'GET',
-                url: 'http://127.0.0.1:8000/api/loadBelow/',
+                url: '/api/loadBelow/',
                 contentType: "application/json; charset=utf-8",
                 dataType: "json",
                 data: {
@@ -292,7 +292,7 @@ export default {
             const that = this;
             $.ajax({
                 type: 'POST',
-                url: 'http://127.0.0.1:8000/api/submitTags/',
+                url: '/api/submitTags/',
                 data: JSON.stringify({
                     'article_id': that.article_id,
                     'paragraph_id': that.paragraph_id,

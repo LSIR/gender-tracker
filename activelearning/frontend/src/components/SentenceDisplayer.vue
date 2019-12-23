@@ -83,7 +83,7 @@ export default {
       var that = this;
       $.ajax({
           type: 'GET',
-          url: 'http://localhost:8000/api/loadSentence',
+          url: '/api/loadSentence',
           success: function (data) {
             that.sentence = data['sentence'];
             that.sentence_tags = new Array(that.sentence.length)
@@ -95,7 +95,7 @@ export default {
       var tags_values = this.sentence_tags
       $.ajax({
           type: 'POST',
-          url: 'http://localhost:8000/api/submitTags/',
+          url: '/api/submitTags/',
           data: JSON.stringify({ tags: tags_values }),
           contentType: "application/json; charset=utf-8",
           dataType: "json",

@@ -31,7 +31,7 @@ SECRET_KEY = 'mk^ei6*x_)1drl+_=f&c3*lr08_aqys$dxa_=b-2m&8igx@omr'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['185.181.160.137', 'gendertracker.heidi.news']
 
 
 # Application definition

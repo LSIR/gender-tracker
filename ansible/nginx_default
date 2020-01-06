@@ -30,14 +30,14 @@ server {
 
 
   location ^~ /api {
-    proxy_pass http://gendertracker_backend/$1$is_args$args;
-    rewrite ^(/api/.*)$ /$1 break;
+    proxy_pass http://gendertracker_backend;
+    # rewrite ^(/api/.*)$ /$1 break;
     proxy_http_version 1.1;
     proxy_set_header Upgrade $http_upgrade;
     proxy_set_header Connection 'upgrade';
     proxy_set_header Host $host;
-    proxy_set_header SCRIPT_NAME /api;
-    proxy_cookie_path / /api/;
+    # proxy_set_header SCRIPT_NAME /api;
+    # proxy_cookie_path / /api/;
     proxy_cache_bypass $http_upgrade;
   }
 

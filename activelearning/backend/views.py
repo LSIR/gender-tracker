@@ -11,8 +11,8 @@ COOKIE_LIFE_SPAN = 1 * 60 * 60
 # Default session ID (until the actual cookies are working)
 USER_ID = 1111
 
-# If in dev mode, don't touch the database:
-ADMIN_TAGGER = False
+# If only a single label is needed for each sentence
+ADMIN_TAGGER = True
 
 
 def load_content(request):

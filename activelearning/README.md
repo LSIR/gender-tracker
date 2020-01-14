@@ -66,7 +66,10 @@ Host gendertracker
     User ubuntu
 ```
 
-Then go the folder `ansible` at the root of this repository, and run 
+Then go the folder `ansible` at the root of this repository, and run
 
-```make```
+```
+pipenv shell
+make
+```
 

@@ -69,6 +69,8 @@ Host gendertracker
 Then go the folder `ansible` at the root of this repository, and run
 
 ```
+pipenv install  # this line and the next need only to be run once on your computer
+ansible-galaxy install -r requirements.yml
 pipenv shell
 make
 ```

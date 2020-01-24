@@ -2,9 +2,9 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import ObjectDoesNotExist
 
-from backend.frontend_parsing.postgre_to_frontend import request_labelling_task, load_paragraph_above, load_paragraph_below
+from backend.frontend_parsing.postgre_to_frontend import load_paragraph_above, load_paragraph_below
 from backend.frontend_parsing.frontend_to_postgre import clean_user_labels
-from backend.db_management import add_user_label_to_db
+from backend.db_management import add_user_label_to_db, request_labelling_task
 from .models import Article
 import json
 import uuid

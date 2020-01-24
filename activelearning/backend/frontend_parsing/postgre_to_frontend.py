@@ -1,15 +1,8 @@
 from django.core.exceptions import ObjectDoesNotExist
-from backend.models import Article, UserLabel
+
+from backend.models import Article
 
 """ File containing all methods to select and format user labelling tasks. """
-
-MIN_USER_LABELS = 4
-
-ARTICLE_LOADS = 10
-
-COUNT_THRESHOLD = 3
-
-CONFIDENCE_THRESHOLD = 80
 
 
 def form_sentence_json(article, paragraph_id, sentence_id):
@@ -173,108 +166,3 @@ def load_paragraph_below(article_id, sentence_id):
         'first_sentence': first_sentence,
         'last_sentence': last_sentence,
     }
-
-
-def load_hardest_articles(n):
-    """
-    Loads the hardest articles to classify in the database, in terms of the confidence in the
-    answers.
-
-    :param n: int.
-        The number of articles to load from the database
-    :return: list(Article).
-        The n hardest articles to classify.
-    """
-    # Return only articles that don't have enough labels for all sentences
-    return Article.objects.filter(label_counts__min_label_counts__lt=MIN_USER_LABELS) \
-               .order_by('confidence__min_confidence', 'id')[:n]
-
-
-def quote_start_sentence(sentence_ends, in_quote, token_index):
-    """
-    Given the index of the first token of a sentence, which is inside quotation marks, returns the index of the sentence
-    where the quotation mark started.
-
-    :param sentence_ends: list(int).
-        The list of the last token of each sentence
-    :param in_quote: list(int)..
-        The list of in_quote tokens
-    :param token_index: int.
-        The index of the token in the quote
-    :return: int.
-        The index of the sentence containing the first token in the quote
-    """
-    while in_quote[token_index] == 1 and token_index > 0:
-        token_index -= 1
-    sentence_index = 1
-    while token_index > sentence_ends[sentence_index]:
-        sentence_index += 1
-    return sentence_index
-
-
-def quote_end_sentence(sentence_ends, in_quote, token_index):
-    """
-    Given the index of the last token of a sentence, which is inside quotation marks, returns the index of the sentence
-    where the quotation mark ends.
-
-    :param sentence_ends: list(int).
-        The list of the last token of each sentence
-    :param in_quote: list(int).
-        The list of in_quote tokens
-    :param token_index: int.
-        The index of the last token in the sentence
-    :return: int.
-        The index of the sentence containing the last token in the quote
-    """
-    while token_index < len(in_quote) and in_quote[token_index] == 1:
-        token_index += 1
-    sentence_index = len(sentence_ends) - 1
-    while token_index <= sentence_ends[sentence_index]:
-        sentence_index -= 1
-    return sentence_index + 1
-
-
-def request_labelling_task(session_id):
-    """
-    Finds a sentence or paragraph that needs to be labelled, and that doesn't already have a label with the given
-    session_id. If the list of sentence_indices is empty, then the whole paragraph needs to be labelled. Otherwise,
-    the sentence(s) need to be labelled.
-
-    :param session_id: int.
-        The user's session id
-    :return: dict.
-        A dict containing article_id, paragraph_id, sentence_id, data and task keys
-    """
-    session_labels = UserLabel.objects.filter(session_id=session_id)
-    articles = load_hardest_articles(ARTICLE_LOADS)
-    for article in articles:
-        annotated_sentences = [user_label.sentence_index for user_label in session_labels.filter(article=article)]
-        label_counts = article.label_counts['label_counts']
-        confidences = article.confidence['confidence']
-        sentence_ends = article.sentences['sentences']
-        prev_par_end = -1
-        # p is the index of the last sentence in paragraph i
-        for (i, p) in enumerate(article.paragraphs['paragraphs']):
-            # Lowest confidence in the whole paragraph
-            min_conf = min([conf for conf in confidences[prev_par_end + 1:p + 1]])
-
-            # For high enough confidences, annotate the whole paragraph
-            if min_conf >= CONFIDENCE_THRESHOLD \
-                    and label_counts[prev_par_end + 1] < COUNT_THRESHOLD \
-                    and (prev_par_end + 1) not in annotated_sentences:
-                return form_paragraph_json(article, i)
-
-            # For all sentences in the paragraph, check if they can be annotated by the user
-            for j in range(prev_par_end + 1, p + 1):
-                if label_counts[j] < COUNT_THRESHOLD and j not in annotated_sentences:
-                    # List of sentence indices to label
-                    labelling_task = [j]
-                    # Checks that the sentence's last token is inside quotes, in which case the next sentence would
-                    # also need to be returned
-                    sent_end = sentence_ends[j]
-                    if article.in_quotes['in_quotes'][sent_end] == 1:
-                        last_sent = quote_end_sentence(sentence_ends, article.in_quotes['in_quotes'], sent_end)
-                        labelling_task = list(range(labelling_task[0], last_sent + 1))
-                    return form_sentence_json(article, i, labelling_task)
-            prev_par_end = p
-    return None

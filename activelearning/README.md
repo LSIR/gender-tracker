@@ -7,7 +7,7 @@ https://medium.com/@rodrigosmaniotto/integrating-django-and-vuejs-with-vue-cli-3
 
 npm and conda need to be installed.
 
-PostgreSQL was setup by foolowing parts of this tutorial:
+PostgreSQL was setup by following parts of this tutorial:
 https://medium.com/agatha-codes/painless-postgresql-django-d4f03364989
 
 PostgreSQL needs to be installed
@@ -84,4 +84,4 @@ make
 ### Backend
 
 The backend uses the Django framework. The `activelearning` package contains all code relating to Django settings
-and administration. The `backend` package contains the model for the backend.
+and administration. The `backend` package contains the model for the labelled data.

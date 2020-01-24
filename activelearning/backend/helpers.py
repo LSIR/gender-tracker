@@ -141,3 +141,47 @@ def change_confidence(article_id, confidences):
         article.save()
         return min_conf
     return None
+
+
+def quote_start_sentence(sentence_ends, in_quote, token_index):
+    """
+    Given the index of the first token of a sentence, which is inside quotation marks, returns the index of the sentence
+    where the quotation mark started.
+
+    :param sentence_ends: list(int).
+        The list of the last token of each sentence
+    :param in_quote: list(int)..
+        The list of in_quote tokens
+    :param token_index: int.
+        The index of the token in the quote
+    :return: int.
+        The index of the sentence containing the first token in the quote
+    """
+    while in_quote[token_index] == 1 and token_index > 0:
+        token_index -= 1
+    sentence_index = 1
+    while token_index > sentence_ends[sentence_index]:
+        sentence_index += 1
+    return sentence_index
+
+
+def quote_end_sentence(sentence_ends, in_quote, token_index):
+    """
+    Given the index of the last token of a sentence, which is inside quotation marks, returns the index of the sentence
+    where the quotation mark ends.
+
+    :param sentence_ends: list(int).
+        The list of the last token of each sentence
+    :param in_quote: list(int).
+        The list of in_quote tokens
+    :param token_index: int.
+        The index of the last token in the sentence
+    :return: int.
+        The index of the sentence containing the last token in the quote
+    """
+    while token_index < len(in_quote) and in_quote[token_index] == 1:
+        token_index += 1
+    sentence_index = len(sentence_ends) - 1
+    while token_index <= sentence_ends[sentence_index]:
+        sentence_index -= 1
+    return sentence_index + 1

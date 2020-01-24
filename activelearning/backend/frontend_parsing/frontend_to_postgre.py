@@ -1,44 +1,31 @@
-from backend.helpers import paragraph_sentences
 
 
-def label_edges(article, paragraph_index, sentence_indices):
+""" All methods used to transform user labels into rows that can be put in the UserLabels table. """
+
+
+def check_label_validity(labels):
     """
-    Finds the index of the first and last token and the index of the first and last sentence, for a list of sentences
-    or a paragraph.
+    Check that the user labels are in the correct format. Checks that they contain only 0s and 1s, and if they contain
+    1s that they are in a continuous (the user cannot select two quotes in a sentence).
 
-    :param article: Article.
-        The article that contains the paragraph.
-    :param paragraph_index: int.
-        The index of the paragraph
-    :param sentence_indices: list(int).
-        The indices of the sentences. Empty list if the task is for an entire paragraph
-    :return: dictionary:
-        'token': (int, int). The indices of the first and last token in the paragraph.
-        'sentence': (int, int). The indices of the first and last sentence in the paragraph.
+    :param labels: list(int).
+        The labels that a user created.
+    :return: Boolean.
+        True if and only if the labels are valid.
     """
-    if paragraph_index < 0 or len(article.paragraphs['paragraphs']) <= paragraph_index:
-        return None
-
-    if len(sentence_indices) > 0 and (sentence_indices[0] < 0 or
-                                      sentence_indices[-1] > len(article.sentences['sentences'])):
-        return None
-
-    sent_ends = article.sentences['sentences']
-    if len(sentence_indices) == 0:
-        first_sent, last_sent = paragraph_sentences(article, paragraph_index)
-    else:
-        first_sent = sentence_indices[0]
-        last_sent = sentence_indices[-1]
-
-    if first_sent == 0:
-        first_token = 0
-    else:
-        first_token = sent_ends[first_sent - 1] + 1
-    last_token = sent_ends[last_sent]
-    return {
-        'token': (first_token, last_token),
-        'sentence': (first_sent, last_sent),
-    }
+    first_one_seen = False
+    first_one_segment_seen = False
+    for label in labels:
+        # If labels not in {0, 1} ignore
+        if label not in [0, 1]:
+            return []
+        # Two different quotes found
+        if first_one_segment_seen and label == 1:
+            return []
+        if first_one_seen and label == 0:
+            first_one_segment_seen = True
+        if not first_one_seen and label == 1:
+            first_one_seen = True
 
 
 def clean_user_labels(sentence_ends, task_indices, first_sentence, last_sentence, labels, authors):
@@ -66,20 +53,7 @@ def clean_user_labels(sentence_ends, task_indices, first_sentence, last_sentence
             labels: list(int). The list of labels to add to the database.
             authors: list(int). A list containing the index of tokens that are authors for the quote.
     """
-    # Check that tags contain only 0s and 1s, and if they contain 1s that they are continuous
-    first_one_seen = False
-    first_one_segment_seen = False
-    for label in labels:
-        # If labels not in {0, 1} ignore
-        if label not in [0, 1]:
-            return []
-        # Two different quotes found
-        if first_one_segment_seen and label == 1:
-            return []
-        if first_one_seen and label == 0:
-            first_one_segment_seen = True
-        if not first_one_seen and label == 1:
-            first_one_seen = True
+    check_label_validity(labels)
 
     # Find the first and last token of each sentence
     sentence_starts = [0] + [end + 1 for end in sentence_ends][:-1]

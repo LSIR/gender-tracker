@@ -7,29 +7,6 @@ from django.core.exceptions import ObjectDoesNotExist
 ##############################################################################################
 
 
-def paragraph_sentences(article, paragraph_index):
-    """
-    Finds the index of the first and last sentence, for a paragraph.
-
-    :param article: Article.
-        The article that contains the paragraph.
-    :param paragraph_index: int.
-        The index of the paragraph
-    :return: (int, int).
-        The indices of the first and last sentence in the paragraph. Returns (-1, -1) if the index of the paragraph is
-        not valid.
-    """
-    par_ends = article.paragraphs['paragraphs']
-    if paragraph_index < 0 or len(par_ends) <= paragraph_index:
-        return -1, -1
-    if paragraph_index == 0:
-        first_sent = 0
-    else:
-        first_sent = par_ends[paragraph_index - 1] + 1
-    last_sent = par_ends[paragraph_index]
-    return first_sent, last_sent
-
-
 def label_consensus(labels, authors):
     """
     Computes the (label, author) pair that is most common in the user labels, as well as the percentage of responses

@@ -17,13 +17,6 @@ class HelperTestCase(TestCase):
         # Add the articles to the database
         self.a1 = add_article_to_db('../data/article01.xml', nlp)
 
-    def test_paragraph_sentences(self):
-        self.assertEquals(paragraph_sentences(self.a1, -1), (-1, -1))
-        self.assertEquals(paragraph_sentences(self.a1, 0), (0, 1))
-        self.assertEquals(paragraph_sentences(self.a1, 1), (2, 8))
-        self.assertEquals(paragraph_sentences(self.a1, 7), (37, 46))
-        self.assertEquals(paragraph_sentences(self.a1, 8), (-1, -1))
-
     def test_label_consensus(self):
         label1 = [0, 1, 1, 1, 1, 0, 0]
         label2 = [0, 1, 1, 1, 1, 0, 0]
@@ -140,29 +133,6 @@ class TaskParsingTestCase(TestCase):
 
     def setUp(self):
         self.a1 = add_article_to_db('../data/article01.xml', nlp)
-
-    def test_label_edges(self):
-        data = label_edges(self.a1, 0, [])
-        self.assertEquals(data['token'], (0, 44))
-        self.assertEquals(data['sentence'], (0, 1))
-
-        data = label_edges(self.a1, 0, [0, 1])
-        self.assertEquals(data['token'], (0, 44))
-        self.assertEquals(data['sentence'], (0, 1))
-
-        data = label_edges(self.a1, 0, [0])
-        self.assertEquals(data['token'], (0, 20))
-        self.assertEquals(data['sentence'], (0, 0))
-
-        data = label_edges(self.a1, 0, [1])
-        self.assertEquals(data['token'], (21, 44))
-        self.assertEquals(data['sentence'], (1, 1))
-
-        self.assertIsNone(label_edges(self.a1, -1, [1]))
-        self.assertIsNone(label_edges(self.a1, 8, []))
-        self.assertIsNone(label_edges(self.a1, 100, [1]))
-        self.assertIsNone(label_edges(self.a1, 0, [-1]))
-        self.assertIsNone(label_edges(self.a1, 0, [1000]))
 
     def test_clean_user_labels_no_quote1(self):
         """ Test for when no text is annotated as a quote for a single sentence as a task, and no extra text. """

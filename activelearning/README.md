@@ -85,3 +85,40 @@ make
 
 The backend uses the Django framework. The `activelearning` package contains all code relating to Django settings
 and administration. The `backend` package contains the model for the labelled data.
+
+#### frontend_parsing package
+
+Contains all methods that are used to transform information stored in the PostgreSQL data into a format that can be
+shown to the user, as well as methods that transform the labels the user created into a format that can be added to the
+database.
+
+#### xml_parsing package
+
+Contains all methods that can be used to transform news articles in an xml format into a representation that can be
+stored in the PostgreSQL database. Each article needs to be stored in a seperate xml file, and have the following
+format:
+
+```xml
+<?xml version="1.0"?>
+<text>
+	<title>Title of the article.</title>
+	<p>Content of the first paragraph.</p>
+	<p>Content of the second paragraph.</p>
+	<p>...</p>
+	<p>Content of the last paragraph.</p>
+</text>
+```
+
+This package also contains methods to extract annotated articles to xml files, with the format:
+
+```xml
+<?xml version="1.0"?>
+<text>
+	<title>Title of the article.</title>
+	<p>This is a short article, written by <author a="1">Albert Einstein</author>. <author a="1">Einstein</author>
+            once said "<RS a="1">everything is relative</RS>".</p>
+	<p>His friend, <author a="2">Isaac Newton</author>, did not believe him. He told him that "<RS a="2">if everything
+            is relative, why does it hurt so much when apples fall?</RS>". He answered that <RS a="1">it doesn't hurt much compared
+            to coconuts falling on your head.</RS></p>
+</text>
+```

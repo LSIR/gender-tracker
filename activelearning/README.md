@@ -43,6 +43,35 @@ Create your user:
 
 Start the application server
 
-```python manage.py runserver```
+```python manage.py runserver``` 
 
+To build and push the backend production container:
+
+```make build && make push```
+
+For the frontend:
+
+```
+cd frontend
+make build && make push
+```
+
+To deploy the containers to production:
+
+First add the following in your `.ssh/config`
+
+```
+Host gendertracker
+    HostName 185.181.160.137
+    User ubuntu
+```
+
+Then go the folder `ansible` at the root of this repository, and run
+
+```
+pipenv install  # this line and the next need only to be run once on your computer
+ansible-galaxy install -r requirements.yml
+pipenv shell
+make
+```
 

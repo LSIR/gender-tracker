@@ -1,0 +1,18 @@
+- hosts: gendertracker
+  vars_files: vars.yml
+  become: yes
+  become_user: root
+  roles:
+    - role: geerlingguy.docker
+  tasks:
+    # Registry
+    - name: Install packages
+      import_tasks: packages.yml
+    - name: Configure ufw task
+      import_tasks: ufw.yml
+    - name: Import Docker daemon tasks
+      import_tasks: docker-daemon.yml
+    - name: Import data-platform tasks
+      import_tasks: application.yml
+    - name: Configure nginx task
+      import_tasks: nginx.yml

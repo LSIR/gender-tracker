@@ -1,0 +1,59 @@
+upstream gendertracker_frontend {
+  server localhost:8001;
+}
+
+upstream gendertracker_backend {
+  server localhost:8002;
+}
+
+# main node server
+#server {
+#  listen 80;
+#  server_name 159.100.240.127;
+#  return 301 https://$server_name$request_uri;
+#}
+
+server {
+  #listen       443 ssl;
+  #server_name  modemos.epfl.ch;
+  listen 80;
+  server_name 185.181.160.137;
+  client_max_body_size 128G;
+
+  access_log /var/log/nginx/access.log;
+  error_log /var/log/nginx/error.log;
+
+  error_page 502 503 504 /custom_503.html;
+
+  # ssl_certificate  /etc/nginx/cert.pem;
+  # ssl_certificate_key /etc/nginx/key.pem;
+
+
+  location ^~ /api {
+    proxy_pass http://gendertracker_backend;
+    # rewrite ^(/api/.*)$ /$1 break;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection 'upgrade';
+    proxy_set_header Host $host;
+    # proxy_set_header SCRIPT_NAME /api;
+    # proxy_cookie_path / /api/;
+    proxy_cache_bypass $http_upgrade;
+  }
+
+  location ^~ /admin {
+    proxy_pass http://gendertracker_backend;
+    # rewrite ^(/admin/.*)$ /$1 break;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection 'upgrade';
+    proxy_set_header Host $host;
+    # proxy_set_header SCRIPT_NAME /admin;
+    # proxy_cookie_path / /admin/;
+    proxy_cache_bypass $http_upgrade;
+  }
+
+  location ~ ^/(.*)$ {
+    proxy_pass http://gendertracker_frontend/$1$is_args$args;
+  }
+}

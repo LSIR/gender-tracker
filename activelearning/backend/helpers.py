@@ -74,7 +74,6 @@ def is_sentence_labelled(article, sentence_id, min_users, min_consensus):
     sentence_labels = UserLabel.objects.filter(article=article, sentence_index=sentence_id)
     admin_label = [label for label in sentence_labels.filter(admin_label=True)]
     if len(admin_label) > 0:
-        admin_label = admin_label[0]
         return True
     else:
         labels = [label.labels['labels'] for label in sentence_labels]

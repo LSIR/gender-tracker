@@ -163,52 +163,114 @@ class TaskParsingTestCase(TestCase):
         self.assertIsNone(label_edges(self.a1, 0, [-1]))
         self.assertIsNone(label_edges(self.a1, 0, [1000]))
 
-    def test_add_labels_to_database(self):
-        # Single sentence label
-        article_id = self.a1.id
-        session_id = '0000'
-        tags = 21 * [0]
-        paragraph_index = 0
-        sentence_indices = [1]
-        rel_author_index = [-2, -1]
-        true_author_index = [19, 20]
-        add_labels_to_database(session_id, article_id, paragraph_index, sentence_indices, tags, rel_author_index, False)
-        all_labels = [label for label in UserLabel.objects.all()]
-        self.assertEquals(len(all_labels), 1)
-        label = all_labels[0]
-        self.assertEquals(label.article, self.a1)
-        self.assertEquals(label.session_id, session_id)
-        self.assertEquals(label.labels['labels'], tags)
-        self.assertEquals(label.sentence_index, sentence_indices[0])
-        self.assertEquals(label.author_index['author_index'], true_author_index)
+    def test_clean_user_labels_no_quote1(self):
+        """ Test for when no text is annotated as a quote for a single sentence as a task, and no extra text. """
+        sentence_ends = [12, 34, 45, 92, 110, 123, 146]
+        task_indices = [1]
+        first_sentence = 1
+        last_sentence = 1
+        labels = (34 - 13 + 1) * [0]
+        authors = []
+        clean_labels = clean_user_labels(sentence_ends, task_indices, first_sentence, last_sentence, labels, authors)
+        self.assertEquals(clean_labels, [{'index': 1, 'labels': labels, 'authors': []}])
 
-        # Two sentence label
-        session_id = '1234'
-        tags = 45 * [0]
-        paragraph_index = 0
-        sentence_indices = [0, 1]
-        rel_author_index = [12, 13]
-        true_author_index = [12, 13]
-        add_labels_to_database(session_id, article_id, paragraph_index, sentence_indices, tags, rel_author_index, False)
-        self.assertEquals(len(UserLabel.objects.all()), 3)
-        all_labels = [label for label in UserLabel.objects.filter(session_id='1234')]
-        self.assertEquals(len(all_labels), 2)
-        if all_labels[0].sentence_index == 0:
-            label = all_labels[0]
-            label_1 = all_labels[1]
-        else:
-            label = all_labels[1]
-            label_1 = all_labels[0]
-        self.assertEquals(label.article, self.a1)
-        self.assertEquals(label.session_id, session_id)
-        self.assertEquals(label.labels['labels'], 21 * [0])
-        self.assertEquals(label.sentence_index, 0)
-        self.assertEquals(label.author_index['author_index'], true_author_index)
-        self.assertEquals(label_1.article, self.a1)
-        self.assertEquals(label_1.session_id, session_id)
-        self.assertEquals(label_1.labels['labels'], 24 * [0])
-        self.assertEquals(label_1.sentence_index, 1)
-        self.assertEquals(label_1.author_index['author_index'], true_author_index)
+    def test_clean_user_labels_no_quote2(self):
+        """ Test for when no text is annotated as a quote for a single sentence as a task, with extra text. """
+        sentence_ends = [12, 34, 45, 92, 110, 123, 146]
+        task_indices = [3]
+        first_sentence = 3
+        last_sentence = 5
+        labels = (123 - 46 + 1) * [0]
+        authors = []
+        clean_labels = clean_user_labels(sentence_ends, task_indices, first_sentence, last_sentence, labels, authors)
+        self.assertEquals(clean_labels, [{'index': 3, 'labels': (92 - 46 + 1)*[0], 'authors': []}])
+
+    def test_clean_user_labels_no_quote3(self):
+        """ Test for when no text is annotated as a quote for a single sentence as a task, with extra text. """
+        sentence_ends = [12, 34, 45, 92, 110, 123, 146]
+        task_indices = [2]
+        first_sentence = 0
+        last_sentence = 4
+        labels = (110 - 0 + 1) * [0]
+        authors = []
+        clean_labels = clean_user_labels(sentence_ends, task_indices, first_sentence, last_sentence, labels, authors)
+        self.assertEquals(clean_labels, [{'index': 2, 'labels': labels[35:46], 'authors': []}])
+
+    def test_clean_user_labels_quote1(self):
+        """ Test for when text is annotated as a quote for a single sentence as a task, and no extra text. """
+        sentence_ends = [12, 34, 45, 92, 110, 123, 146]
+        task_indices = [1]
+        first_sentence = 1
+        last_sentence = 1
+        labels = (34 - 13 + 1) * [0]
+        labels[5:9] = (9 - 5) * [1]
+        authors = [12, 13]
+        clean_labels = clean_user_labels(sentence_ends, task_indices, first_sentence, last_sentence, labels, authors)
+        self.assertEquals(clean_labels, [{'index': 1, 'labels': labels, 'authors': [25, 26]}])
+
+    def test_clean_user_labels_quote2(self):
+        """ Test for when text is annotated as a quote for a single sentence as a task, with extra text. No extra text
+        is annotated as part of the quote"""
+        sentence_ends = [12, 34, 45, 92, 110, 123, 146]
+        task_indices = [1]
+        first_sentence = 0
+        last_sentence = 3
+        labels = (92 - 0 + 1) * [0]
+        labels[16:25] = (25 - 16) * [1]
+        authors = [2, 3]
+        clean_labels = clean_user_labels(sentence_ends, task_indices, first_sentence, last_sentence, labels, authors)
+        self.assertEquals(clean_labels, [{'index': 1, 'labels': labels[13:35], 'authors': [2, 3]}])
+
+    def test_clean_user_labels_quote3(self):
+        """ Test for when extra text is annotated as a quote, with none of the task text labeled in the quote. """
+        sentence_ends = [12, 34, 45, 92, 110, 123, 146]
+        task_indices = [1]
+        first_sentence = 0
+        last_sentence = 3
+        labels = (92 - 0 + 1) * [0]
+        labels[0:9] = (9 - 0) * [1]
+        authors = [2, 3]
+        clean_labels = clean_user_labels(sentence_ends, task_indices, first_sentence, last_sentence, labels, authors)
+        self.assertEquals(clean_labels, [{'index': 1, 'labels': labels[13:35], 'authors': []}])
+
+    def test_clean_user_labels_quote4(self):
+        """ Test for when extra text is annotated as a quote, with none of the task text labeled in the quote. """
+        sentence_ends = [12, 34, 45, 92, 110, 123, 146]
+        task_indices = [1]
+        first_sentence = 0
+        last_sentence = 3
+        labels = (92 - 0 + 1) * [0]
+        labels[35:45] = (45 - 35) * [1]
+        authors = [2, 3]
+        clean_labels = clean_user_labels(sentence_ends, task_indices, first_sentence, last_sentence, labels, authors)
+        self.assertEquals(clean_labels, [{'index': 1, 'labels': labels[13:35], 'authors': []}])
+
+    def test_clean_user_labels_quote5(self):
+        """ Test for when extra text is annotated as a quote, with some of the task text also labeled in the quote. """
+        sentence_ends = [12, 34, 45, 92, 110, 123, 146]
+        task_indices = [1]
+        first_sentence = 0
+        last_sentence = 3
+        labels = (92 - 0 + 1) * [0]
+        labels[34:50] = (50 - 34) * [1]
+        authors = [2, 3]
+        clean_labels = clean_user_labels(sentence_ends, task_indices, first_sentence, last_sentence, labels, authors)
+        self.assertEquals(clean_labels, [{'index': 1, 'labels': labels[13:35], 'authors': [2, 3]},
+                                         {'index': 2, 'labels': labels[35:46], 'authors': [2, 3]},
+                                         {'index': 3, 'labels': labels[46:93], 'authors': [2, 3]}])
+
+    def test_clean_user_labels_quote6(self):
+        """ Test for when extra text is annotated as a quote, with some of the task text also labeled in the quote. """
+        sentence_ends = [12, 34, 45, 92, 110, 123, 146]
+        task_indices = [1]
+        first_sentence = 0
+        last_sentence = 3
+        labels = (92 - 0 + 1) * [0]
+        labels[0:30] = (30 - 0) * [1]
+        authors = [2, 3]
+        clean_labels = clean_user_labels(sentence_ends, task_indices, first_sentence, last_sentence, labels, authors)
+        self.assertEquals(clean_labels, [{'index': 1, 'labels': labels[13:35], 'authors': [2, 3]},
+                                         {'index': 0, 'labels': labels[0:13], 'authors': [2, 3]}])
 
     def test_add_user_label_to_db(self):
         article_id = self.a1.id
@@ -260,13 +322,13 @@ class TaskLoadingTestCase(TestCase):
         self.a3 = add_article_to_db('../data/article03clean.xml', nlp)
 
     def test_load_paragraph_above(self):
-        data = load_paragraph_above(self.a1.id, 0, 0)
+        data = load_paragraph_above(self.a1.id, 0)
         self.assertEquals(data['data'], [])
-        data = load_paragraph_above(self.a1.id, 0, 1)
+        data = load_paragraph_above(self.a1.id, 1)
         self.assertEquals(data['data'], ["Comment ", "les ", "chouettes ", "effraies ", "au ", "plumage ", "blanc",
                                          ", ", "particulièrement ", "visibles ", "la ", "nuit", ", ", "parviennent",
                                          "-", "elles ", "à ", "attraper ", "des ", "proies", "? "])
-        data = load_paragraph_above(self.a1.id, 1, 2)
+        data = load_paragraph_above(self.a1.id, 2)
         self.assertEquals(data['data'], ["Comment ", "les ", "chouettes ", "effraies ", "au ", "plumage ", "blanc",
                                          ", ", "particulièrement ", "visibles ", "la ", "nuit", ", ", "parviennent",
                                          "-", "elles ", "à ", "attraper ", "des ", "proies", "? ", "L’", "énigme ",
@@ -276,11 +338,11 @@ class TaskLoadingTestCase(TestCase):
         return
 
     def test_load_paragraph_below(self):
-        data = load_paragraph_below(self.a1.id, 0, 0)
+        data = load_paragraph_below(self.a1.id, 0)
         self.assertEquals(data['data'], ["L’", "énigme ", "était ", "cachée ", "dans ", "les ", "cycles ", "de ", "la ",
                                          "lune ", "et ", "dans ", "un ", "curieux ", "comportement ", "de ", "ses ",
                                          "proies", ", ", "révèle ", "une ", "étude ", "lausannoise", "."])
-        data = load_paragraph_below(self.a1.id, 0, 1)
+        data = load_paragraph_below(self.a1.id, 1)
         self.assertEquals(data['data'], ["Les ", "nuits ", "de ", "pleine ", "lune", ", ", "tous ", "les ",
                                          "sortilèges ", "sont ", "de ", "mise", ". ", "Les ", "loups-garous ", "se ",
                                          "déchaînent", "; ", "les ", "vampires ", "se ", "régénèrent", "; ", "et ",
@@ -293,7 +355,7 @@ class TaskLoadingTestCase(TestCase):
                                          "Alexandre ", "Roulin", ", ", "de ", "l’", "Université ", "de ", "Lausanne",
                                          ". ", "Comme ", "camouflage ", "vis-à-vis ", "des ", "proies", ", ", "il ",
                                          "y ", "a ", "mieux", "!"])
-        data = load_paragraph_below(self.a1.id, 1, 2)
+        data = load_paragraph_below(self.a1.id, 2)
         self.assertEquals(data['data'], ["Les ", "loups-garous ", "se ",
                                          "déchaînent", "; ", "les ", "vampires ", "se ", "régénèrent", "; ", "et ",
                                          "les ", "jeunes ", "filles ", "se ", "muent ", "en ", "sirènes", ". ", "Même ",

@@ -69,6 +69,8 @@ class ApiTestCase(TestCase):
             'article_id': article_id,
             'paragraph_id': true_p_id,
             'sentence_id': true_s_ids,
+            'first_sentence': sentence_ids[0],
+            'last_sentence': sentence_ids[-1],
             'tags': tags,
             'authors': relative_authors,
         }
@@ -99,6 +101,8 @@ class ApiTestCase(TestCase):
             'article_id': article_id,
             'paragraph_id': paragraph_id,
             'sentence_id': sentence_ids,
+            'first_sentence': sentence_ids[0],
+            'last_sentence': sentence_ids[-1],
             'tags': tags,
             'authors': [0],
         }
@@ -129,14 +133,16 @@ class ApiTestCase(TestCase):
         article_id = article.id
         paragraph_id = 0
         sentence_ids = [0, 1]
-        tags_1 = [0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        tags_2 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0]
+        tags_1 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1]
+        tags_2 = [1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         tags = tags_1 + tags_2
         # Return response
         data = {
             'article_id': article_id,
             'paragraph_id': paragraph_id,
             'sentence_id': sentence_ids,
+            'first_sentence': sentence_ids[0],
+            'last_sentence': sentence_ids[-1],
             'tags': tags,
             'authors': [15, 41, 42, 43],
         }
@@ -201,6 +207,8 @@ class ApiTestCase(TestCase):
             'article_id': article_id,
             'paragraph_id': paragraph_id,
             'sentence_id': sentence_ids,
+            'first_sentence': sentence_ids[0],
+            'last_sentence': sentence_ids[-1],
             'tags': tags,
             'authors': relative_authors,
         }
@@ -306,7 +314,7 @@ class ApiTestCase(TestCase):
         article_id, paragraph_id, sentence_ids, text, task = parse_load_data(response)
         self.assertEquals(article_id, article.id)
         self.assertEquals(paragraph_id, 1)
-        self.assertEquals(sentence_ids, [])
+        self.assertEquals(sentence_ids, [2, 3, 4, 5, 6, 7, 8])
         self.assertEquals(task, 'paragraph')
         # Check paragraph 2 data
         tokens = []
@@ -318,7 +326,9 @@ class ApiTestCase(TestCase):
         data = {
             'article_id': article_id,
             'paragraph_id': 1,
-            'sentence_id': [],
+            'sentence_id': sentence_ids,
+            'first_sentence': sentence_ids[0],
+            'last_sentence': sentence_ids[-1],
             'tags': len(text) * [0],
             'authors': [],
         }

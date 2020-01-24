@@ -1,7 +1,7 @@
 const BundleTracker = require("webpack-bundle-tracker");
 
 module.exports = {
-    baseUrl: "http://0.0.0.0:8080/",
+    publicPath: '/',
     outputDir: './dist/',
     "transpileDependencies": [
       "vuetify"
@@ -27,8 +27,4 @@ module.exports = {
             .https(false)
             .headers({"Access-Control-Allow-Origin": ["\*"]})
     },
-    // Written by Niels: Proxy setup for development
-    //devServer: {
-        //proxy: 'http://127.0.0.1:8000'
-    //},
 };

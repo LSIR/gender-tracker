@@ -1,0 +1,63 @@
+# Contains configuration setups for the various containers running on lsirpc32
+# Do not forget to add an entry to etc/nginx/sites-available/default when adding an app on a new URL
+
+###############################
+# data-platform-v2 containers #
+###############################
+
+# Copy env file
+- name: Copy prod env file 
+  copy: src=gendertracker.prod.env dest=/etc/gendertracker.prod.env mode=0600
+
+- name: Create network for database + app containers
+  docker_network:
+    name: gendertracker-network
+- name: Create postgres container
+  docker_container:
+    restart_policy: always
+    name: postgres
+    image: postgres:12
+    hostname: postgres
+    ports: 127.0.0.1:5432:5432
+    volumes:
+      - /root/pgdata:/var/lib/postgresql/data
+    env_file: /etc/gendertracker.prod.env
+    networks: 
+      - name: gendertracker-network
+- name: Create gender tracker frontend container
+  docker_container:
+    restart_policy: always
+    name: gendertracker-frontend
+    hostname: gendertracker-frontend
+    pull: true
+    image: lsirepfl/gendertracker-frontend:latest
+    ports: "127.0.0.1:8001:80"
+    env_file: /etc/gendertracker.prod.env
+    networks: 
+      - name: gendertracker-network
+- name: Create gender tracker backend container
+  docker_container:
+    restart_policy: always
+    name: gendertracker-backend
+    hostname: gendertracker-backend
+    pull: true
+    image: lsirepfl/gendertracker-backend:latest
+    ports: "127.0.0.1:8002:8000"
+    env_file: /etc/gendertracker.prod.env
+    networks: 
+      - name: gendertracker-network
+    links:
+      - postgres
+####################
+# Other containers #
+####################
+
+- name: Start Logspout container (for papertrail)
+  docker_container:
+    restart_policy: always
+    name: logspout
+    image: gliderlabs/logspout
+    state: started
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    command: syslog+tls://logs7.papertrailapp.com:34779

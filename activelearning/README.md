@@ -1,3 +1,7 @@
+# Gender Tracker: Active Learning
+
+## Installation
+
 The application was setup by following this tutorial:
 https://medium.com/@rodrigosmaniotto/integrating-django-and-vuejs-with-vue-cli-3-and-webpack-loader-145c3b98501a
 
@@ -75,3 +79,9 @@ pipenv shell
 make
 ```
 
+## Code organisation
+
+### Backend
+
+The backend uses the Django framework. The `activelearning` package contains all code relating to Django settings
+and administration. The `backend` package contains the model for the backend.

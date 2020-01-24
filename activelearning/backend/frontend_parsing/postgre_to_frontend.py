@@ -1,6 +1,5 @@
 from django.core.exceptions import ObjectDoesNotExist
 from backend.models import Article, UserLabel
-from backend.helpers import paragraph_sentences
 
 """ File containing all methods to select and format user labelling tasks. """
 

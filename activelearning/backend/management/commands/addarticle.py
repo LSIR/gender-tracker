@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand, CommandError
 
-from backend.task_parsing import add_article_to_db
+from backend.db_management import add_article_to_db
 
 from os import listdir
 from os.path import isfile,join

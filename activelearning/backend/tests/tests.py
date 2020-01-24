@@ -1,7 +1,8 @@
 from django.test import TestCase
-from backend.models import Article, UserLabel
-from backend.task_loading import *
-from backend.task_parsing import *
+
+from backend.db_management import add_user_label_to_db, add_article_to_db
+from backend.frontend_parsing.postgre_to_frontend import *
+from backend.frontend_parsing.frontend_to_postgre import *
 from backend.helpers import *
 import spacy
 import random

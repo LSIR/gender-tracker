@@ -1,15 +1,15 @@
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.core.exceptions import ObjectDoesNotExist
+
 from .task_loading import request_labelling_task, load_paragraph_above, load_paragraph_below
-from .task_parsing import add_labels_to_database
+from .task_parsing import clean_user_labels, add_user_label_to_db
+from .models import Article
 import json
 import uuid
 
 # The life span of a cookie, in seconds
 COOKIE_LIFE_SPAN = 1 * 60 * 60
-
-# Default session ID (until the actual cookies are working)
-USER_ID = 1111
 
 # If only a single label is needed for each sentence
 ADMIN_TAGGER = True
@@ -53,9 +53,8 @@ def load_above(request):
             # Get user tags
             data = dict(request.GET)
             article_id = int(data['article_id'][0])
-            paragraph_id = int(data['paragraph_id'][0])
             sentence_id = int(data['sentence_id'][0])
-            return JsonResponse(load_paragraph_above(article_id, paragraph_id, sentence_id))
+            return JsonResponse(load_paragraph_above(article_id, sentence_id))
         except KeyError:
             return JsonResponse({'Success': False, 'reason': 'KeyError'})
     return JsonResponse({'Success': False, 'reason': 'not GET'})
@@ -76,9 +75,8 @@ def load_below(request):
             # Get user tags
             data = dict(request.GET)
             article_id = int(data['article_id'][0])
-            paragraph_id = int(data['paragraph_id'][0])
             sentence_id = int(data['sentence_id'][0])
-            return JsonResponse(load_paragraph_below(article_id, paragraph_id, sentence_id))
+            return JsonResponse(load_paragraph_below(article_id, sentence_id))
         except KeyError:
             return JsonResponse({'Success': False, 'reason': 'KeyError'})
     return JsonResponse({'Success': False, 'reason': 'not GET'})
@@ -99,12 +97,22 @@ def submit_tags(request):
         try:
             data = json.loads(request.body)
             article_id = data['article_id']
-            paragraph_id = data['paragraph_id']
             sent_id = data['sentence_id']
-            tags = data['tags']
+            first_sentence = data['first_sentence']
+            last_sentence = data['last_sentence']
+            labels = data['tags']
             authors = data['authors']
 
-            add_labels_to_database(user_id, article_id, paragraph_id, sent_id, tags, authors, ADMIN_TAGGER)
+            try:
+                article = Article.objects.get(id=article_id)
+            except ObjectDoesNotExist:
+                return JsonResponse({'success': False, 'reason': 'Invalid Article ID'})
+
+            sentence_ends = article.sentences['sentences']
+            clean_labels = clean_user_labels(sentence_ends, sent_id, first_sentence, last_sentence, labels, authors)
+            for sentence in clean_labels:
+                add_user_label_to_db(user_id, article_id, sentence['index'], sentence['labels'],
+                                     sentence['authors'], ADMIN_TAGGER)
             return JsonResponse({'success': True})
         except KeyError:
             return JsonResponse({'success': False, 'reason': 'KeyError'})

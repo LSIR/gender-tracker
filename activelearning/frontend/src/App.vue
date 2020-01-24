@@ -22,8 +22,7 @@
 </template>
 
 <script>
-// import HelloWorld from './components/HelloWorld';
-// import SentenceDisplayer from './components/SentenceDisplayer';
+
 import ContentTagger from "./components/ContentTagger";
 
 export default {

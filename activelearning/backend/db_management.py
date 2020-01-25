@@ -1,7 +1,7 @@
 from django.core.exceptions import ObjectDoesNotExist
 
 from backend.frontend_parsing.postgre_to_frontend import form_paragraph_json, form_sentence_json
-from backend.helpers import quote_end_sentence
+from backend.helpers import quote_end_sentence, is_sentence_labelled
 from backend.models import Article, UserLabel
 from backend.xml_parsing.xml_to_postgre import process_article
 
@@ -15,8 +15,11 @@ MIN_USER_LABELS = 4
 """ The number of articles in which to check for sentences to label. """
 ARTICLE_LOADS = 10
 
-""" The minimum confidence required for an a full paragraph to be labeled at once. """
-COUNT_THRESHOLD = 3
+""" The minimum number of users needed for a sentence to be considered labelled. """
+COUNT_THRESHOLD = 4
+
+""" The minimum consensus required for a sentence to be considered labelled. """
+CONSENSUS_THRESHOLD = 4
 
 """ The minimum confidence required for an a full paragraph to be labeled at once. """
 CONFIDENCE_THRESHOLD = 80
@@ -157,7 +160,8 @@ def request_labelling_task(session_id):
 
             # For all sentences in the paragraph, check if they can be annotated by the user
             for j in range(prev_par_end + 1, p + 1):
-                if label_counts[j] < COUNT_THRESHOLD and j not in annotated_sentences:
+                if not is_sentence_labelled(article, j, COUNT_THRESHOLD, CONSENSUS_THRESHOLD) and \
+                        j not in annotated_sentences:
                     # List of sentence indices to label
                     labelling_task = [j]
                     # Checks that the sentence's last token is inside quotes, in which case the next sentence would

@@ -1,6 +1,6 @@
 from django.test import TestCase
 
-from backend.db_management import add_user_label_to_db, add_article_to_db
+from backend.db_management import add_user_label_to_db, add_article_to_db, load_hardest_articles
 from backend.frontend_parsing.postgre_to_frontend import *
 from backend.frontend_parsing.frontend_to_postgre import *
 from backend.helpers import *
@@ -358,16 +358,4 @@ class TaskLoadingTestCase(TestCase):
         for i, a in enumerate(load_hardest_articles(2)):
             min_conf = a.confidence['min_confidence']
             self.assertEquals(min_conf, confidences[i])
-        return
-
-    def test_quote_start_sentence(self):
-        """  """
-        return
-
-    def test_quote_end_sentence(self):
-        """  """
-        return
-
-    def test_request_labelling_task(self):
-        """  """
         return

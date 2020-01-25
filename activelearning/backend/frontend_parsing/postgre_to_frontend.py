@@ -149,7 +149,7 @@ def load_paragraph_below(article_id, sentence_id):
     first_sentence = 0
     last_sentence = paragraph_ends[0]
     paragraph_index = 0
-    while sentence_id > first_sentence:
+    while sentence_id >= last_sentence:
         paragraph_index += 1
         first_sentence = last_sentence + 1
         last_sentence = paragraph_ends[paragraph_index]

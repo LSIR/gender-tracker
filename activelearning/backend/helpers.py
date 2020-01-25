@@ -42,9 +42,9 @@ def is_sentence_labelled(article, sentence_id, min_users, min_consensus):
     :param sentence_id: int.
         The index of the sentence in the article.
     :param min_users: int.
-        The minimum percentage of users that have the same labelling for a sentence to be considered labelled.
-    :param min_consensus: float.
         The minimum number of users needed for a sentence to be considered labelled.
+    :param min_consensus: float.
+        The minimum percentage of users that have the same labelling for a sentence to be considered labelled.
     :return: boolean.
         True if the sentence is considered labelled, false otherwise.
     """

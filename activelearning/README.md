@@ -79,7 +79,32 @@ pipenv shell
 make
 ```
 
-## Code organisation
+## Code
+
+### Adding articles to the database
+
+Each article needs to be stored in a seperate xml file, and have the following
+format:
+
+```xml
+<?xml version="1.0"?>
+<text>
+	<title>Title of the article.</title>
+	<p>Content of the first paragraph.</p>
+	<p>Content of the second paragraph.</p>
+	<p>...</p>
+	<p>Content of the last paragraph.</p>
+</text>
+```
+
+A single article can be added to the database from by running:
+
+```python manage.py addarticle path/to/the/article.xml```
+
+In order to add all articles in a directory to the database, run:
+
+```python manage.py addarticle path/to/the/article/directory```
+
 
 ### Backend
 
@@ -95,21 +120,7 @@ database.
 #### xml_parsing package
 
 Contains all methods that can be used to transform news articles in an xml format into a representation that can be
-stored in the PostgreSQL database. Each article needs to be stored in a seperate xml file, and have the following
-format:
-
-```xml
-<?xml version="1.0"?>
-<text>
-	<title>Title of the article.</title>
-	<p>Content of the first paragraph.</p>
-	<p>Content of the second paragraph.</p>
-	<p>...</p>
-	<p>Content of the last paragraph.</p>
-</text>
-```
-
-This package also contains methods to extract annotated articles to xml files, with the format:
+stored in the PostgreSQL database. This package also contains methods to extract annotated articles to xml files, with the format:
 
 ```xml
 <?xml version="1.0"?>

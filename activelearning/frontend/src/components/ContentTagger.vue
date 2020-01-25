@@ -141,7 +141,6 @@ export default {
     data: () => ({
         // Information on the sentence to tag
         article_id: -1,
-        paragraph_id: -1,
         sentence_id: [-1],
 
         // Information on extra text loaded.
@@ -212,7 +211,6 @@ export default {
                     that.tagging_task = data['task'];
                     if (that.tagging_task !== 'None'){
                         that.article_id = data['article_id'];
-                        that.paragraph_id = data['paragraph_id'];
                         that.sentence_id = data['sentence_id'];
                         if (that.tagging_task === 'sentence'){
                             that.text = that.replace_whitespace(data['data']);
@@ -333,7 +331,6 @@ export default {
                 url: '/api/submitTags/',
                 data: JSON.stringify({
                     'article_id': that.article_id,
-                    'paragraph_id': that.paragraph_id,
                     'sentence_id': that.sentence_id,
                     'first_sentence': that.first_sentence,
                     'last_sentence': that.last_sentence,

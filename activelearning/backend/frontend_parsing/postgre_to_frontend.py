@@ -5,7 +5,7 @@ from backend.models import Article
 """ File containing all methods to select and format user labelling tasks. """
 
 
-def form_sentence_json(article, paragraph_id, sentence_id):
+def form_sentence_json(article, sentence_id):
     """
     Given an article and some sentence indices in the article, forms a dict containing the key-value pairs article_id
     (int), a paragraph_id (int), a sentence_id ([int]), data (list[string]) and  task ('sentence').
@@ -15,22 +15,25 @@ def form_sentence_json(article, paragraph_id, sentence_id):
 
     :param article: Article.
         The article that needs to be labelled
-    :param paragraph_id: int.
-        The index of the paragraph that contains the sentences that need to be labelled
     :param sentence_id: list(int).
         The indices of the sentences in the Article that need to be labelled
     :return: dict.
         A dict containing article_id, paragraph_id, sentence_id, data and task keys
     """
+    if len(sentence_id) == 0:
+        return {
+            'article_id': article.id,
+            'sentence_id': [],
+            'data': [],
+            'task': 'sentence'
+        }
     tokens = article.tokens['tokens']
-    if sentence_id[0] == 0:
-        start_token = 0
-    else:
+    start_token = 0
+    if sentence_id[0] > 0:
         start_token = article.sentences['sentences'][sentence_id[0] - 1] + 1
     end_token = article.sentences['sentences'][sentence_id[-1]]
     return {
         'article_id': article.id,
-        'paragraph_id': paragraph_id,
         'sentence_id': sentence_id,
         'data': tokens[start_token:end_token + 1],
         'task': 'sentence'
@@ -65,7 +68,6 @@ def form_paragraph_json(article, paragraph_id):
     end_sent = par_ends[paragraph_id]
     return {
         'article_id': article.id,
-        'paragraph_id': paragraph_id,
         'sentence_id': list(range(start_sent, end_sent + 1)),
         'data': tokens[start_token:end_token + 1],
         'task': 'paragraph'
@@ -95,8 +97,9 @@ def load_paragraph_above(article_id, sentence_id):
     paragraph_ends = article.paragraphs['paragraphs']
     sentence_ends = article.sentences['sentences']
 
-    if sentence_id <= 0 or sentence_id > len(sentence_ends):
-        return {'data': [], 'first_sentence': 0, 'last_sentence': 0}
+    # If the sentence_id is 0, no data can be loaded
+    if not (0 < sentence_id < len(sentence_ends)):
+        return {'data': [], 'first_sentence': -1, 'last_sentence': -1}
 
     first_sentence = 0
     last_sentence = paragraph_ends[0]
@@ -143,8 +146,9 @@ def load_paragraph_below(article_id, sentence_id):
     paragraph_ends = article.paragraphs['paragraphs']
     sentence_ends = article.sentences['sentences']
 
-    if sentence_id < 0 or sentence_id >= len(sentence_ends) - 1:
-        return {'data': [], 'first_sentence': 0, 'last_sentence': 0}
+    # If the sentence_id is the last sentence of the article, no text below can be loaded
+    if not (0 <= sentence_id < len(sentence_ends) - 1):
+        return {'data': [], 'first_sentence': -1, 'last_sentence': -1}
 
     first_sentence = 0
     last_sentence = paragraph_ends[0]

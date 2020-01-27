@@ -1,8 +1,10 @@
 from django.test import TestCase
 from django.test import Client
+
 from backend.models import Article, UserLabel
 from backend.helpers import change_confidence
 from backend.db_management import add_article_to_db
+
 import spacy
 import json
 
@@ -356,23 +358,3 @@ class ApiTestCase(TestCase):
             else:
                 self.assertEquals(count, 0)
         self.assertEquals(article.label_counts['min_label_counts'], 0)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

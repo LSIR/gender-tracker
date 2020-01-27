@@ -261,7 +261,7 @@ export default {
                 dataType: "json",
                 data: {
                     'article_id': that.article_id,
-                    'sentence_id': that.first_sentence,
+                    'first_sentence': that.first_sentence,
                 },
                 success: function (data) {
                     let tokens = data['data'];
@@ -298,7 +298,7 @@ export default {
                 dataType: "json",
                 data: {
                     'article_id': that.article_id,
-                    'sentence_id': that.last_sentence,
+                    'last_sentence': that.last_sentence,
                 },
                 success: function (data) {
                     let tokens = data['data'];

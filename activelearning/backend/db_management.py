@@ -170,6 +170,6 @@ def request_labelling_task(session_id):
                     if article.in_quotes['in_quotes'][sent_end] == 1:
                         last_sent = quote_end_sentence(sentence_ends, article.in_quotes['in_quotes'], sent_end)
                         labelling_task = list(range(labelling_task[0], last_sent + 1))
-                    return form_sentence_json(article, i, labelling_task)
+                    return form_sentence_json(article, labelling_task)
             prev_par_end = p
     return None

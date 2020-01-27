@@ -16,16 +16,17 @@ def check_label_validity(labels):
     first_one_seen = False
     first_one_segment_seen = False
     for label in labels:
-        # If labels not in {0, 1} ignore
+        # If labels not in {0, 1} not valid
         if label not in [0, 1]:
-            return []
+            return False
         # Two different quotes found
         if first_one_segment_seen and label == 1:
-            return []
+            return False
         if first_one_seen and label == 0:
             first_one_segment_seen = True
         if not first_one_seen and label == 1:
             first_one_seen = True
+    return True
 
 
 def clean_user_labels(sentence_ends, task_indices, first_sentence, last_sentence, labels, authors):
@@ -53,7 +54,8 @@ def clean_user_labels(sentence_ends, task_indices, first_sentence, last_sentence
             labels: list(int). The list of labels to add to the database.
             authors: list(int). A list containing the index of tokens that are authors for the quote.
     """
-    check_label_validity(labels)
+    if not check_label_validity(labels):
+        return []
 
     # Find the first and last token of each sentence
     sentence_starts = [0] + [end + 1 for end in sentence_ends][:-1]
@@ -61,12 +63,15 @@ def clean_user_labels(sentence_ends, task_indices, first_sentence, last_sentence
     sentence_edges = sentence_edges[first_sentence:last_sentence + 1]
 
     # Transform the relative author index to the index of the tokens with respect to the full article by adding the
-    # index of the first token in the tags in the article.
+    # index of the first token in the tags in the article, and check that they are valid indices.
     author_indices = []
     for index in authors:
-        author_indices.append(sentence_edges[0][0] + index)
+        absolute_index = sentence_edges[0][0] + index
+        if not (sentence_edges[0][0] <= absolute_index <= sentence_edges[-1][1]):
+            return []
+        author_indices.append(absolute_index)
 
-    # Split the tags into tags for each sentence
+    # Split the labels into labels for each sentence
     split_labels = []
     total_length = 0
     for edges in sentence_edges:
@@ -104,8 +109,8 @@ def clean_user_labels(sentence_ends, task_indices, first_sentence, last_sentence
                 'labels': sentence_labels,
                 'authors': [],
             })
-    # The user reports quotes in the sentences he was tasked to label
-    else:
+    # The user reports quotes in the sentences he was tasked to label, and has author indices
+    elif len(author_indices) > 0:
         # Add the sentence labels for the task
         for index, sentence_labels in enumerate(task_labels):
             sentence_index = index + task_indices[0]

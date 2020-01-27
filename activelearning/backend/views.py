@@ -29,14 +29,14 @@ def load_content(request):
     If no more labelling is required from a user, a simple JSon file will be returned containing only 'task': 'None'.
 
     :param request: The user request
-    :return: Json A Json file containing the article_id, paragraph_id, sentence_id, data and task.
+    :return: Json A Json file containing the article_id, sentence_id, data and task.
     """
     user_id = session_load(request)
     labelling_task = request_labelling_task(user_id)
     if labelling_task is not None:
         return JsonResponse(labelling_task)
     else:
-        return JsonResponse({'task': 'None'})
+        return JsonResponse({'article_id': -1, 'sentence_id': [], 'data': [], 'task': 'None'})
 
 
 def load_above(request):
@@ -54,8 +54,8 @@ def load_above(request):
             # Get user tags
             data = dict(request.GET)
             article_id = int(data['article_id'][0])
-            sentence_id = int(data['sentence_id'][0])
-            return JsonResponse(load_paragraph_above(article_id, sentence_id))
+            first_sentence = int(data['first_sentence'][0])
+            return JsonResponse(load_paragraph_above(article_id, first_sentence))
         except KeyError:
             return JsonResponse({'Success': False, 'reason': 'KeyError'})
     return JsonResponse({'Success': False, 'reason': 'not GET'})
@@ -76,8 +76,8 @@ def load_below(request):
             # Get user tags
             data = dict(request.GET)
             article_id = int(data['article_id'][0])
-            sentence_id = int(data['sentence_id'][0])
-            return JsonResponse(load_paragraph_below(article_id, sentence_id))
+            last_sentence = int(data['last_sentence'][0])
+            return JsonResponse(load_paragraph_below(article_id, last_sentence))
         except KeyError:
             return JsonResponse({'Success': False, 'reason': 'KeyError'})
     return JsonResponse({'Success': False, 'reason': 'not GET'})

@@ -3,7 +3,7 @@ from django.test import Client
 
 from backend.models import Article, UserLabel
 from backend.db_management import add_article_to_db
-from backend.helpers import label_consensus
+from backend.helpers import label_consensus, change_confidence
 from backend.xml_parsing.postgre_to_xml import database_to_xml
 
 import spacy
@@ -231,7 +231,7 @@ def load_new_task(test_class, client):
     return user_id, article_id, sentence_ids, text, task
 
 
-def submit_task(test_class, client, article_id, sentence_ids, first_sentence, last_sentence, tags, authors):
+def submit_task(test_class, client, article_id, sentence_ids, first_sentence, last_sentence, tags, authors, task):
     """
     Submits the user labels with the given parameters and checks that they are correctly saved to the database.
 
@@ -253,6 +253,8 @@ def submit_task(test_class, client, article_id, sentence_ids, first_sentence, la
         The labels the user gave to each token.
     :param authors: list(int)
         The indices of tokens that are the author of the quote, if there was one.
+    :param task: string
+        The task the user performed. One of {'sentence', 'paragraph'}.
     """
     data = {
         'article_id': article_id,
@@ -261,6 +263,7 @@ def submit_task(test_class, client, article_id, sentence_ids, first_sentence, la
         'last_sentence': last_sentence,
         'tags': tags,
         'authors': authors,
+        'task': task,
     }
     response = client.post('/api/submitTags/', data, content_type='application/json')
     data = json.loads(response.content)
@@ -421,7 +424,7 @@ class SingleUserTestCase(TestCase):
                 self.assertEquals(sentence_ids, [s_id])
                 self.assertEquals(text, true_values['tokens'][s_id])
                 self.assertEquals(task, 'sentence')
-                submit_task(self, c, article_id, sentence_ids, s_id, s_id, len(text) * [0], [])
+                submit_task(self, c, article_id, sentence_ids, s_id, s_id, len(text) * [0], [], task)
 
         # The first article should be loaded first as it has a smaller index
         annotate_simple(range(test_1_sentences), TEST_1)
@@ -486,7 +489,7 @@ class SingleUserTestCase(TestCase):
 
                 authors = true_values['authors'][s_id]
                 authors = relative_author_positions(authors, first_sentence, true_values['sentence_ends'])
-                submit_task(self, c, article_id, sentence_ids, first_sentence, last_sentence, labels, authors)
+                submit_task(self, c, article_id, sentence_ids, first_sentence, last_sentence, labels, authors, task)
 
         # The first article should be loaded first as it has a smaller index
         annotate_true(range(test_1_sentences), TEST_1)
@@ -500,13 +503,111 @@ class SingleUserTestCase(TestCase):
         self.assertEquals(task, 'None')
 
         # Check that the output file is the expected output file
-
         # Don't need this yet as their is single author
         # labels, authors, consensus = label_consensus(labels, authors)
-
         labels = []
         authors = []
+        for s_id in range(10):
+            sentence_labels = UserLabel.objects.filter(article=self.a1, sentence_index=s_id)
+            labels.append([label.labels['labels'] for label in sentence_labels][0])
+            authors.append([label.author_index['author_index'] for label in sentence_labels][0])
 
+        xml_string_1 = database_to_xml(self.a1, labels, authors)
+        self.assertEquals(xml_string_1, TEST_1['output_xml'])
+
+    def test_3_with_paragraphs(self):
+        """
+        Test where a single user annotates all sentences correctly, looking up in the text when needed. Some text is
+        first given as paragraphs. It has to be reloaded as sentences as it contains quotes.
+        """
+        # Change the confidences on sentences of the second paragraph so that it is loaded as a whole paragraph.
+        new_confidence = self.a1.confidence['confidence'].copy()
+        new_confidence[4:7] = [100, 100, 100]
+        change_confidence(self.a1.id, new_confidence)
+        # Define a new client
+        c = Client()
+        test_1_sentences = 9
+        test_2_sentences = 6
+
+        TEST_1['id'] = self.a1.id
+        TEST_1['look_above_index'] = [3, 6]
+        TEST_1['look_below_index'] = [0]
+        TEST_2['id'] = self.a2.id
+        TEST_2['look_above_index'] = [3, 5, 6]
+        TEST_2['look_below_index'] = []
+
+        def annotate_true(max_sentence_index, true_values):
+            s_id = 0
+            paragraph_seen = False
+            while s_id <= max_sentence_index:
+                user_id, article_id, sentence_ids, text, task = load_new_task(self, c)
+
+                # The first time sentence 4 is seen, it should be loaded as the full paragraph
+                # The sentence index isn't increased, as each sentence then needs to be tagged by the user.
+                if task == 'paragraph':
+                    paragraph_seen = True
+                    self.assertEquals(s_id, 4)
+                    self.assertEquals(article_id, true_values['id'])
+                    self.assertEquals(sentence_ids, [4, 5, 6])
+                    tokens = true_values['tokens'][4] + true_values['tokens'][5] + true_values['tokens'][6]
+                    self.assertEquals(text, tokens)
+                    self.assertEquals(task, 'paragraph')
+                    submit_task(self, c, article_id, sentence_ids, 4, 6, len(tokens) * [1], [], task)
+                else:
+                    self.assertEquals(article_id, true_values['id'])
+                    self.assertEquals(sentence_ids, [s_id])
+                    self.assertEquals(text, true_values['tokens'][s_id])
+                    self.assertEquals(task, 'sentence')
+
+                    labels = true_values['labels'][s_id]
+
+                    first_sentence = sentence_ids[0]
+                    last_sentence = sentence_ids[0]
+
+                    if s_id in true_values['look_above_index']:
+                        extra_text, first_extra, last_extra = load_above(self, c, article_id, first_sentence)
+                        extra_labels = []
+                        for id in range(first_extra, last_extra + 1):
+                            # As we are not currently annotating the next sentence but simply looking for the author,
+                            # the new tokens are labeled as 0
+                            extra_labels += len(true_values['labels'][id]) * [0]
+                        first_sentence = min(first_sentence, first_extra)
+                        labels = extra_labels + labels
+
+                    if s_id in true_values['look_below_index']:
+                        extra_text, first_extra, last_extra = load_below(self, c, article_id, last_sentence)
+                        extra_labels = []
+                        for id in range(first_extra, last_extra + 1):
+                            # As we are not currently annotating the next sentnce but simply looking for the author,
+                            # the new tokens are labeled as 0
+                            extra_labels += len(true_values['labels'][id]) * [0]
+                        labels = labels + extra_labels
+                        last_sentence = max(last_sentence, last_extra)
+
+                    authors = true_values['authors'][s_id]
+                    authors = relative_author_positions(authors, first_sentence, true_values['sentence_ends'])
+                    submit_task(self, c, article_id, sentence_ids, first_sentence, last_sentence, labels, authors, task)
+                    s_id += 1
+            return paragraph_seen
+
+        # The first article should be loaded first as it has a smaller index
+        paragraph_seen = annotate_true(test_1_sentences, TEST_1)
+        self.assertTrue(paragraph_seen)
+        paragraph_seen = annotate_true(test_2_sentences, TEST_2)
+        self.assertFalse(paragraph_seen)
+
+        # Check that no more sentences are left to annotate.
+        user_id, article_id, sentence_ids, text, task = load_new_task(self, c)
+        self.assertEquals(article_id, -1)
+        self.assertEquals(sentence_ids, [])
+        self.assertEquals(text, [])
+        self.assertEquals(task, 'None')
+
+        # Check that the output file is the expected output file
+        # Don't need this yet as their is single author
+        # labels, authors, consensus = label_consensus(labels, authors)
+        labels = []
+        authors = []
         for s_id in range(10):
             sentence_labels = UserLabel.objects.filter(article=self.a1, sentence_index=s_id)
             labels.append([label.labels['labels'] for label in sentence_labels][0])

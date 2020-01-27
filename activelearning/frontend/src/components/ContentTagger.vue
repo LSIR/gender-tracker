@@ -336,6 +336,7 @@ export default {
                     'last_sentence': that.last_sentence,
                     'tags': that.quote_markers,
                     'authors': that.author_indices,
+                    'task': that.tagging_task,
                 }),
                 contentType: "application/json; charset=utf-8",
                 dataType: "json",

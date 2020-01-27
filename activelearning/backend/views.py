@@ -5,6 +5,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from backend.frontend_parsing.postgre_to_frontend import load_paragraph_above, load_paragraph_below
 from backend.frontend_parsing.frontend_to_postgre import clean_user_labels
 from backend.db_management import add_user_label_to_db, request_labelling_task
+from backend.helpers import change_confidence
 from .models import Article
 import json
 import uuid
@@ -103,17 +104,25 @@ def submit_tags(request):
             last_sentence = data['last_sentence']
             labels = data['tags']
             authors = data['authors']
+            task = data['task']
 
             try:
                 article = Article.objects.get(id=article_id)
             except ObjectDoesNotExist:
                 return JsonResponse({'success': False, 'reason': 'Invalid Article ID'})
 
-            sentence_ends = article.sentences['sentences']
-            clean_labels = clean_user_labels(sentence_ends, sent_id, first_sentence, last_sentence, labels, authors)
-            for sentence in clean_labels:
-                add_user_label_to_db(user_id, article_id, sentence['index'], sentence['labels'],
-                                     sentence['authors'], ADMIN_TAGGER)
+            # If the task was to label a paragraph, and the user answered that there were some quotes in the paragraph,
+            # reset the confidences for the whole paragraph to 0.
+            if task == 'paragraph' and sum(labels) > 0:
+                sentence_confidences = article.confidence['confidence'].copy()
+                sentence_confidences[first_sentence:last_sentence+1] = (last_sentence - first_sentence + 1) * [0]
+                change_confidence(article_id, sentence_confidences)
+            else:
+                sentence_ends = article.sentences['sentences']
+                clean_labels = clean_user_labels(sentence_ends, sent_id, first_sentence, last_sentence, labels, authors)
+                for sentence in clean_labels:
+                    add_user_label_to_db(user_id, article_id, sentence['index'], sentence['labels'],
+                                         sentence['authors'], ADMIN_TAGGER)
             return JsonResponse({'success': True})
         except KeyError:
             return JsonResponse({'success': False, 'reason': 'KeyError'})

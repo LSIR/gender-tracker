@@ -4,7 +4,7 @@ from django.core.exceptions import ObjectDoesNotExist
 
 from backend.frontend_parsing.postgre_to_frontend import load_paragraph_above, load_paragraph_below
 from backend.frontend_parsing.frontend_to_postgre import clean_user_labels
-from backend.db_management import add_user_label_to_db, request_labelling_task
+from backend.db_management import add_user_label_to_db, request_labelling_task, get_admin_tagger
 from backend.helpers import change_confidence
 from .models import Article
 import json
@@ -12,9 +12,6 @@ import uuid
 
 # The life span of a cookie, in seconds
 COOKIE_LIFE_SPAN = 1 * 60 * 60
-
-# If only a single label is needed for each sentence
-ADMIN_TAGGER = True
 
 
 def load_content(request):
@@ -120,9 +117,10 @@ def submit_tags(request):
             else:
                 sentence_ends = article.sentences['sentences']
                 clean_labels = clean_user_labels(sentence_ends, sent_id, first_sentence, last_sentence, labels, authors)
+                admin_tagger = get_admin_tagger()
                 for sentence in clean_labels:
                     add_user_label_to_db(user_id, article_id, sentence['index'], sentence['labels'],
-                                         sentence['authors'], ADMIN_TAGGER)
+                                         sentence['authors'], admin_tagger)
             return JsonResponse({'success': True})
         except KeyError:
             return JsonResponse({'success': False, 'reason': 'KeyError'})

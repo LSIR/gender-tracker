@@ -49,6 +49,8 @@ def add_tags_to_tokens(tokens, labels, authors):
             else:
                 tagged_tokens.append(tokens[token_index])
             token_index += 1
+    if last_label == 1:
+        tagged_tokens[-1] = tagged_tokens[-1] + '</RS>'
     return tagged_tokens
 
 

@@ -10,8 +10,21 @@ import spacy
 import json
 
 
+def set_custom_boundaries(doc):
+    """
+    Custom boundaries so that spaCy doesn't split sentences at ';' or at '-[A-Z]'.
+    """
+    for token in doc[:-1]:
+        if token.text == ";":
+            doc[token.i+1].is_sent_start = False
+        if token.text == "-" and token.i != 0:
+            doc[token.i].is_sent_start = False
+    return doc
+
+
 """ The language model. """
 nlp = spacy.load('fr_core_news_md')
+nlp.add_pipe(set_custom_boundaries, before="parser")
 
 
 """ The content and annotation of the first article. """
@@ -113,6 +126,9 @@ TEST_1 = {
     ],
     'sentence_ends': [12, 23, 33, 55, 70, 88, 102, 120, 124, 138],
     'paragraph_ends': [3, 6, 9],
+    'look_above_index': [3, 6],
+    'look_below_index': [0],
+    'double_loads': [],
 }
 
 
@@ -196,7 +212,94 @@ TEST_2 = {
     ],
     'sentence_ends': [11, 28, 34, 52, 59, 73, 84],
     'paragraph_ends': [3, 6],
+    'look_above_index': [3, 5, 6],
+    'look_below_index': [],
+    'double_loads': [],
+}
 
+
+""" The content and annotations of a short third article, containing a 2-sentence quote. """
+TEST_3 = {
+    'input_xml': '<?xml version="1.0"?>\n'
+                 '<article>\n'
+                 '\t<titre>Double.</titre>\n'
+                 '\t<p>Pierre-Alain est content. Il dit: "Je suis heureux. Je n\'ai plus faim".</p>\n'
+                 '\t<p>Son ami Pablo ne l\'est pas. Il nous explique. Je n\'ai pas assez mangé. Pierre-Alain ne m\'en '
+                 'a pas laissé assez.</p>\n'
+                 '</article>',
+    'output_xml': '<?xml version="1.0"?>\n'
+                  '<article>\n'
+                  '\t<titre>Double.</titre>\n'
+                  '\t<p>Pierre-Alain est content. Il dit: "Je suis heureux. Je n\'ai plus faim."</p>\n'
+                  '\t<p>Son ami Pablo ne l\'est pas. Il nous explique. Je n\'ai pas assez mangé. Pierre-Alain ne m\'en '
+                  'a pas laissé assez.</p>\n'
+                  '</article>',
+    'text': 'Pierre-Alain est content. Il dit: "Je suis heureux. Je n\'ai plus faim". Son ami Pablo ne l\'est pas. '
+            'Il nous explique. Je n\'ai pas assez mangé. Pierre-Alain ne m\'en a pas laissé assez.',
+    'tokens': [
+        ['Pierre', '-', 'Alain ', 'est ', 'content', '. '],
+        ['Il ', 'dit', ': ', '"', 'Je ', 'suis ', 'heureux', '. '],
+        ['Je ', 'n\'', 'ai ', 'plus ', 'faim', '"', '.'],
+        ['Son ', 'ami ', 'Pablo ', 'ne ', 'l\'', 'est ', 'pas', '. '],
+        ['Il ', 'nous ', 'explique', '. '],
+        ['Je ', 'n\'', 'ai ', 'pas ', 'assez ', 'mangé', '. '],
+        ['Pierre', '-', 'Alain ', 'ne ', 'm\'', 'en ', 'a ', 'pas ', 'laissé ', 'assez', '.']
+    ],
+    'in_quotes': [
+        # 0 - 5
+        [0, 0, 0, 0, 0, 0],
+        # 6 - 13
+        [0, 0, 0, 0, 1, 1, 1, 1],
+        # 14 - 20
+        [1, 1, 1, 1, 1, 0, 0],
+        # 21 - 28
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        # 29 - 32
+        [0, 0, 0, 0],
+        # 33 - 39
+        [0, 0, 0, 0, 0, 0, 0],
+        # 40 - 50
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    ],
+    'labels': [
+        # 0 - 5
+        [0, 0, 0, 0, 0, 0],
+        # 6 - 13
+        [0, 0, 0, 0, 1, 1, 1, 1],
+        # 14 - 20
+        [1, 1, 1, 1, 1, 1, 0],
+        # 21 - 28
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        # 29 - 32
+        [0, 0, 0, 0],
+        # 33 - 39
+        [1, 1, 1, 1, 1, 1, 1],
+        # 40 - 50
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    ],
+    'authors': [
+        [],
+        [0, 1, 2],
+        [0, 1, 2],
+        [],
+        [],
+        [22],
+        [22]
+    ],
+    'relative_authors': [
+        [],
+        [0, 1, 2],
+        [0, 1, 2],
+        [],
+        [],
+        [2],
+        [2]
+    ],
+    'sentence_ends': [5, 13, 20, 28, 32, 39, 50],
+    'paragraph_ends': [2, 6],
+    'look_above_index': [1, 2, 5, 6],
+    'look_below_index': [],
+    'double_loads': [1],
 }
 
 
@@ -381,6 +484,7 @@ class SingleUserTestCase(TestCase):
         # Add an article to the database
         self.a1 = add_article_to_db('../data/test_article_1.xml', nlp)
         self.a2 = add_article_to_db('../data/test_article_2.xml', nlp)
+        self.a3 = add_article_to_db('../data/test_article_3.xml', nlp)
 
     def test_0_loading(self):
         """
@@ -404,6 +508,7 @@ class SingleUserTestCase(TestCase):
 
         check_article(self.a1, 'Le football', TEST_1)
         check_article(self.a2, 'Article sans sens.', TEST_2)
+        check_article(self.a3, 'Double.', TEST_3)
 
     def test_1_trivial(self):
         """
@@ -413,22 +518,37 @@ class SingleUserTestCase(TestCase):
         c = Client()
         test_1_sentences = 10
         test_2_sentences = 7
+        test_3_sentences = 7
 
         TEST_1['id'] = self.a1.id
         TEST_2['id'] = self.a2.id
+        TEST_3['id'] = self.a3.id
 
-        def annotate_simple(sentence_index_range, true_values):
-            for s_id in sentence_index_range:
+        def annotate_simple(num_sentences, true_values):
+            s_id = 0
+            while s_id < num_sentences:
+                sentence_tasks = [s_id]
+                tokens = true_values['tokens'][s_id].copy()
+                first_sentence = s_id
+                last_sentence = s_id
+                if s_id in true_values['double_loads']:
+                    s_id += 1
+                    sentence_tasks += [s_id]
+                    tokens += true_values['tokens'][s_id].copy()
+                    last_sentence = s_id
                 user_id, article_id, sentence_ids, text, task = load_new_task(self, c)
                 self.assertEquals(article_id, true_values['id'])
-                self.assertEquals(sentence_ids, [s_id])
-                self.assertEquals(text, true_values['tokens'][s_id])
+                self.assertEquals(sentence_ids, sentence_tasks)
+                self.assertEquals(text, tokens)
                 self.assertEquals(task, 'sentence')
-                submit_task(self, c, article_id, sentence_ids, s_id, s_id, len(text) * [0], [], task)
+                submit_task(self, c, article_id, sentence_tasks, first_sentence, last_sentence,
+                            len(text) * [0], [], task)
+                s_id += 1
 
         # The first article should be loaded first as it has a smaller index
-        annotate_simple(range(test_1_sentences), TEST_1)
-        annotate_simple(range(test_2_sentences), TEST_2)
+        annotate_simple(test_1_sentences, TEST_1)
+        annotate_simple(test_2_sentences, TEST_2)
+        annotate_simple(test_3_sentences, TEST_3)
 
         # Check that no more sentences are left to annotate.
         user_id, article_id, sentence_ids, text, task = load_new_task(self, c)
@@ -445,55 +565,63 @@ class SingleUserTestCase(TestCase):
         c = Client()
         test_1_sentences = 10
         test_2_sentences = 7
+        test_3_sentences = 7
 
         TEST_1['id'] = self.a1.id
-        TEST_1['look_above_index'] = [3, 6]
-        TEST_1['look_below_index'] = [0]
         TEST_2['id'] = self.a2.id
-        TEST_2['look_above_index'] = [3, 5, 6]
-        TEST_2['look_below_index'] = []
+        TEST_3['id'] = self.a3.id
 
-        def annotate_true(sentence_index_range, true_values):
-            for s_id in sentence_index_range:
+        def annotate_true(num_sentences, true_values):
+            s_id = 0
+            while s_id < num_sentences:
+                sentence_tasks = [s_id]
+                tokens = true_values['tokens'][s_id].copy()
+                labels = true_values['labels'][s_id].copy()
+                first_sentence = s_id
+                last_sentence = s_id
+                if s_id in true_values['double_loads']:
+                    s_id += 1
+                    sentence_tasks += [s_id]
+                    tokens += true_values['tokens'][s_id].copy()
+                    labels += true_values['labels'][s_id].copy()
+                    last_sentence = s_id
+
                 user_id, article_id, sentence_ids, text, task = load_new_task(self, c)
 
                 self.assertEquals(article_id, true_values['id'])
-                self.assertEquals(sentence_ids, [s_id])
-                self.assertEquals(text, true_values['tokens'][s_id])
+                self.assertEquals(sentence_ids, sentence_tasks)
+                self.assertEquals(text, tokens)
                 self.assertEquals(task, 'sentence')
-
-                labels = true_values['labels'][s_id]
-
-                first_sentence = sentence_ids[0]
-                last_sentence = sentence_ids[0]
 
                 if s_id in true_values['look_above_index']:
                     extra_text, first_extra, last_extra = load_above(self, c, article_id, first_sentence)
                     extra_labels = []
-                    for id in range(first_extra, last_extra + 1):
+                    for e_id in range(first_extra, last_extra + 1):
                         # As we are not currently annotating the next sentnce but simply looking for the author,
                         # the new tokens are labeled as 0
-                        extra_labels += len(true_values['labels'][id]) * [0]
+                        extra_labels += len(true_values['labels'][e_id]) * [0]
                     first_sentence = min(first_sentence, first_extra)
                     labels = extra_labels + labels
 
                 if s_id in true_values['look_below_index']:
                     extra_text, first_extra, last_extra = load_below(self, c, article_id, last_sentence)
                     extra_labels = []
-                    for id in range(first_extra, last_extra + 1):
+                    for e_id in range(first_extra, last_extra + 1):
                         # As we are not currently annotating the next sentnce but simply looking for the author,
                         # the new tokens are labeled as 0
-                        extra_labels += len(true_values['labels'][id]) * [0]
+                        extra_labels += len(true_values['labels'][e_id]) * [0]
                     labels = labels + extra_labels
                     last_sentence = max(last_sentence, last_extra)
 
-                authors = true_values['authors'][s_id]
-                authors = relative_author_positions(authors, first_sentence, true_values['sentence_ends'])
-                submit_task(self, c, article_id, sentence_ids, first_sentence, last_sentence, labels, authors, task)
+                authors = true_values['authors'][s_id].copy()
+                authors = relative_author_positions(authors, first_sentence, true_values['sentence_ends'].copy())
+                submit_task(self, c, article_id, sentence_tasks, first_sentence, last_sentence, labels, authors, task)
+                s_id += 1
 
         # The first article should be loaded first as it has a smaller index
-        annotate_true(range(test_1_sentences), TEST_1)
-        annotate_true(range(test_2_sentences), TEST_2)
+        annotate_true(test_1_sentences, TEST_1)
+        annotate_true(test_2_sentences, TEST_2)
+        annotate_true(test_3_sentences, TEST_3)
 
         # Check that no more sentences are left to annotate.
         user_id, article_id, sentence_ids, text, task = load_new_task(self, c)
@@ -526,20 +654,18 @@ class SingleUserTestCase(TestCase):
         change_confidence(self.a1.id, new_confidence)
         # Define a new client
         c = Client()
-        test_1_sentences = 9
-        test_2_sentences = 6
+        test_1_sentences = 10
+        test_2_sentences = 7
+        test_3_sentences = 7
 
         TEST_1['id'] = self.a1.id
-        TEST_1['look_above_index'] = [3, 6]
-        TEST_1['look_below_index'] = [0]
         TEST_2['id'] = self.a2.id
-        TEST_2['look_above_index'] = [3, 5, 6]
-        TEST_2['look_below_index'] = []
+        TEST_3['id'] = self.a3.id
 
-        def annotate_true(max_sentence_index, true_values):
+        def annotate_true(num_sentences, true_values):
             s_id = 0
             paragraph_seen = False
-            while s_id <= max_sentence_index:
+            while s_id < num_sentences:
                 user_id, article_id, sentence_ids, text, task = load_new_task(self, c)
 
                 # The first time sentence 4 is seen, it should be loaded as the full paragraph
@@ -554,15 +680,22 @@ class SingleUserTestCase(TestCase):
                     self.assertEquals(task, 'paragraph')
                     submit_task(self, c, article_id, sentence_ids, 4, 6, len(tokens) * [1], [], task)
                 else:
+                    sentence_tasks = [s_id]
+                    tokens = true_values['tokens'][s_id].copy()
+                    labels = true_values['labels'][s_id].copy()
+                    first_sentence = s_id
+                    last_sentence = s_id
+                    if s_id in true_values['double_loads']:
+                        s_id += 1
+                        sentence_tasks += [s_id]
+                        tokens += true_values['tokens'][s_id].copy()
+                        labels += true_values['labels'][s_id].copy()
+                        last_sentence = s_id
+
                     self.assertEquals(article_id, true_values['id'])
-                    self.assertEquals(sentence_ids, [s_id])
-                    self.assertEquals(text, true_values['tokens'][s_id])
+                    self.assertEquals(sentence_ids, sentence_tasks)
+                    self.assertEquals(text, tokens)
                     self.assertEquals(task, 'sentence')
-
-                    labels = true_values['labels'][s_id]
-
-                    first_sentence = sentence_ids[0]
-                    last_sentence = sentence_ids[0]
 
                     if s_id in true_values['look_above_index']:
                         extra_text, first_extra, last_extra = load_above(self, c, article_id, first_sentence)
@@ -594,6 +727,8 @@ class SingleUserTestCase(TestCase):
         paragraph_seen = annotate_true(test_1_sentences, TEST_1)
         self.assertTrue(paragraph_seen)
         paragraph_seen = annotate_true(test_2_sentences, TEST_2)
+        self.assertFalse(paragraph_seen)
+        paragraph_seen = annotate_true(test_3_sentences, TEST_3)
         self.assertFalse(paragraph_seen)
 
         # Check that no more sentences are left to annotate.

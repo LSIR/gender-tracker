@@ -22,7 +22,7 @@ COUNT_THRESHOLD = 4
 CONSENSUS_THRESHOLD = 4
 
 """ The minimum confidence required for an a full paragraph to be labeled at once. """
-CONFIDENCE_THRESHOLD = 80
+CONFIDENCE_THRESHOLD = 75
 
 """ If only a single label is needed for each sentence. """
 ADMIN_TAGGER = True

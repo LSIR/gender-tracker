@@ -17,17 +17,20 @@ COOKIE_LIFE_SPAN = 1 * 60 * 60
 def load_content(request):
     """
     Selects either a sentence or a paragraph that needs to be labelled. Creates a JSON file that contains an article_id
-    (int), a paragraph_id (int), a sentence_id ([int]), data (list[string]) and a task (either 'sentence' if a
-    sentence needs to be labelled or 'paragraph' if a paragraph needs to be labelled).
+    (an integer), sentence_ids (a list of integers), data (a list of strings) and a task (a string: 'sentence' if a
+    sentence needs to be labelled, 'paragraph' if a whole paragraph needs to be labelled, 'None' if there are no more
+    sentences to label in the database and 'error' if an error happened in the backend).
 
     If a sentence needs to be labelled, sentence_id is a list of a least one integer, and data is a list of individual
     tokens (words). If a paragraph needs to be annotated, sentence_id is an empty list, and data is a list containing a
     single string, which is the content of the entire paragraph.
 
-    If no more labelling is required from a user, a simple JSon file will be returned containing only 'task': 'None'.
+    If the task is 'None', then the article ID is -1 and both the sentence id and data are empty lists.
 
-    :param request: The user request
-    :return: Json A Json file containing the article_id, sentence_id, data and task.
+    :param request: HTTP GET Request
+        The request with the
+    :return: JsonResponse
+        A Json file containing the article_id, sentence_id, data and task.
     """
     user_id = session_load(request)
     labelling_task = request_labelling_task(user_id)
@@ -40,11 +43,19 @@ def load_content(request):
 def load_above(request):
     """
     Loads the tokens of the paragraph above a given sentence, or the whole paragraph if the sentence is in a paragraph
-    below it.
+    below it. Forms a Json file that always contains the key 'Success'.
 
-    :param request:
-        The user request.
-    :return: Json.
+    If the value of 'Success' is true, then the Json also contains 'data' (a list of strings), 'first_sentence' (an
+    integer representing the index of the first sentence who's tokens are in data) and 'last_sentence' (an integer
+    representing the index of the last sentence who's tokens are in data).
+
+    If the value of 'Success' is false, then the Json also contains the 'reason' key, which has as a value either
+    'KeyError' (if one of the required parameters of the GET request wasn't there) or 'not GET' (if the request wasn't a
+    GET request).
+
+    :param request: HTTP GET Request
+        The user request, with a Json payload containing two keys: 'article_id' and 'first_sentence'
+    :return: JsonResponse
         A Json file containing the the list of tokens of the paragraph above the sentence.
     """
     if request.method == 'GET':
@@ -53,7 +64,9 @@ def load_above(request):
             data = dict(request.GET)
             article_id = int(data['article_id'][0])
             first_sentence = int(data['first_sentence'][0])
-            return JsonResponse(load_paragraph_above(article_id, first_sentence))
+            data = load_paragraph_above(article_id, first_sentence)
+            data['Success'] = True
+            return JsonResponse(data)
         except KeyError:
             return JsonResponse({'Success': False, 'reason': 'KeyError'})
     return JsonResponse({'Success': False, 'reason': 'not GET'})
@@ -62,12 +75,20 @@ def load_above(request):
 def load_below(request):
     """
     Loads the tokens of the paragraph below a given sentence, or the whole paragraph if the sentence is in a paragraph
-    above it.
+    above it. Forms a Json file that always contains the key 'Success'.
 
-    :param request:
-        The user request.
-    :return: Json.
-        A Json file containing the the list of tokens of the paragraph above the sentence.
+    If the value of 'Success' is true, then the Json also contains 'data' (a list of strings), 'first_sentence' (an
+    integer representing the index of the first sentence who's tokens are in data) and 'last_sentence' (an integer
+    representing the index of the last sentence who's tokens are in data).
+
+    If the value of 'Success' is false, then the Json also contains the 'reason' key, which has as a value either
+    'KeyError' (if one of the required parameters of the GET request wasn't there) or 'not GET' (if the request wasn't a
+    GET request).
+
+    :param request: HTTP GET Request
+        The user request, with a Json payload containing two keys: 'article_id' and 'last_sentence'
+    :return: JsonResponse
+        A Json file containing the the list of tokens of the paragraph below the sentence.
     """
     if request.method == 'GET':
         try:

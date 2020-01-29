@@ -13,6 +13,9 @@ import uuid
 # The life span of a cookie, in seconds
 COOKIE_LIFE_SPAN = 1 * 60 * 60
 
+# The key needed to become an admin
+ADMIN_SECRET_KEY = 'i_want_to_be_admin'
+
 
 def load_content(request):
     """
@@ -88,7 +91,7 @@ def load_below(request):
     :param request: HTTP GET Request
         The user request, with a Json payload containing two keys: 'article_id' and 'last_sentence'
     :return: JsonResponse
-        A Json file containing the the list of tokens of the paragraph below the sentence.
+        A Json file containing the list of tokens of the paragraph below the sentence.
     """
     if request.method == 'GET':
         try:
@@ -105,9 +108,21 @@ def load_below(request):
 @csrf_exempt
 def submit_tags(request):
     """
+    Adds the labels a user created to the database.
 
-    :param request:
-    :return:
+    :param request: HTTP POST request
+        A post request containing the labels the user created. Contains the following keys.
+            * 'article_id': The id of the article that the user annotated.
+            * 'sentence_id': The list of sentence indices that the user annotated.
+            * 'first_sentence': The index of the first sentence who's tokens are in tags
+            * 'last_sentence': The index of the last sentence who's tokens are in tags
+            * 'tags': A list of tags for each token in the sentences.
+            * 'authors': A list of token indices that are authors of the quote, and an empty list if no reported speech
+                            was in the sentences.
+            * 'task': The task that the user performed ('sentence' or 'paragraph').
+    :return: JsonResponse
+        A Json containing the key 'success'. If it's value is false, also contains a key 'reason' that can have values
+        'not POST' (if the request wasn't a POST request) or 'KeyError' (if a key was missing from the request).
     """
     # Session stuff
     user_id = session_post(request)
@@ -150,9 +165,12 @@ def submit_tags(request):
 
 def session_load(request):
     """
+    Checks if the user already has a session key. If they don't, create one.
 
-    :param request:
-    :return:
+    :param request: HTTP Request
+        The request from the user.
+    :return: string
+        The user's id.
     """
     if 'id' in request.session:
         return request.session['id']
@@ -165,9 +183,12 @@ def session_load(request):
 
 def session_post(request):
     """
+    Checks if the user has a session key.
 
-    :param request:
-    :return:
+    :param request: HTTP Request
+        The request from the user.
+    :return: string
+        The user's id, or None if the user hasn't been assigned an ID.
     """
     if 'id' not in request.session:
         return None
@@ -175,19 +196,20 @@ def session_post(request):
     return request.session['id']
 
 
+def become_admin(request):
+    """
+    Assigns an admin cookie to the user, if and only if they have the correct key as a parameter.
 
+    :param request: HTTP GET Request
+        The user request. Must contain a 'key' parameter with the correct value for the user to become an admin.
+    :return: JsonResponse
+        A Json containing the key 'success', with value True if the user became an admin and false otherwise.
+    """
+    # Get user secret key
+    data = dict(request.GET)
+    secret_key = data['key'][0]
+    if secret_key == ADMIN_SECRET_KEY:
+        request.session['admin'] = True
+        return JsonResponse({'success': True})
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    return JsonResponse({'success': False})

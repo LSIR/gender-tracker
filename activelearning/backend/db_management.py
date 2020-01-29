@@ -24,9 +24,6 @@ CONSENSUS_THRESHOLD = 4
 """ The minimum confidence required for an a full paragraph to be labeled at once. """
 CONFIDENCE_THRESHOLD = 75
 
-""" If only a single label is needed for each sentence. """
-ADMIN_TAGGER = True
-
 
 def add_user_label_to_db(user_id, article_id, sentence_index, labels, author_index, admin):
     """
@@ -176,23 +173,3 @@ def request_labelling_task(session_id):
                     return form_sentence_json(article, labelling_task)
             prev_par_end = p
     return None
-
-
-def set_admin_tagger(value):
-    """
-    Sets the value of the ADMIN_TAGGER constant
-
-    :param value: Boolean.
-        The value that ADMIN_TAGGER needs to be set to.
-    """
-    global ADMIN_TAGGER
-    ADMIN_TAGGER = value
-
-
-def get_admin_tagger():
-    """
-    :return: Boolean.
-        The value of the ADMIN_TAGGER constant
-    """
-    global ADMIN_TAGGER
-    return ADMIN_TAGGER

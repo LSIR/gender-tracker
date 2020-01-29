@@ -2,7 +2,7 @@ from django.test import TestCase
 from django.test import Client
 
 from backend.models import Article, UserLabel
-from backend.db_management import add_article_to_db, set_admin_tagger
+from backend.db_management import add_article_to_db
 from backend.helpers import label_consensus, change_confidence
 from backend.xml_parsing.postgre_to_xml import database_to_xml
 
@@ -325,11 +325,12 @@ def load_new_task(test_class, client):
     user_id = client.session['id']
     data = json.loads(response.content)
     keys = list(data)
-    test_class.assertEquals(len(keys), 4)
+    test_class.assertEquals(len(keys), 5)
     test_class.assertTrue('article_id' in keys)
     test_class.assertTrue('sentence_id' in keys)
     test_class.assertTrue('data' in keys)
     test_class.assertTrue('task' in keys)
+    test_class.assertTrue('admin' in keys)
     article_id = data['article_id']
     sentence_ids = data['sentence_id']
     text = data['data']
@@ -394,10 +395,12 @@ def parse_extra_load(test_class, response):
     """
     data = json.loads(response.content)
     keys = list(data)
-    test_class.assertEquals(len(keys), 3)
+    test_class.assertEquals(len(keys), 4)
     test_class.assertTrue('data' in keys)
     test_class.assertTrue('first_sentence' in keys)
     test_class.assertTrue('last_sentence' in keys)
+    test_class.assertTrue('Success' in keys)
+    test_class.assertTrue(data['Success'])
     text = data['data']
     first_sentence = data['first_sentence']
     last_sentence = data['last_sentence']
@@ -531,11 +534,25 @@ def check_task_done(test_class, clients):
         test_class.assertEquals(task, 'None')
 
 
+def make_admin(test_class, client):
+    """
+    Makes a client an admin in the system.
+
+    :param test_class: TestCase
+        The class doing the testing.
+    :param client: django.test.Client
+        The client to make an admin.
+    """
+    response = client.get('/api/admin_tagger/', {'key': 'i_want_to_be_admin'})
+    data = json.loads(response.content)
+    test_class.assertTrue(data['Success'])
+    test_class.assertTrue(client.session['admin'])
+
+
 class SingleUserTestCase(TestCase):
     """ Case where a single user is annotating sentences """
 
     def setUp(self):
-        set_admin_tagger(True)
         # Add an article to the database
         self.a1 = add_article_to_db('../data/test_article_1.xml', nlp)
         self.a2 = add_article_to_db('../data/test_article_2.xml', nlp)
@@ -571,6 +588,8 @@ class SingleUserTestCase(TestCase):
         """
         # Define a new client
         c = Client()
+        make_admin(self, c)
+
         test_1_sentences = 10
         test_2_sentences = 7
         test_3_sentences = 7
@@ -616,6 +635,7 @@ class SingleUserTestCase(TestCase):
         """
         # Define a new client
         c = Client()
+        make_admin(self, c)
         test_1_sentences = 10
         test_2_sentences = 7
         test_3_sentences = 7
@@ -692,6 +712,7 @@ class SingleUserTestCase(TestCase):
         change_confidence(self.a1.id, new_confidence)
         # Define a new client
         c = Client()
+        make_admin(self, c)
         test_1_sentences = 10
         test_2_sentences = 7
         test_3_sentences = 7
@@ -779,7 +800,6 @@ class TwoUserAdminTestCase(TestCase):
     """ Case where a two admin users are annotating sentences """
 
     def setUp(self):
-        set_admin_tagger(True)
         # Add an article to the database
         self.a1 = add_article_to_db('../data/test_article_1.xml', nlp)
         self.a2 = add_article_to_db('../data/test_article_2.xml', nlp)
@@ -796,6 +816,8 @@ class TwoUserAdminTestCase(TestCase):
         # Define two clients
         c1 = Client()
         c2 = Client()
+        make_admin(self, c1)
+        make_admin(self, c2)
         # The ids of the sentences the first client annotates
         client_1_sentences = [0, 4, 5, 6]
 
@@ -853,6 +875,8 @@ class TwoUserAdminTestCase(TestCase):
         # Define two clients
         c1 = Client()
         c2 = Client()
+        make_admin(self, c1)
+        make_admin(self, c2)
         # The ids of the sentences the first client annotates
         client_1_sentences = [0, 4, 5, 6]
 
@@ -925,8 +949,6 @@ class TwoUserAdminTestCase(TestCase):
         check_annotations(self, self.a2, test_2_sentences, 1, TEST_2['output_xml'], 1)
         check_annotations(self, self.a3, test_3_sentences, 1, TEST_3['output_xml'], 1)
 
-
-
     def test_3_admin_with_paragraphs(self):
         """
         Test where a single user annotates all sentences correctly, looking up in the text when needed. Some text is
@@ -940,6 +962,8 @@ class TwoUserAdminTestCase(TestCase):
         # Define two clients
         c1 = Client()
         c2 = Client()
+        make_admin(self, c1)
+        make_admin(self, c2)
         # The ids of the sentences the first client annotates
         client_1_sentences = [0, 4, 5, 6]
 
@@ -1035,12 +1059,10 @@ class FourUserTestCase(TestCase):
     """ Case where four normal users are annotating sentences """
 
     def setUp(self):
-        set_admin_tagger(False)
         # Add an article to the database
         self.a1 = add_article_to_db('../data/test_article_1.xml', nlp)
         self.a2 = add_article_to_db('../data/test_article_2.xml', nlp)
         self.a3 = add_article_to_db('../data/test_article_3.xml', nlp)
-
 
     def test_1_admin_trivial(self):
         """

@@ -4,7 +4,7 @@ from django.core.exceptions import ObjectDoesNotExist
 
 from backend.frontend_parsing.postgre_to_frontend import load_paragraph_above, load_paragraph_below
 from backend.frontend_parsing.frontend_to_postgre import clean_user_labels
-from backend.db_management import add_user_label_to_db, request_labelling_task, get_admin_tagger
+from backend.db_management import add_user_label_to_db, request_labelling_task
 from backend.helpers import change_confidence
 from .models import Article
 import json
@@ -20,9 +20,10 @@ ADMIN_SECRET_KEY = 'i_want_to_be_admin'
 def load_content(request):
     """
     Selects either a sentence or a paragraph that needs to be labelled. Creates a JSON file that contains an article_id
-    (an integer), sentence_ids (a list of integers), data (a list of strings) and a task (a string: 'sentence' if a
+    (an integer), sentence_ids (a list of integers), data (a list of strings), a task (a string: 'sentence' if a
     sentence needs to be labelled, 'paragraph' if a whole paragraph needs to be labelled, 'None' if there are no more
-    sentences to label in the database and 'error' if an error happened in the backend).
+    sentences to label in the database and 'error' if an error happened in the backend) and a boolean 'admin value',
+    which is true is the user has been assigned as an admin.
 
     If a sentence needs to be labelled, sentence_id is a list of a least one integer, and data is a list of individual
     tokens (words). If a paragraph needs to be annotated, sentence_id is an empty list, and data is a list containing a
@@ -33,14 +34,15 @@ def load_content(request):
     :param request: HTTP GET Request
         The request with the
     :return: JsonResponse
-        A Json file containing the article_id, sentence_id, data and task.
+        A Json file containing the 'article_id', 'sentence_id', 'data', 'task' and 'admin'.
     """
-    user_id = session_load(request)
+    user_id, admin_tagger = session_load(request)
     labelling_task = request_labelling_task(user_id)
     if labelling_task is not None:
+        labelling_task['admin'] = admin_tagger
         return JsonResponse(labelling_task)
     else:
-        return JsonResponse({'article_id': -1, 'sentence_id': [], 'data': [], 'task': 'None'})
+        return JsonResponse({'article_id': -1, 'sentence_id': [], 'data': [], 'task': 'None', 'admin': admin_tagger})
 
 
 def load_above(request):
@@ -99,7 +101,9 @@ def load_below(request):
             data = dict(request.GET)
             article_id = int(data['article_id'][0])
             last_sentence = int(data['last_sentence'][0])
-            return JsonResponse(load_paragraph_below(article_id, last_sentence))
+            data = load_paragraph_below(article_id, last_sentence)
+            data['Success'] = True
+            return JsonResponse(data)
         except KeyError:
             return JsonResponse({'Success': False, 'reason': 'KeyError'})
     return JsonResponse({'Success': False, 'reason': 'not GET'})
@@ -125,7 +129,7 @@ def submit_tags(request):
         'not POST' (if the request wasn't a POST request) or 'KeyError' (if a key was missing from the request).
     """
     # Session stuff
-    user_id = session_post(request)
+    user_id, admin_tagger = session_post(request)
     if user_id is None:
         return JsonResponse({'success': False, 'reason': 'cookies'})
     if request.method == 'POST':
@@ -133,8 +137,8 @@ def submit_tags(request):
             data = json.loads(request.body)
             article_id = data['article_id']
             sent_id = data['sentence_id']
-            first_sentence = data['first_sentence']
-            last_sentence = data['last_sentence']
+            first_sent = data['first_sentence']
+            last_sent = data['last_sentence']
             labels = data['tags']
             authors = data['authors']
             task = data['task']
@@ -148,12 +152,11 @@ def submit_tags(request):
             # reset the confidences for the whole paragraph to 0.
             if task == 'paragraph' and sum(labels) > 0:
                 sentence_confidences = article.confidence['confidence'].copy()
-                sentence_confidences[first_sentence:last_sentence+1] = (last_sentence - first_sentence + 1) * [0]
+                sentence_confidences[first_sent:last_sent + 1] = (last_sent - first_sent + 1) * [0]
                 change_confidence(article_id, sentence_confidences)
             else:
                 sentence_ends = article.sentences['sentences']
-                clean_labels = clean_user_labels(sentence_ends, sent_id, first_sentence, last_sentence, labels, authors)
-                admin_tagger = get_admin_tagger()
+                clean_labels = clean_user_labels(sentence_ends, sent_id, first_sent, last_sent, labels, authors)
                 for sentence in clean_labels:
                     add_user_label_to_db(user_id, article_id, sentence['index'], sentence['labels'],
                                          sentence['authors'], admin_tagger)
@@ -169,16 +172,20 @@ def session_load(request):
 
     :param request: HTTP Request
         The request from the user.
-    :return: string
+    :return: string, boolean
         The user's id.
+        If the user is admin.
     """
     if 'id' in request.session:
-        return request.session['id']
+        user_id = request.session['id']
     else:
         request.session.set_test_cookie()
         user_id = str(uuid.uuid1())
         request.session['id'] = user_id
-        return user_id
+    admin_tagger = False
+    if 'admin' in request.session and request.session['admin']:
+        admin_tagger = True
+    return user_id, admin_tagger
 
 
 def session_post(request):
@@ -187,13 +194,16 @@ def session_post(request):
 
     :param request: HTTP Request
         The request from the user.
-    :return: string
+    :return: string, boolean
         The user's id, or None if the user hasn't been assigned an ID.
+        If the user is admin.
     """
     if 'id' not in request.session:
         return None
-
-    return request.session['id']
+    admin_tagger = False
+    if 'admin' in request.session and request.session['admin']:
+        admin_tagger = True
+    return request.session['id'], admin_tagger
 
 
 def become_admin(request):
@@ -203,13 +213,13 @@ def become_admin(request):
     :param request: HTTP GET Request
         The user request. Must contain a 'key' parameter with the correct value for the user to become an admin.
     :return: JsonResponse
-        A Json containing the key 'success', with value True if the user became an admin and false otherwise.
+        A Json containing the key 'Success', with value True if the user became an admin and false otherwise.
     """
     # Get user secret key
     data = dict(request.GET)
     secret_key = data['key'][0]
     if secret_key == ADMIN_SECRET_KEY:
         request.session['admin'] = True
-        return JsonResponse({'success': True})
+        return JsonResponse({'Success': True})
 
-    return JsonResponse({'success': False})
+    return JsonResponse({'Success': False})

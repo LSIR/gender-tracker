@@ -162,6 +162,12 @@ are fully labeled. A sentence is fully labeled if:
 - There are at least COUNT_THRESHOLD user labels and the consensus between labels is at least CONSENSUS_THRESHOLD.
 - Or there is an admin label for the sentence.
 
+Selected users can become admin users by visiting the url: 
+
+```{website_url}/api/admin_tagger?key=SECRET_KEY```
+
+Where the secret key is given by the administrators of the site.
+
 We set COUNT_THRESHOLD = 4 and CONSENSUS_THRESHOLD = 75%.
 
 There are two separate ways that user labels are created. The first is the most obvious one, where sentences are

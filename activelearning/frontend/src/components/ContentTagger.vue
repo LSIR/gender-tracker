@@ -121,6 +121,13 @@
                 </div>
             </v-flex>
         </v-layout>
+        <v-layout text-center wrap v-if="admin">
+            <v-flex mb-4>
+                <div class="red--text">
+                    ADMIN
+                </div>
+            </v-flex>
+        </v-layout>
         <v-layout text-center wrap>
             <v-flex xs12>
                 <!--<v-img
@@ -139,6 +146,9 @@ import $ from 'jquery'
 
 export default {
     data: () => ({
+        // Information on the user
+        admin: false,
+
         // Information on the sentence to tag
         article_id: -1,
         sentence_id: [-1],
@@ -210,6 +220,7 @@ export default {
                 success: function (data) {
                     that.tagging_task = data['task'];
                     if (that.tagging_task !== 'None'){
+                        that.admin = data['admin'];
                         that.article_id = data['article_id'];
                         that.sentence_id = data['sentence_id'];
                         if (that.tagging_task === 'sentence'){
@@ -217,6 +228,7 @@ export default {
                         }else if (that.tagging_task === 'paragraph'){
                             that.text = data['data'];
                         }
+
                         that.first_sentence = that.sentence_id[0];
                         that.last_sentence = that.sentence_id[that.sentence_id.length - 1];
                         that.paragraph_indices = [[0, that.text.length]];

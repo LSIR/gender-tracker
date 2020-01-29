@@ -36,7 +36,7 @@ def add_user_label_to_db(user_id, article_id, sentence_index, labels, author_ind
         The users session id
     :param article_id: int.
         The key of the article that was annotated
-        :param sentence_index: int.
+    :param sentence_index: int.
         The index of the sentence that was labelled in the article
     :param labels: list(int).
         The labels the user created for the sentence

@@ -252,3 +252,7 @@ database.
 
 Contains all methods that can be used to transform news articles in an xml format into a representation that can be
 stored in the PostgreSQL database. This package also contains methods to extract annotated articles to xml files, with the format:
+
+### Frontend
+
+The frontend is implemented with the VueJS framework.

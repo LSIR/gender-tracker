@@ -44,6 +44,7 @@ class Command(BaseCommand):
             else:
                 print('Loading language model...')
                 nlp = spacy.load('fr_core_news_md')
+                nlp.add_pipe(set_custom_boundaries, before="parser")
                 articles = [add_article_to_db(path, nlp)]
         except IOError:
             raise CommandError('Article could not be added. IOError.')

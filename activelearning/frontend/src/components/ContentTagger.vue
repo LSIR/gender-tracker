@@ -337,34 +337,44 @@ export default {
             });
         },
         submitTags: function () {
-            const that = this;
-            $.ajax({
-                type: 'POST',
-                url: '/api/submitTags/',
-                data: JSON.stringify({
-                    'article_id': that.article_id,
-                    'sentence_id': that.sentence_id,
-                    'first_sentence': that.first_sentence,
-                    'last_sentence': that.last_sentence,
-                    'tags': that.quote_markers,
-                    'authors': that.author_indices,
-                    'task': that.tagging_task,
-                }),
-                contentType: "application/json; charset=utf-8",
-                dataType: "json",
-                success: function (response) {
-                    if (response['success'] === true){
-                        that.loadContent()
-                    }else if (response['reason'] === 'cookies'){
-                        that.task = 'cookies'
-                    }else{
+            // Don't let the user report a quote with no author
+            const reducer = (accumulator, currentValue) => accumulator + currentValue;
+            if ((this.quote_markers.reduce(reducer) > 0) &&
+                (this.author_indices.length === 0) &&
+                (this.tagging_task === 'sentence')){
+                alert("Vous avez indiqué la présence d'un citation, mais pas d'auteur. Merci de sélectionner le nom " +
+                    "la personne qui est citée. Si la phrase ne contient pas de citation, vous pouvez recommencer en " +
+                    "cliquant sur le bouton \"réinitialiser\". ");
+            }else{
+                const that = this;
+                $.ajax({
+                    type: 'POST',
+                    url: '/api/submitTags/',
+                    data: JSON.stringify({
+                        'article_id': that.article_id,
+                        'sentence_id': that.sentence_id,
+                        'first_sentence': that.first_sentence,
+                        'last_sentence': that.last_sentence,
+                        'tags': that.quote_markers,
+                        'authors': that.author_indices,
+                        'task': that.tagging_task,
+                    }),
+                    contentType: "application/json; charset=utf-8",
+                    dataType: "json",
+                    success: function (response) {
+                        if (response['success'] === true){
+                            that.loadContent()
+                        }else if (response['reason'] === 'cookies'){
+                            that.task = 'cookies'
+                        }else{
+                            that.task = 'error'
+                        }
+                    },
+                    error: function () {
                         that.task = 'error'
                     }
-                },
-                error: function () {
-                    that.task = 'error'
-                }
-            });
+                });
+            }
         },
         tagWord: function (index) {
             // Tagging the first word in the quote

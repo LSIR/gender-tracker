@@ -21,7 +21,7 @@ COPY environment.yml .
 RUN /bin/bash -c "source activate base  && conda env update -f=environment.yml && \
      conda clean -aqy "
 # FIXME Add this to environment 
-RUN pip install gunicorn==19.9.0 psycopg2-binary django-environ
+RUN pip install gunicorn==19.9.0 psycopg2-binary django-environ sentry-sdk==0.14.1
 RUN python -m spacy download fr_core_news_md
 # upload scripts
 COPY ./ /app/

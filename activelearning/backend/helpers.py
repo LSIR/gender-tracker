@@ -21,6 +21,8 @@ def label_consensus(labels, authors):
         list(int): The author indices.
         float: A consensus between 0 and 1.
     """
+    if len(labels) == 0:
+        return [], [], 0
     # Set of tuples as lists can't be hashed in Python
     label_sets = set(tuple(i) for i in labels)
     author_sets = set(tuple(i) for i in authors)
@@ -127,16 +129,17 @@ def quote_start_sentence(sentence_ends, in_quote, token_index):
 
     :param sentence_ends: list(int).
         The list of the last token of each sentence
-    :param in_quote: list(int)..
+    :param in_quote: list(int).
         The list of in_quote tokens
     :param token_index: int.
         The index of the token in the quote
     :return: int.
         The index of the sentence containing the first token in the quote
     """
-    while in_quote[token_index] == 1 and token_index > 0:
+    while token_index >= 0 and in_quote[token_index] == 1:
         token_index -= 1
-    sentence_index = 1
+    token_index += 1
+    sentence_index = 0
     while token_index > sentence_ends[sentence_index]:
         sentence_index += 1
     return sentence_index
@@ -158,7 +161,8 @@ def quote_end_sentence(sentence_ends, in_quote, token_index):
     """
     while token_index < len(in_quote) and in_quote[token_index] == 1:
         token_index += 1
+    token_index -= 1
     sentence_index = len(sentence_ends) - 1
-    while token_index <= sentence_ends[sentence_index]:
+    while sentence_index >= 0 and token_index <= sentence_ends[sentence_index]:
         sentence_index -= 1
     return sentence_index + 1

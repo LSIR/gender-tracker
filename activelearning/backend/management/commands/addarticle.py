@@ -35,10 +35,11 @@ class Command(BaseCommand):
                 articles = []
                 article_files = [join(path, article) for article in listdir(path)
                                  if isfile(join(path, article)) and len(article) > 4 and article[-3:] == 'xml']
+                article_files.sort()
                 print('Loading language model...')
                 nlp = spacy.load('fr_core_news_md')
                 nlp.add_pipe(set_custom_boundaries, before="parser")
-
+                print('Adding articles to the database...')
                 for article_path in article_files:
                     articles.append(add_article_to_db(article_path, nlp))
             else:

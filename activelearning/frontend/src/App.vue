@@ -18,6 +18,17 @@
     <v-content>
       <ContentTagger/>
     </v-content>
+
+    <v-layout text-center wrap>
+      <v-flex xs12>
+        <img
+          :src="image"
+          alt="Logo EPFL"
+          class="my-3"
+          height="40"
+        >
+      </v-flex>
+    </v-layout>
   </v-app>
 </template>
 
@@ -31,7 +42,7 @@ export default {
     ContentTagger,
   },
   data: () => ({
-    //
+      image: require('@/assets/epfl_logo.svg')
   }),
 };
 </script>

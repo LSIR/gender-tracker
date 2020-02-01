@@ -129,16 +129,6 @@
                 </div>
             </v-flex>
         </v-layout>
-        <v-layout text-center wrap>
-            <v-flex xs12>
-                <v-img
-                        :src="require('../assets/epfl_logo.svg')"
-                        class="my-3"
-                        contain
-                        height="40"
-                ></v-img>
-            </v-flex>
-        </v-layout>
     </v-container>
 </template>
 

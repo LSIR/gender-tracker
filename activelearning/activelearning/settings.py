@@ -53,6 +53,15 @@ if env('ENVIRONMENT') != 'production':
     INSTALLED_APPS.append('webpack_loader')
     ALLOWED_HOSTS.append('127.0.0.1')
     ALLOWED_HOSTS.append('0.0.0.0')
+    # Sentry Debugging
+    sentry_sdk.init(
+        dsn=env('DSN'),
+        integrations=[DjangoIntegration()],
+
+        # If you wish to associate users to errors (assuming you are using
+        # django.contrib.auth) you may enable sending PII data.
+        send_default_pii=True
+    )
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -134,17 +143,6 @@ USE_I18N = True
 USE_L10N = True
 
 USE_TZ = True
-
-# Sentry Debugging
-
-sentry_sdk.init(
-    dsn=env('DSN'),
-    integrations=[DjangoIntegration()],
-
-    # If you wish to associate users to errors (assuming you are using
-    # django.contrib.auth) you may enable sending PII data.
-    send_default_pii=True
-)
 
 
 # Static files (CSS, JavaScript, Images)

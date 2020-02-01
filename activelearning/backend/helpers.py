@@ -34,59 +34,6 @@ def label_consensus(labels, authors):
         (max_label_count[1] + max_author_count[1]) / (2 * len(labels))
 
 
-def is_sentence_labelled(article, sentence_id, min_users, min_consensus):
-    """
-    Determines if there is a consensus among enough users so that the label is considered correct. If a consensus
-    exists, returns the labels and authors.
-
-    :param article: Article.
-        The article instance to which the sentence belongs.
-    :param sentence_id: int.
-        The index of the sentence in the article.
-    :param min_users: int.
-        The minimum number of users needed for a sentence to be considered labelled.
-    :param min_consensus: float.
-        The minimum percentage of users that have the same labelling for a sentence to be considered labelled.
-    :return: boolean.
-        True if the sentence is considered labelled, false otherwise.
-    """
-    sentence_labels = UserLabel.objects.filter(article=article, sentence_index=sentence_id)
-    admin_label = [label for label in sentence_labels.filter(admin_label=True)]
-    if len(admin_label) > 0:
-        return True
-    else:
-        labels = [label.labels['labels'] for label in sentence_labels]
-        authors = [label.author_index['author_index'] for label in sentence_labels]
-        if len(labels) >= min_users:
-            labels, authors, consensus = label_consensus(labels, authors)
-            if consensus >= min_consensus:
-                return True
-
-    return False
-
-
-def is_article_labelled(article, min_users, min_consensus):
-    """
-    Determines if all labels in the article have a consensus label. If that's the case, returns them. Otherwise
-    returns None.
-
-    :param article: Article.
-        The article instance.
-    :param min_users: int.
-        The minimum number of users needed for a sentence to be considered labelled.
-    :param min_consensus: float.
-        The minimum percentage of users that have the same labelling for a sentence to be considered labelled.
-    :return: boolean.
-        True if all sentences in the article are considered labelled, false otherwise.
-    """
-    for s in range(len(article.sentences['sentences'])):
-        data = is_sentence_labelled(article, s, min_users, min_consensus)
-        if not data:
-            return None
-
-    return True
-
-
 ##############################################################################################
 # Learning
 ##############################################################################################

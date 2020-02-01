@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand, CommandError
 
 from backend.xml_parsing.postgre_to_xml import database_to_xml
-from backend.helpers import is_article_labelled, label_consensus
+from backend.helpers import label_consensus
 from backend.models import Article, UserLabel
 
 
@@ -16,7 +16,7 @@ class Command(BaseCommand):
         try:
             articles = Article.objects.all()
             for a in articles:
-                if is_article_labelled(a, 4, 80):
+                if a.labeled['fully_labeled'] == 1:
                     labels = []
                     authors = []
                     for s_id in range(len(a.sentences['sentences'])):

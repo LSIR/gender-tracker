@@ -18,10 +18,8 @@ class Article(models.Model):
     paragraphs = JSONField()
     # List of all token indices that are the ends of sentences
     sentences = JSONField()
-    # List of the number of user labels for each sentence
-    label_counts = JSONField()
-    # The percentage of labels that have the same value for each sentence
-    label_overlap = JSONField()
+    # List of boolean values {0, 1} representing if a sentence is fully labeled or
+    labeled = JSONField()
     # List of boolean values {0, 1} representing if a token is in between quotes or not
     in_quotes = JSONField()
     # List of values, where value j is in (0, 1) representing the confidence of the current ML models predictions in

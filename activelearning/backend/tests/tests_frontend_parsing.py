@@ -131,11 +131,10 @@ class PostgreToFrontendTestCase(TestCase):
             tokens={'tokens': [token for sentence_tokens in TEST_ARTICLE['tokens'] for token in sentence_tokens]},
             paragraphs={'paragraphs': TEST_ARTICLE['paragraph_ends']},
             sentences={'sentences': TEST_ARTICLE['sentence_ends']},
-            label_counts={
-                'label_counts': len(TEST_ARTICLE['sentence_ends']) * [0],
-                'min_label_counts': 0
+            labeled={
+                'labeled': len(TEST_ARTICLE['sentence_ends']) * [0],
+                'fully_labeled': 0,
             },
-            label_overlap={'label_overlap': len(TEST_ARTICLE['sentence_ends']) * [0]},
             in_quotes={'in_quotes': TEST_ARTICLE['in_quotes']},
             confidence={
                 'confidence': len(TEST_ARTICLE['sentence_ends']) * [0],

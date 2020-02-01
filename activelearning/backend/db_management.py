@@ -1,7 +1,7 @@
 from django.core.exceptions import ObjectDoesNotExist
 
 from backend.frontend_parsing.postgre_to_frontend import form_paragraph_json, form_sentence_json
-from backend.helpers import quote_end_sentence, is_sentence_labelled
+from backend.helpers import quote_end_sentence, label_consensus
 from backend.models import Article, UserLabel
 from backend.xml_parsing.xml_to_postgre import process_article
 
@@ -19,7 +19,7 @@ ARTICLE_LOADS = 10
 COUNT_THRESHOLD = 4
 
 """ The minimum consensus required for a sentence to be considered labelled. """
-CONSENSUS_THRESHOLD = 4
+CONSENSUS_THRESHOLD = 0.75
 
 """ The minimum confidence required for an a full paragraph to be labeled at once. """
 CONFIDENCE_THRESHOLD = 75
@@ -27,7 +27,10 @@ CONFIDENCE_THRESHOLD = 75
 
 def add_user_label_to_db(user_id, article_id, sentence_index, labels, author_index, admin):
     """
-    Adds a new user label to the database for a given user annotation.
+    Adds a new user label to the database for a given user annotation. If this label is admin, sets the labeled value
+    for this sentence in the corresponding article to 1. Otherwise, finds all other user labels for this sentence, and
+    computes their consensus (the proportion that agree on a response), and if their consensus is above the threshold
+    and there are enough user labels, sets the labeled value for this sentence in the corresponding article to 1.
 
     :param user_id: int.
         The users session id
@@ -50,13 +53,26 @@ def add_user_label_to_db(user_id, article_id, sentence_index, labels, author_ind
     except ObjectDoesNotExist:
         return None
 
-    label_counts = article.label_counts['label_counts']
-    # Increase the label count for the given tokens in the Article database
-    label_counts[sentence_index] += 1
-    article.label_counts = {
-            'label_counts': label_counts,
-            'min_label_counts': min(label_counts)
-        }
+    labeled = article.labeled['labeled']
+
+    if admin:
+        labeled[sentence_index] = 1
+    else:
+        other_userlabels = UserLabel.objects.filter(article=article, sentence_index=sentence_index)
+        other_labels = [userlabel.labels['labels'] for userlabel in other_userlabels]
+        other_authors = [userlabel.author_index['author_index'] for userlabel in other_userlabels]
+
+        all_labels = other_labels + [labels]
+        all_authors = other_authors + [author_index]
+
+        _, _, consensus = label_consensus(all_labels, all_authors)
+        labeled[sentence_index] = int(consensus >= CONSENSUS_THRESHOLD and len(all_labels) >= COUNT_THRESHOLD)
+
+    fully_labeled = int(sum(labeled) == len(labeled))
+    article.labeled = {
+            'labeled': labeled,
+            'fully_labeled': fully_labeled,
+    }
     article.save()
 
     return UserLabel.objects.create(
@@ -88,8 +104,7 @@ def add_article_to_db(path, nlp, admin_article=False):
 
     # Process the file
     data = process_article(article_text, nlp)
-    label_counts = len(data['s']) * [0]
-    label_overlap = len(data['s']) * [0]
+    labeled = len(data['s']) * [0]
     confidence = len(data['s']) * [0]
     return Article.objects.create(
         name=data['name'],
@@ -98,11 +113,10 @@ def add_article_to_db(path, nlp, admin_article=False):
         tokens={'tokens': data['tokens']},
         paragraphs={'paragraphs': data['p']},
         sentences={'sentences': data['s']},
-        label_counts={
-            'label_counts': label_counts,
-            'min_label_counts': 0
+        labeled={
+            'labeled': labeled,
+            'fully_labeled': 0,
         },
-        label_overlap={'label_overlap': label_overlap},
         in_quotes={'in_quotes': data['in_quotes']},
         confidence={
             'confidence': confidence,
@@ -112,20 +126,21 @@ def add_article_to_db(path, nlp, admin_article=False):
     )
 
 
-def load_hardest_articles(n):
+def load_hardest_articles(n=None):
     """
     Loads the hardest articles to classify in the database, in terms of the confidence in the
     answers.
 
     :param n: int.
-        The number of articles to load from the database
+        If None, all articles are returned.
+        Otherwise, limited to n articles.
     :return: list(Article).
         The n hardest articles to classify.
     """
-    # Return only articles that don't have enough labels for all sentences
-    return Article.objects \
-                .filter(label_counts__min_label_counts__lt=MIN_USER_LABELS) \
-                .order_by('confidence__min_confidence', 'id')[:n]
+    if n is None:
+        return Article.objects.filter(labeled__fully_labeled=0).order_by('confidence__min_confidence', 'id')
+    else:
+        return Article.objects.filter(labeled__fully_labeled=0).order_by('confidence__min_confidence', 'id')[:n]
 
 
 def request_labelling_task(session_id):
@@ -143,7 +158,7 @@ def request_labelling_task(session_id):
     articles = load_hardest_articles(ARTICLE_LOADS)
     for article in articles:
         annotated_sentences = [user_label.sentence_index for user_label in session_labels.filter(article=article)]
-        label_counts = article.label_counts['label_counts']
+        labeled = article.labeled['labeled']
         confidences = article.confidence['confidence']
         sentence_ends = article.sentences['sentences']
         prev_par_end = -1
@@ -154,14 +169,13 @@ def request_labelling_task(session_id):
 
             # For high enough confidences, annotate the whole paragraph
             if min_conf >= CONFIDENCE_THRESHOLD \
-                    and label_counts[prev_par_end + 1] < COUNT_THRESHOLD \
+                    and labeled[prev_par_end + 1] == 0 \
                     and (prev_par_end + 1) not in annotated_sentences:
                 return form_paragraph_json(article, i)
 
             # For all sentences in the paragraph, check if they can be annotated by the user
             for j in range(prev_par_end + 1, p + 1):
-                if not is_sentence_labelled(article, j, COUNT_THRESHOLD, CONSENSUS_THRESHOLD) and \
-                        j not in annotated_sentences:
+                if not article.labeled['labeled'][j] == 1 and j not in annotated_sentences:
                     # List of sentence indices to label
                     labelling_task = [j]
                     # Checks that the sentence's last token is inside quotes, in which case the next sentence would

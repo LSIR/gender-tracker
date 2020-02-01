@@ -373,11 +373,11 @@ def submit_task(test_class, client, article_id, sentence_ids, first_sentence, la
         'task': task,
     }
     response = client.post('/api/submitTags/', data, content_type='application/json')
-    data = json.loads(response.content)
-    keys = list(data)
+    data_out = json.loads(response.content)
+    keys = list(data_out)
     test_class.assertEquals(len(keys), 1)
     test_class.assertTrue('success' in keys)
-    test_class.assertTrue(data['success'])
+    test_class.assertTrue(data_out['success'])
 
 
 def parse_extra_load(test_class, response):
@@ -569,9 +569,7 @@ class SingleUserTestCase(TestCase):
                                                          for token in sentence_tokens])
             self.assertEquals(article.sentences['sentences'], data['sentence_ends'])
             self.assertEquals(article.paragraphs['paragraphs'], data['paragraph_ends'])
-            self.assertEquals(article.label_counts['label_counts'], len(data['sentence_ends']) * [0])
-            self.assertEquals(article.label_counts['min_label_counts'], 0)
-            self.assertEquals(article.label_overlap['label_overlap'], len(data['sentence_ends']) * [0])
+            self.assertEquals(article.labeled['labeled'], len(data['sentence_ends']) * [0])
             self.assertEquals(article.in_quotes['in_quotes'], [in_quote for sentence_in_quote in data['in_quotes']
                                                                for in_quote in sentence_in_quote])
             self.assertEquals(article.confidence['confidence'], len(data['sentence_ends']) * [0])
@@ -1064,7 +1062,7 @@ class FourUserTestCase(TestCase):
         self.a2 = add_article_to_db('../data/test_article_2.xml', nlp)
         self.a3 = add_article_to_db('../data/test_article_3.xml', nlp)
 
-    def test_1_admin_trivial(self):
+    def test_1_trivial(self):
         """
         Test where four users all sentences as text that isn't reported, without ever loading extra text. All users need
         to annotate all sentences, as they are not admin users.
@@ -1115,7 +1113,7 @@ class FourUserTestCase(TestCase):
         check_annotations(self, self.a2, test_2_sentences, 4, TEST_2['input_xml'], 1)
         check_annotations(self, self.a3, test_3_sentences, 4, TEST_3['input_xml'], 1)
 
-    def test_2_admin_real_annotations(self):
+    def test_2_real_annotations(self):
         """
         Test where all users annotate all sentences correctly, looking up in the text when needed. All users annotate
         all sentences, as they are not admin users.
@@ -1192,7 +1190,7 @@ class FourUserTestCase(TestCase):
         check_annotations(self, self.a2, test_2_sentences, 4, TEST_2['output_xml'], 1)
         check_annotations(self, self.a3, test_3_sentences, 4, TEST_3['output_xml'], 1)
 
-    def test_3_admin_with_paragraphs(self):
+    def test_3_with_paragraphs(self):
         """
         Test where a single user annotates all sentences correctly, looking up in the text when needed. Some text is
         first given as paragraphs. It has to be reloaded as sentences as it contains quotes.

@@ -41,69 +41,6 @@ class HelperTestCase(TestCase):
         self.assertEquals(author, [62, 63, 64])
         self.assertEquals(cons, (4 + 3) / (2 * len(labels)))
 
-    def test_is_sentence_labelled(self):
-        # When an admin label is present
-        label1 = [0, 1, 1, 1, 1, 0, 0]
-        label2 = [0, 1, 1, 1, 1, 1, 0]
-        label3 = [0, 1, 1, 1, 1, 0, 1]
-        label4 = [0, 0, 1, 1, 1, 0, 1]
-        a1 = [66]
-        a2 = [66, 67]
-        a3 = [65, 66]
-        add_user_label_to_db(1111, self.a1.id, 0, label1, a1, True)
-        self.assertTrue(is_sentence_labelled(self.a1, 0, 3, 0.75))
-
-        add_user_label_to_db(1111, self.a1.id, 4, label2, a1, True)
-        add_user_label_to_db(2222, self.a1.id, 4, label3, a2, False)
-        self.assertTrue(is_sentence_labelled(self.a1, 4, 3, 0.75))
-
-        # When no admin label is present
-        add_user_label_to_db(3333, self.a1.id, 6, label4, a1, False)
-        add_user_label_to_db(4444, self.a1.id, 6, label1, a1, False)
-        add_user_label_to_db(5555, self.a1.id, 6, label2, a2, False)
-        add_user_label_to_db(6666, self.a1.id, 6, label2, a3, False)
-        self.assertFalse(is_sentence_labelled(self.a1, 6, 3, 0.75))
-
-        add_user_label_to_db(3333, self.a1.id, 7, label1, a1, False)
-        add_user_label_to_db(4444, self.a1.id, 7, label2, a1, False)
-        add_user_label_to_db(5555, self.a1.id, 7, label3, a1, False)
-        add_user_label_to_db(6666, self.a1.id, 7, label4, a1, False)
-        self.assertFalse(is_sentence_labelled(self.a1, 7, 4, 0.75))
-
-        add_user_label_to_db(3333, self.a1.id, 11, label1, a1, False)
-        add_user_label_to_db(4444, self.a1.id, 11, label1, a1, False)
-        add_user_label_to_db(5555, self.a1.id, 11, label2, a2, False)
-        self.assertFalse(is_sentence_labelled(self.a1, 11, 3, 0.75))
-
-        add_user_label_to_db(3333, self.a1.id, 8, label1, a1, False)
-        add_user_label_to_db(4444, self.a1.id, 8, label1, a1, False)
-        add_user_label_to_db(5555, self.a1.id, 8, label3, a1, False)
-        add_user_label_to_db(6666, self.a1.id, 8, label4, a1, False)
-        self.assertTrue(is_sentence_labelled(self.a1, 8, 3, 0.75))
-
-        add_user_label_to_db(3333, self.a1.id, 9, label1, a1, False)
-        add_user_label_to_db(4444, self.a1.id, 9, label1, a1, False)
-        add_user_label_to_db(5555, self.a1.id, 9, label1, a1, False)
-        self.assertTrue(is_sentence_labelled(self.a1, 9, 3, 0.75))
-
-        add_user_label_to_db(3333, self.a1.id, 10, label1, a1, False)
-        add_user_label_to_db(4444, self.a1.id, 10, label1, a1, False)
-        add_user_label_to_db(5555, self.a1.id, 10, label2, a1, False)
-        self.assertTrue(is_sentence_labelled(self.a1, 10, 3, 0.75))
-
-    def test_is_article_labelled(self):
-        # Missing labels
-        sentence_ids = range(len(self.a1.sentences['sentences']))
-        user_id = 1111
-        labels = [1, 1, 0, 0, 0]
-        author = [37]
-        for s in sentence_ids[1:]:
-            add_user_label_to_db(user_id, self.a1.id, s, labels, author, True)
-        self.assertFalse(is_article_labelled(self.a1, 10, 0.999))
-        # All admin labels
-        add_user_label_to_db(user_id, self.a1.id, 0, labels, author, True)
-        self.assertTrue(is_article_labelled(self.a1, 10, 0.999))
-
     def test_change_confidence(self):
         article = Article.objects.get(id=self.a1.id)
         # Changing confidences

@@ -10,6 +10,8 @@ from .models import Article
 import json
 import uuid
 
+import sys, traceback
+
 # The life span of a cookie, in seconds
 COOKIE_LIFE_SPAN = 1 * 60 * 60
 
@@ -162,6 +164,7 @@ def submit_tags(request):
                                          sentence['authors'], admin_tagger)
             return JsonResponse({'success': True})
         except KeyError:
+            traceback.print_exc(file=sys.stdout)
             return JsonResponse({'success': False, 'reason': 'KeyError'})
     return JsonResponse({'success': False, 'reason': 'not POST'})
 

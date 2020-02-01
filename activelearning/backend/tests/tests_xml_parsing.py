@@ -227,11 +227,10 @@ class PostgreToXMLTestCase(TestCase):
             tokens={'tokens': tokens},
             paragraphs={'paragraphs': [4]},
             sentences={'sentences': [5, 14, 22, 33, 41]},
-            label_counts={
-                'label_counts': [1, 1, 1, 1, 1],
-                'min_label_counts': 1
+            labeled={
+                'labeled': [1, 1, 1, 1, 1],
+                'fully_labeled': 1,
             },
-            label_overlap={'label_overlap': 100},
             in_quotes={'in_quotes': []},
             confidence={
                 'confidence': [0, 0, 0, 0, 0],
@@ -279,11 +278,10 @@ class PostgreToXMLTestCase(TestCase):
             tokens={'tokens': tokens},
             paragraphs={'paragraphs': [2, 4]},
             sentences={'sentences': [5, 14, 22, 33, 41]},
-            label_counts={
-                'label_counts': [1, 1, 1, 1, 1],
-                'min_label_counts': 1
+            labeled={
+                'labeled': [1, 1, 1, 1, 1],
+                'fully_labeled': 1,
             },
-            label_overlap={'label_overlap': 100},
             in_quotes={'in_quotes': []},
             confidence={
                 'confidence': [0, 0, 0, 0, 0],

@@ -1,6 +1,6 @@
-from backend.helpers import is_article_labelled
 from backend.models import Article
 from backend.xml_parsing.helpers import resolve_overlapping_people
+
 
 """ File containing all methods to transforms entries from the PostgreSQL database to XML files. """
 

@@ -48,13 +48,6 @@ class ArticleParsingTestCase(TestCase):
         in_quotes = parsed_article['in_quotes']
         self.assertEqual(article.in_quotes['in_quotes'], in_quotes)
 
-    def test_articles_label_counts(self):
-        with open('../data/article01Parsed.txt', 'r') as file:
-            parsed_article = json.load(file)
-        article = Article.objects.all()[0]
-        label_counts = parsed_article['label_counts']
-        self.assertEqual(article.label_counts['label_counts'], label_counts)
-
     def test_articles_confidence(self):
         with open('../data/article01Parsed.txt', 'r') as file:
             parsed_article = json.load(file)

@@ -132,6 +132,8 @@ can load the text above and below the reported speech.
 
 ### Databases
 
+#### Articles
+
 Articles are represented by a database containing the following fields:
 
 * _id_: A unique identifier for each article.
@@ -145,6 +147,8 @@ Articles are represented by a database containing the following fields:
 * _label_overlap_: A list containing the percentage of user labels that "agree" (have the same labels) for a sentence.
 * _confidence_: A list containing how confident the model is on whether or not each sentence contains reported speech.
 
+#### User labels
+
 User labels are represented in the database with the following fields:
    
 * _article_: The article to which this label is attached.
@@ -153,6 +157,9 @@ User labels are represented in the database with the following fields:
 * _labels_: The label for each word in the sentence.
 * _author_index_: The index of the name of the person quoted, if the sentence contains reported speech.
 * _admin_label: If the user who created the label is one of the administrators.
+
+If a user wanted to skip as sentence as they weren't sure how to annotate it correctly, the label is added to the 
+database with the correct article, sentence_index and session_id, but the labels are set to an empty list.
 
 ### Backend
 
@@ -211,16 +218,6 @@ containing the keys:
         * 'first_sentence': The index of the first sentence that is loaded.
         * 'last_sentence': The index of the last sentence that is loaded.
     * 'reason': If success is false, this indicates why.
-* _Load Below_: This method is used to load the text below a given sentence. As for Load Above, this is useful when
-reported speech is in the sentence, but the person who said this reported speech doesn't have their name in it. This
-must be called with a GET request, with parameters  'article_id' (the id of the article already loaded in the frontend)
-and 'last_sentence' (the index of the last sentence already loaded in the frontend). It returns a data in a Json format,
-containing the keys:
-    * 'Success': If this value is true, then the data also has the keys:
-        * 'data': A list of all tokens in the newly loaded text.
-        * 'first_sentence': The index of the first sentence that is loaded.
-        * 'last_sentence': The index of the last sentence that is loaded.
-    * 'reason': If success is false, this indicates why.
 * _Submit Tags_: This is a POST request. It should be called when the user has finished labeling the sentence. It should
 have as a request body a Json file with the following information:
     * 'article_id': The id of the article that was labelled
@@ -232,9 +229,11 @@ have as a request body a Json file with the following information:
     including sentences loaded with the Load Below call).
     * 'labels': The labels created by the user. This is a list of values, where each entry is 0 if the corresponding
     token is inside reported speech, and 0 if it isn't. Only one piece of reported speech can be included, which is a
-    single continuous block of tokens.
+    single continuous block of tokens. If the user didn't know how to annotate the sentence, an empty list should be
+    returned.
     * 'authors': The list of indices of the name of the person that said the quote in the loaded text. This means that
-    if the first token in the loaded text is the name, then [0] is returned.
+    if the first token in the loaded text is the name, then [0] is returned. If the user didn't know how to annotate the
+    sentence, an empty list should be returned.
     * 'task': The task the user was doing ('sentence' or 'paragraph').
     
 ### Frontend

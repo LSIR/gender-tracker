@@ -67,9 +67,10 @@
                 </div>
                 <br>
                 <div>
-                    <v-btn class="ma-2" outlined v-on:click.native=clearAnswers>Réinitialiser</v-btn>
                     <v-btn class="ma-2" outlined v-on:click.native=submitTags>Aucune Citation</v-btn>
                     <v-btn class="ma-2" outlined v-on:click.native=submitTags>Soumettre</v-btn>
+                    <v-btn class="ma-2" outlined v-on:click.native=clearAnswers>Réinitialiser</v-btn>
+                    <v-btn class="ma-2" outlined v-on:click.native=skip_sentence>Sauter</v-btn>
                 </div>
             </v-flex>
         </v-layout>
@@ -366,6 +367,36 @@ export default {
                     }
                 });
             }
+        },
+        skip_sentence: function () {
+            const that = this;
+            $.ajax({
+                type: 'POST',
+                url: '/api/submitTags/',
+                data: JSON.stringify({
+                    'article_id': that.article_id,
+                    'sentence_id': that.sentence_id,
+                    'first_sentence': that.first_sentence,
+                    'last_sentence': that.last_sentence,
+                    'tags': [],
+                    'authors': [],
+                    'task': that.tagging_task,
+                }),
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                success: function (response) {
+                    if (response['success'] === true){
+                        that.loadContent()
+                    }else if (response['reason'] === 'cookies'){
+                        that.task = 'cookies'
+                    }else{
+                        that.task = 'error'
+                    }
+                },
+                error: function () {
+                    that.task = 'error'
+                }
+            });
         },
         tagWord: function (index) {
             // Tagging the first word in the quote

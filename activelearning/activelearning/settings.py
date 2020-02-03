@@ -49,10 +49,7 @@ INSTALLED_APPS = [
     'backend',
 ]
 
-if env('ENVIRONMENT') != 'production':
-    INSTALLED_APPS.append('webpack_loader')
-    ALLOWED_HOSTS.append('127.0.0.1')
-    ALLOWED_HOSTS.append('0.0.0.0')
+if env('ENVIRONMENT') == 'production':
     # Sentry Debugging
     sentry_sdk.init(
         dsn=env('DSN'),
@@ -62,6 +59,10 @@ if env('ENVIRONMENT') != 'production':
         # django.contrib.auth) you may enable sending PII data.
         send_default_pii=True
     )
+else:
+    INSTALLED_APPS.append('webpack_loader')
+    ALLOWED_HOSTS.append('127.0.0.1')
+    ALLOWED_HOSTS.append('0.0.0.0')
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

@@ -21,6 +21,7 @@ class Command(BaseCommand):
                     authors = []
                     for s_id in range(len(a.sentences['sentences'])):
                         sentence_labels = UserLabel.objects.filter(article=a, sentence_index=s_id)
+                        sentence_labels = sentence_labels.exclude(labels__labels=[])
                         all_labels = [label.labels['labels'] for label in sentence_labels]
                         all_authors = [label.author_index['author_index'] for label in sentence_labels]
                         sent_label, sent_authors, consensus = label_consensus(all_labels, all_authors)

@@ -32,6 +32,8 @@ def add_user_label_to_db(user_id, article_id, sentence_index, labels, author_ind
     computes their consensus (the proportion that agree on a response), and if their consensus is above the threshold
     and there are enough user labels, sets the labeled value for this sentence in the corresponding article to 1.
 
+    If the annotated labels is an empty list, it means that the user didn't know how to annotate the sentence correctly.
+
     :param user_id: int.
         The users session id
     :param article_id: int.
@@ -55,25 +57,29 @@ def add_user_label_to_db(user_id, article_id, sentence_index, labels, author_ind
 
     labeled = article.labeled['labeled']
 
-    if admin:
-        labeled[sentence_index] = 1
-    else:
-        other_userlabels = UserLabel.objects.filter(article=article, sentence_index=sentence_index)
-        other_labels = [userlabel.labels['labels'] for userlabel in other_userlabels]
-        other_authors = [userlabel.author_index['author_index'] for userlabel in other_userlabels]
+    if labels != []:
+        # User knew how to annotate: recompute consensus to see if sentence is fully labeled.
+        if admin:
+            labeled[sentence_index] = 1
+        else:
+            other_userlabels = UserLabel.objects.filter(article=article, sentence_index=sentence_index)
+            # Only keep valid user labels
+            other_userlabels = other_userlabels.exclude(labels__labels=[])
+            other_labels = [userlabel.labels['labels'] for userlabel in other_userlabels]
+            other_authors = [userlabel.author_index['author_index'] for userlabel in other_userlabels]
 
-        all_labels = other_labels + [labels]
-        all_authors = other_authors + [author_index]
+            all_labels = other_labels + [labels]
+            all_authors = other_authors + [author_index]
 
-        _, _, consensus = label_consensus(all_labels, all_authors)
-        labeled[sentence_index] = int(consensus >= CONSENSUS_THRESHOLD and len(all_labels) >= COUNT_THRESHOLD)
+            _, _, consensus = label_consensus(all_labels, all_authors)
+            labeled[sentence_index] = int(consensus >= CONSENSUS_THRESHOLD and len(all_labels) >= COUNT_THRESHOLD)
 
-    fully_labeled = int(sum(labeled) == len(labeled))
-    article.labeled = {
-            'labeled': labeled,
-            'fully_labeled': fully_labeled,
-    }
-    article.save()
+        fully_labeled = int(sum(labeled) == len(labeled))
+        article.labeled = {
+                'labeled': labeled,
+                'fully_labeled': fully_labeled,
+        }
+        article.save()
 
     return UserLabel.objects.create(
             article=article,

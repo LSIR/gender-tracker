@@ -150,18 +150,24 @@ def submit_tags(request):
             except ObjectDoesNotExist:
                 return JsonResponse({'success': False, 'reason': 'Invalid Article ID'})
 
-            # If the task was to label a paragraph, and the user answered that there were some quotes in the paragraph,
-            # reset the confidences for the whole paragraph to 0.
-            if task == 'paragraph' and sum(labels) > 0:
-                sentence_confidences = article.confidence['confidence'].copy()
-                sentence_confidences[first_sent:last_sent + 1] = (last_sent - first_sent + 1) * [0]
-                change_confidence(article_id, sentence_confidences)
+            if labels == []:
+                # The user didn't know how to annotate the sentence.
+                for s in sent_id:
+                    add_user_label_to_db(user_id, article_id, s, [], [], False)
             else:
-                sentence_ends = article.sentences['sentences']
-                clean_labels = clean_user_labels(sentence_ends, sent_id, first_sent, last_sent, labels, authors)
-                for sentence in clean_labels:
-                    add_user_label_to_db(user_id, article_id, sentence['index'], sentence['labels'],
-                                         sentence['authors'], admin_tagger)
+                # The user knew how to annotate the sentence.
+                if task == 'paragraph' and sum(labels) > 0:
+                    # If the task was to label a paragraph, and the user answered that there were some quotes in the
+                    # paragraph, reset the confidences for the whole paragraph to 0.
+                    sentence_confidences = article.confidence['confidence'].copy()
+                    sentence_confidences[first_sent:last_sent + 1] = (last_sent - first_sent + 1) * [0]
+                    change_confidence(article_id, sentence_confidences)
+                else:
+                    sentence_ends = article.sentences['sentences']
+                    clean_labels = clean_user_labels(sentence_ends, sent_id, first_sent, last_sent, labels, authors)
+                    for sentence in clean_labels:
+                        add_user_label_to_db(user_id, article_id, sentence['index'], sentence['labels'],
+                                             sentence['authors'], admin_tagger)
             return JsonResponse({'success': True})
         except KeyError:
             traceback.print_exc(file=sys.stdout)

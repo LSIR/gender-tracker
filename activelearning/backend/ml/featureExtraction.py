@@ -1,5 +1,4 @@
 import numpy as np
-import spacy
 
 
 def extract_sentence_features(sentence):

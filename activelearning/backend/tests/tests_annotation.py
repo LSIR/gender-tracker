@@ -504,8 +504,9 @@ def check_annotations(test_class, article, num_sentences, expected_num_labels, e
     authors = []
     for s_id in range(num_sentences):
         sentence_labels = UserLabel.objects.filter(article=article, sentence_index=s_id)
-        all_labels = [label.labels['labels'] for label in sentence_labels]
-        all_authors = [label.author_index['author_index'] for label in sentence_labels]
+        valid_sentence_labels = sentence_labels.exclude(labels__labels=[])
+        all_labels = [label.labels['labels'] for label in valid_sentence_labels]
+        all_authors = [label.author_index['author_index'] for label in valid_sentence_labels]
         test_class.assertEquals(len(all_labels), expected_num_labels)
         test_class.assertEquals(len(all_authors), expected_num_labels)
         sent_label, sent_authors, consensus = label_consensus(all_labels, all_authors)
@@ -547,6 +548,15 @@ def make_admin(test_class, client):
     data = json.loads(response.content)
     test_class.assertTrue(data['Success'])
     test_class.assertTrue(client.session['admin'])
+
+
+def check_sentence_skipped(test_class, article, sentence_id, user_id):
+    """ Check that a sentence was skipped by a user. """
+    user_labels = UserLabel.objects.filter(article=article, sentence_index=sentence_id, session_id=user_id)
+    test_class.assertEquals(len(user_labels), 1)
+    # Only keep valid user labels, of which there should be none
+    user_labels = user_labels.exclude(labels__labels=[])
+    test_class.assertEquals(len(user_labels), 0)
 
 
 class SingleUserTestCase(TestCase):
@@ -792,6 +802,55 @@ class SingleUserTestCase(TestCase):
         check_annotations(self, self.a1, test_1_sentences, 1, TEST_1['output_xml'], 1)
         check_annotations(self, self.a2, test_2_sentences, 1, TEST_2['output_xml'], 1)
         check_annotations(self, self.a3, test_3_sentences, 1, TEST_3['output_xml'], 1)
+
+    def test_4_skip_sentence(self):
+        """ Tests that an admin user can skip all sentences. """
+        # Define a new client
+        c = Client()
+        make_admin(self, c)
+
+        test_1_sentences = 10
+        test_2_sentences = 7
+        test_3_sentences = 7
+
+        TEST_1['id'] = self.a1.id
+        TEST_2['id'] = self.a2.id
+        TEST_3['id'] = self.a3.id
+
+        def skip_sentences(num_sentences, true_values):
+            s_id = 0
+            while s_id < num_sentences:
+                sentence_tasks = [s_id]
+                tokens = true_values['tokens'][s_id].copy()
+                first_sentence = s_id
+                last_sentence = s_id
+                if s_id in true_values['double_loads']:
+                    s_id += 1
+                    sentence_tasks += [s_id]
+                    tokens += true_values['tokens'][s_id].copy()
+                    last_sentence = s_id
+                user_id, article_id, sentence_ids, text, task = load_new_task(self, c)
+                self.assertEquals(article_id, true_values['id'])
+                self.assertEquals(sentence_ids, sentence_tasks)
+                self.assertEquals(text, tokens)
+                self.assertEquals(task, 'sentence')
+                submit_task(self, c, article_id, sentence_tasks, first_sentence, last_sentence, [], [], task)
+                s_id += 1
+
+        # The first article should be loaded first as it has a smaller index
+        skip_sentences(test_1_sentences, TEST_1)
+        skip_sentences(test_2_sentences, TEST_2)
+        skip_sentences(test_3_sentences, TEST_3)
+
+        def check_all_skipped(article, num_sentences, user_id):
+            for s_id in range(num_sentences):
+                check_sentence_skipped(self, article, s_id, user_id)
+
+        user_id = c.session['id']
+        check_task_done(self, [c])
+        check_all_skipped(self.a1, test_1_sentences, user_id)
+        check_all_skipped(self.a2, test_2_sentences, user_id)
+        check_all_skipped(self.a3, test_3_sentences, user_id)
 
 
 class TwoUserAdminTestCase(TestCase):
@@ -1048,6 +1107,113 @@ class TwoUserAdminTestCase(TestCase):
         self.assertFalse(paragraph_seen)
 
         check_task_done(self, [c1, c2])
+        check_annotations(self, self.a1, test_1_sentences, 1, TEST_1['output_xml'], 1)
+        check_annotations(self, self.a2, test_2_sentences, 1, TEST_2['output_xml'], 1)
+        check_annotations(self, self.a3, test_3_sentences, 1, TEST_3['output_xml'], 1)
+
+    def test_4_admin_one_skip_one_annotate(self):
+        """
+        Test where a admin single user skips all sentences, while another annotates them all correctly, looking up in
+        the text when needed. The user that doesn't know shouldn't impact the sentences the one who does sees.
+        """
+        # Define two clients
+        c1 = Client()
+        c2 = Client()
+        make_admin(self, c1)
+        make_admin(self, c2)
+        # The ids of the sentences the first client annotates
+        client_1_sentences = [0, 4, 5, 6]
+
+        test_1_sentences = 10
+        test_2_sentences = 7
+        test_3_sentences = 7
+
+        TEST_1['id'] = self.a1.id
+        TEST_2['id'] = self.a2.id
+        TEST_3['id'] = self.a3.id
+
+        def annotate_true(num_sentences, true_values):
+            s_id = 0
+            while s_id < num_sentences:
+                sentence_tasks = [s_id]
+                tokens = true_values['tokens'][s_id].copy()
+                labels = true_values['labels'][s_id].copy()
+                first_sentence = s_id
+                last_sentence = s_id
+                if s_id in true_values['double_loads']:
+                    s_id += 1
+                    sentence_tasks += [s_id]
+                    tokens += true_values['tokens'][s_id].copy()
+                    labels += true_values['labels'][s_id].copy()
+                    last_sentence = s_id
+
+                # First user loads task, doesn't know the answer
+                user_id, article_id, sentence_ids, text, task = load_new_task(self, c1)
+
+                self.assertEquals(article_id, true_values['id'])
+                self.assertEquals(sentence_ids, sentence_tasks)
+                self.assertEquals(text, tokens)
+                self.assertEquals(task, 'sentence')
+
+                if s_id in true_values['look_above_index']:
+                    _, _, _ = load_above(self, c1, article_id, first_sentence)
+
+                if s_id in true_values['look_below_index']:
+                    _, _, _  = load_below(self, c1, article_id, last_sentence)
+
+                submit_task(self, c1, article_id, sentence_tasks, first_sentence, last_sentence, [], [], task)
+
+                # Second user loads task, knows the answer
+                user_id, article_id, sentence_ids, text, task = load_new_task(self, c2)
+
+                self.assertEquals(article_id, true_values['id'])
+                self.assertEquals(sentence_ids, sentence_tasks)
+                self.assertEquals(text, tokens)
+                self.assertEquals(task, 'sentence')
+
+                if s_id in true_values['look_above_index']:
+                    extra_text, first_extra, last_extra = load_above(self, c2, article_id, first_sentence)
+                    extra_labels = []
+                    for e_id in range(first_extra, last_extra + 1):
+                        # As we are not currently annotating the next sentence but simply looking for the author,
+                        # the new tokens are labeled as 0
+                        extra_labels += len(true_values['labels'][e_id]) * [0]
+                    first_sentence = min(first_sentence, first_extra)
+                    labels = extra_labels + labels
+
+                if s_id in true_values['look_below_index']:
+                    extra_text, first_extra, last_extra = load_below(self, c2, article_id, last_sentence)
+                    extra_labels = []
+                    for e_id in range(first_extra, last_extra + 1):
+                        # As we are not currently annotating the next sentnce but simply looking for the author,
+                        # the new tokens are labeled as 0
+                        extra_labels += len(true_values['labels'][e_id]) * [0]
+                    labels = labels + extra_labels
+                    last_sentence = max(last_sentence, last_extra)
+
+                authors = true_values['authors'][s_id].copy()
+                authors = relative_author_positions(authors, first_sentence, true_values['sentence_ends'].copy())
+                submit_task(self, c2, article_id, sentence_tasks, first_sentence, last_sentence, labels, authors, task)
+                s_id += 1
+
+        # The first article should be loaded first as it has a smaller index
+        annotate_true(test_1_sentences, TEST_1)
+        annotate_true(test_2_sentences, TEST_2)
+        annotate_true(test_3_sentences, TEST_3)
+
+        # Check that the first use has skipped all sentences
+
+        def check_all_skipped(article, num_sentences, user_id):
+            for s_id in range(num_sentences):
+                check_sentence_skipped(self, article, s_id, user_id)
+
+        user_id = c1.session['id']
+        check_task_done(self, [c1])
+        check_all_skipped(self.a1, test_1_sentences, user_id)
+        check_all_skipped(self.a2, test_2_sentences, user_id)
+        check_all_skipped(self.a3, test_3_sentences, user_id)
+
+        check_task_done(self, [c2])
         check_annotations(self, self.a1, test_1_sentences, 1, TEST_1['output_xml'], 1)
         check_annotations(self, self.a2, test_2_sentences, 1, TEST_2['output_xml'], 1)
         check_annotations(self, self.a3, test_3_sentences, 1, TEST_3['output_xml'], 1)

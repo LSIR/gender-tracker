@@ -8,21 +8,23 @@
       <v-spacer></v-spacer>
       <v-btn
         text
-        href="https://www.heidi.news/"
-        target="_blank"
+        v-on:click.native="change_helper()"
       >
-        <span class="mr-2">HEIDI.NEWS</span>
+        <span class="mr-2">{{helper_text}}</span>
       </v-btn>
     </v-app-bar>
 
-    <v-content>
+    <v-content v-if="helper_page">
+      <HelperPage/>
+    </v-content>
+    <v-content v-else>
       <ContentTagger/>
     </v-content>
 
     <v-layout text-center wrap>
       <v-flex xs12>
         <img
-          :src="image"
+          :src="epfl_logo"
           alt="Logo EPFL"
           class="my-3"
           height="40"
@@ -35,14 +37,29 @@
 <script>
 
 import ContentTagger from "./components/ContentTagger";
+import HelperPage from "./components/HelperPage";
 
 export default {
   name: 'App',
   components: {
     ContentTagger,
+    HelperPage,
   },
   data: () => ({
-      image: require('@/assets/epfl_logo.svg')
+      helper_page: false,
+      helper_text: 'FAQ',
+      epfl_logo: require('@/assets/epfl_logo.svg'),
   }),
+  methods: {
+      change_helper: function () {
+          this.helper_page = !this.helper_page;
+          if (this.helper_page){
+              this.helper_text = 'RETOUR AU GENDERTRACKER'
+          }else{
+              this.helper_text = 'FAQ'
+          }
+      },
+
+  }
 };
 </script>

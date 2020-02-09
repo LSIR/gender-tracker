@@ -34,6 +34,21 @@ def label_consensus(labels, authors):
         (max_label_count[1] + max_author_count[1]) / (2 * len(labels))
 
 
+def aggregate_label(article, sentence_index):
+    """
+
+
+    :param article:
+    :param sentence_index:
+    :return:
+    """
+    sentence_labels = UserLabel.objects.filter(article=article, sentence_index=sentence_index)
+    sentence_labels = sentence_labels.exclude(labels__labels=[])
+    all_labels = [userlabel.labels['labels'] for userlabel in sentence_labels]
+    all_authors = [userlabel.author_index['author_index'] for userlabel in sentence_labels]
+    labels, author, consensus = label_consensus(all_labels, all_authors)
+    return labels, author, consensus
+
 ##############################################################################################
 # Learning
 ##############################################################################################

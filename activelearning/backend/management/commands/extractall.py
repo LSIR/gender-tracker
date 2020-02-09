@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand, CommandError
 
 from backend.xml_parsing.postgre_to_xml import database_to_xml
-from backend.helpers import label_consensus
+from backend.helpers import aggregate_label
 from backend.models import Article, UserLabel
 
 
@@ -20,11 +20,7 @@ class Command(BaseCommand):
                     labels = []
                     authors = []
                     for s_id in range(len(a.sentences['sentences'])):
-                        sentence_labels = UserLabel.objects.filter(article=a, sentence_index=s_id)
-                        sentence_labels = sentence_labels.exclude(labels__labels=[])
-                        all_labels = [label.labels['labels'] for label in sentence_labels]
-                        all_authors = [label.author_index['author_index'] for label in sentence_labels]
-                        sent_label, sent_authors, consensus = label_consensus(all_labels, all_authors)
+                        sent_label, sent_authors, consensus = aggregate_label(a, s_id)
                         labels.append(sent_label)
                         authors.append(sent_authors)
                     output_xml = database_to_xml(a, labels, authors)

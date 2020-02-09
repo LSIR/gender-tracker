@@ -6,6 +6,12 @@ Contains all methods to extract features from sentences to determine if they con
 methods to extract features to determine speaker extraction for quotes. 
 """
 
+""" The number of features used to detect if a sentence contains reported speech. """
+QUOTE_FEATURES = 6
+
+""" The number of features used to detect if a named entity is the author of reported speech. """
+SPEAKER_FEATURES = 7
+
 
 def extract_quote_features(sentence, cue_verbs):
     """
@@ -55,7 +61,7 @@ def extract_quote_features(sentence, cue_verbs):
     ])
 
 
-def extract_speaker_features(tokens, p_ends, s_ends, quote_index, other_quotes,
+def extract_speaker_features(p_ends, s_ends, quote_index, other_quotes,
                              speaker_index, speaker_other_indices, other_speakers):
     """
     Gets the features for speaker attribution for a quote and a speaker. The following features are taken, for a
@@ -81,21 +87,19 @@ def extract_speaker_features(tokens, p_ends, s_ends, quote_index, other_quotes,
             * a different quote
             * a reported speech verb
 
-    :param tokens: list(string).
-        The tokens in the document.
-    :param p_ends: list(int).
+    :param p_ends: list(int)
         The index of all sentences that are the last in a paragraph.
-    :param s_ends: list(int).
+    :param s_ends: list(int)
         The index of all tokens that are the last in a sentence.
-    :param quote_index: int.
+    :param quote_index: int
         The index of the reported speech sentence in the document.
-    :param other_quotes: list(int).
+    :param other_quotes: list(int)
         The indices of other sentences in the document that are quotes.
-    :param speaker_index: int.
+    :param speaker_index: int
         The index of the last token of the speaker in the document.
-    :param speaker_other_indices: list(int).
+    :param speaker_other_indices: list(int)
         The indices of other tokens that are the last token for another mention of the same speaker.
-    :param other_speakers: list(int).
+    :param other_speakers: list(int)
         The indices of the last token of other speakers in the document.
     :return: np.array
         The features extracted.
@@ -179,29 +183,6 @@ def extract_speaker_features(tokens, p_ends, s_ends, quote_index, other_quotes,
             if first_sentence <= i < quote_index:
                 num_other_quotes += 1
         return num_other_quotes
-
-    def token_feature(token):
-        """
-        An array of boolean values indicating if the token is:
-            * punctuation
-            * the last token of the quote
-            * a different speaker
-            * a different quote
-            * a reported speech verb
-        """
-        return np.array([])
-
-    def before_quote():
-        return 0
-
-    def after_quote():
-        return 0
-
-    def before_speaker():
-        return 0
-
-    def after_speaker():
-        return 0
 
     return np.array([
         token_distance(),

@@ -3,8 +3,9 @@ from django.core.management.base import BaseCommand, CommandError
 import spacy
 import csv
 
-from backend.db_management import load_sentence_labels
-from backend.ml.quote_detection import train
+from backend.db_management import load_sentence_labels, load_unlabeled_sentences
+from backend.helpers import change_confidence
+from backend.ml.quote_detection import train, predict_quotes
 
 
 def set_custom_boundaries(doc):
@@ -36,14 +37,30 @@ class Command(BaseCommand):
             print('Loading language model...')
             nlp = spacy.load('fr_core_news_md')
             nlp.add_pipe(set_custom_boundaries, before="parser")
+
             print('Extracting labeled articles...')
             train_sentences, train_labels, test_sentences, test_labels = load_sentence_labels(nlp)
+
             print('Loading cue verbs...')
             with open('../data/cue_verbs.csv', 'r') as f:
                 reader = csv.reader(f)
                 cue_verbs = set(list(reader)[0])
+
             print('Training model...')
-            train(model, train_sentences, train_labels, cue_verbs)
+            trained_model = train(model, train_sentences, train_labels, cue_verbs)
+
+            print('Evaluating all unlabeled quotes...')
+            articles, sentences = load_unlabeled_sentences(nlp)
+            for article, sentences in zip(articles, sentences):
+                probabilities = predict_quotes(trained_model, sentences, cue_verbs)
+                # Map the probability that a sentence is a quote to a confidence:
+                #   * probability is 0.5: model has no clue, confidence 0
+                #   * probability is 0 or 1: model knows, confidence 1
+                confidence = [2 * abs(0.5 - prob) for prob in probabilities]
+                # For sentences in the article that are fully labeled, the confidence is 1
+                new_confidences = [max(label, conf) for label, conf in zip(article.labeled['labeled'], confidence)]
+                change_confidence(article.id, new_confidences)
+
             print('Done')
 
         except IOError:

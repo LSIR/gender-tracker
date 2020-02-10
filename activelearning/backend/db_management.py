@@ -237,3 +237,29 @@ def load_sentence_labels(nlp):
             start = end + 1
 
     return train_sentences, train_labels, test_sentences, test_labels
+
+
+def load_unlabeled_sentences(nlp):
+    """
+    Finds all articles that aren't fully labeled, and extracts all sentences from each.
+
+    :param nlp: spaCy.Language
+        The language model used to tokenize the text.
+    :return: list(backend.models.Article), list(list(string))
+        * the list of all articles that aren't fully labeled.
+        * the list of the list of sentences in each article.
+    """
+    articles = list(Article.objects.filter(labeled__fully_labeled=0))
+    sentences = []
+    for article in articles:
+        start = 0
+        article_sentences = []
+        for sentence_index, end in enumerate(article.sentences['sentences']):
+            # Extract sentence text
+            tokens = article.tokens['tokens'][start:end]
+            sentence = nlp(''.join(tokens))
+            article_sentences.append(sentence)
+            start = end + 1
+        sentences.append(article_sentences)
+
+    return articles, sentences

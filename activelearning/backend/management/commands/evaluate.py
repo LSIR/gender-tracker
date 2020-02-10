@@ -52,6 +52,5 @@ class Command(BaseCommand):
                       f'\tPrecision: {score["precision"]}'
                       f'\tF1:        {score["f1"]}')
 
-
         except IOError:
             raise CommandError('IO Error.')

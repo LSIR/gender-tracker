@@ -21,16 +21,28 @@
       <ContentTagger/>
     </v-content>
 
-    <v-layout text-center wrap>
-      <v-flex xs12>
-        <img
-          :src="epfl_logo"
-          alt="Logo EPFL"
-          class="my-3"
-          height="40"
-        >
-      </v-flex>
-    </v-layout>
+    <v-container fluid>
+      <v-row>
+        <v-col cols="12" justify="center">
+          <v-row>
+            <v-img
+              :src="epfl_logo"
+              alt="Logo EPFL"
+              class="ma-3 pa-6"
+              max-height="50"
+              contain
+            ></v-img>
+            <v-img
+              :src="heidi_logo"
+              alt="Logo Heidi News"
+              class="ma-3 pa-6"
+              max-height="50"
+              contain
+            ></v-img>
+          </v-row>
+        </v-col>
+      </v-row>
+    </v-container>
   </v-app>
 </template>
 
@@ -49,6 +61,7 @@ export default {
       helper_page: false,
       helper_text: 'FAQ',
       epfl_logo: require('@/assets/epfl_logo.svg'),
+      heidi_logo: require('@/assets/heidi_news.png'),
   }),
   methods: {
       change_helper: function () {

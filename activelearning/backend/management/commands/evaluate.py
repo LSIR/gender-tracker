@@ -25,13 +25,12 @@ def form_sentence(nlp, tokens):
 
 
 class Command(BaseCommand):
-    help = 'Trains the model with all fully annotated articles.'
+    help = 'Evaluates the different models using cross validation.'
 
     def add_arguments(self, parser):
         parser.add_argument('model', help="Model to train. One of {'L1 logistic', 'L2 logistic', 'Linear SVC'}")
 
     def handle(self, *args, **options):
-        model = options['model']
         try:
             print('Loading language model...')
             nlp = spacy.load('fr_core_news_md')
@@ -48,8 +47,11 @@ class Command(BaseCommand):
                     sentence_labels, _, _ = aggregate_label(article, sentence_index)
                     all_labels.append(sum(sentence_labels))
                     start = end + 1
+
+            # TODO: Filter labels to only keep training labels.
+
             print('Evaluating different models...')
-            # Replace with actual cue verbs
+            # TODO: Replace with actual cue verbs
             cue_verbs = ['dire']
             evaluate_classifiers(all_sentences, all_labels, cue_verbs)
             print('Done')

@@ -1,7 +1,9 @@
 from django.core.exceptions import ObjectDoesNotExist
 
+import numpy as np
+
 from backend.frontend_parsing.postgre_to_frontend import form_paragraph_json, form_sentence_json
-from backend.helpers import quote_end_sentence, label_consensus
+from backend.helpers import quote_end_sentence, label_consensus, aggregate_label
 from backend.models import Article, UserLabel
 from backend.xml_parsing.xml_to_postgre import process_article
 
@@ -193,3 +195,45 @@ def request_labelling_task(session_id):
                     return form_sentence_json(article, labelling_task)
             prev_par_end = p
     return None
+
+
+def load_sentence_labels(nlp):
+    """
+    Finds all fully labeled articles. Extracts all sentences from each article, as well as a label for each sentence: 0
+    if it doesn't contain reported speech, and 1 if it does. Assigns sentences in newly labeled articles to either the
+    training or test set. Each sentence is added to the test set with 10% probability.
+
+    :param nlp: spaCy.Language
+        The language model used to tokenize the text.
+    :return: list(string), list(int), list(string), list(int)
+        * the list of all training sentences
+        * the list of all training labels
+        * the list of all testing sentences
+        * the list of all testing labels
+    """
+    articles = Article.objects.filter(labeled__fully_labeled=1)
+    train_sentences = []
+    train_labels = []
+    test_sentences = []
+    test_labels = []
+    for article in articles:
+        start = 0
+        for sentence_index, end in enumerate(article.sentences['sentences']):
+            # Extract sentence text
+            tokens = article.tokens['tokens'][start:end]
+            sentence = nlp(''.join(tokens))
+            # Compute consensus labels
+            sentence_labels, sentence_authors, _ = aggregate_label(article, sentence_index)
+            # Check if the sentence already belongs to the training or test set. If it doesn't, adds it to one.
+            if 'test_set' not in article.labeled:
+                article.labeled['test_set'] = int(np.random.random() > 0.9)
+            # Adds the data to the correct list
+            if article.labeled['test_set'] == 0:
+                train_sentences.append(sentence)
+                train_labels.append(sum(sentence_labels))
+            else:
+                test_sentences.append(sentence)
+                test_labels.append(sum(sentence_labels))
+            start = end + 1
+
+    return train_sentences, train_labels, test_sentences, test_labels

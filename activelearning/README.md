@@ -136,27 +136,77 @@ can load the text above and below the reported speech.
 
 Articles are represented by a database containing the following fields:
 
-* _id_: A unique identifier for each article.
-* _name_: The article name.
-* _text_: The xml file in the form of a string.
-* _people_: A list of names found in the article.
-* _tokens_: The content in the article, as a list of tokens. The tokens are obtained using spaCy's french model.
-* _sentences_: A list, sorted in ascending order, of the indices of tokens that are the last in a sentence.
-* _paragraphs_: A list, sorted in ascending order, of the indices of sentences that are the last in a paragraph.
-* _label_counts_: A list containing the number of user labels for each sentence.
-* _label_overlap_: A list containing the percentage of user labels that "agree" (have the same labels) for a sentence.
-* _confidence_: A list containing how confident the model is on whether or not each sentence contains reported speech.
+* _id_:
+    * integer
+    * A unique identifier for each article.
+* _name_: 
+    * string (maximum 200 characters)
+    * The article name.
+* _text_:
+    * string
+    * The xml file in the form of a string.
+* _people_:
+    * json file
+        * keys: {people: list(string)}
+    * A list of names found in the article.
+* _tokens_:
+    * json file
+        * keys: {tokens: list(string)}
+    * The content in the article, as a list of tokens. The tokens are obtained using spaCy's french model.
+* _sentences_:
+    * json file
+        * keys: {sentences: list(int)}
+    * A list, sorted in ascending order, of the indices of tokens that are the last in a sentence.
+* _paragraphs_:
+    * json file
+        * keys: {paragraphs: list(int)}
+    * A list, sorted in ascending order, of the indices of sentences that are the last in a paragraph.
+* _in_quotes_:
+    * json file
+        * keys: {in_quotes: list(int)}
+    * An integer for each token in the article, describing if it's in between quotes (1) or not (0).
+* _labeled_:
+    * json file
+        * keys: {labeled: list(int), fully_labeled: int}, optional keys: {test_set: list(int)}
+    * The value of labeled is a list of integers for each sentence: 1 if the sentence has enough labels, 0 if it needs
+    more.
+    * The value of fully_labeled is an integer which is 1 if all sentences in the article are labeled, and 0 otherwise.
+    * Fully labeled articles can have an optional key, test_set, which is a list of integers describing if each sentence
+    is in the training set (0) or in the test set (1).
+* _confidence_:
+    * json file
+        * keys: {confidence: list(int), min_confidence: int}
+    * The confidence key has as a value a list containing how confident the model is on whether or not each sentence 
+    contains reported speech.
+    * The min_confidence key has as a value an integer containing the lowest confidence for the entire article.
+* _admin_article_:
+    * boolean
+    * If the article text should only be shown to administrators.
 
 #### User labels
 
 User labels are represented in the database with the following fields:
    
-* _article_: The article to which this label is attached.
-* _sentence_index_: The sentence in the article to which this label is attached.
-* _session_id_: The id of the user that created the labels for the sentence.
-* _labels_: The label for each word in the sentence.
-* _author_index_: The index of the name of the person quoted, if the sentence contains reported speech.
-* _admin_label: If the user who created the label is one of the administrators.
+* _article_:
+    * Article
+    * The article to which this label is attached.
+* _sentence_index_:
+    * string (maximum 50 characters)
+    * The sentence in the article to which this label is attached.
+* _session_id_:
+    * integer
+    * The id of the user that created the labels for the sentence.
+* _labels_:
+    * json file
+        * keys: {labels: list(int)}
+    * The label for each word in the sentence.
+* _author_index_:
+    * json file
+        * keys: {author_index: list(int)}
+    * The index of the name of the person quoted (can be multiple tokens), if the sentence contains reported speech.
+* _admin_label:
+    * boolean
+    * If the user who created the label is one of the administrators.
 
 If a user wanted to skip as sentence as they weren't sure how to annotate it correctly, the label is added to the 
 database with the correct article, sentence_index and session_id, but the labels are set to an empty list.
@@ -238,6 +288,10 @@ have as a request body a Json file with the following information:
     
 ### Frontend
 
+The frontend loads content using the methods from the API and displays them to the user.
+
+### Machine Learning
+
 
 
 ## Code
@@ -256,7 +310,11 @@ database.
 #### xml_parsing package
 
 Contains all methods that can be used to transform news articles in an xml format into a representation that can be
-stored in the PostgreSQL database. This package also contains methods to extract annotated articles to xml files, with the format:
+stored in the PostgreSQL database. This package also contains methods to extract annotated articles to xml files.
+
+### ml package
+
+Contains all files used to perform feature extraction and train models for quote detection and attribution.
 
 ### Frontend
 

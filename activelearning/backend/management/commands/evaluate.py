@@ -1,9 +1,9 @@
-import spacy
-
 from django.core.management.base import BaseCommand, CommandError
 
-from backend.models import Article
-from backend.helpers import aggregate_label
+import spacy
+import csv
+
+from backend.db_management import load_sentence_labels
 from backend.ml.quote_detection import evaluate_classifiers
 
 
@@ -35,26 +35,23 @@ class Command(BaseCommand):
             print('Loading language model...')
             nlp = spacy.load('fr_core_news_md')
             nlp.add_pipe(set_custom_boundaries, before="parser")
-            print('Extracting labeled articles...')
-            articles = Article.objects.filter(labeled__fully_labeled=1)
-            all_sentences = []
-            all_labels = []
-            for article in articles:
-                start = 0
-                for sentence_index, end in enumerate(article.sentences['sentences']):
-                    tokens = article.tokens['tokens'][start:end]
-                    all_sentences.append(form_sentence(nlp, tokens))
-                    sentence_labels, _, _ = aggregate_label(article, sentence_index)
-                    all_labels.append(sum(sentence_labels))
-                    start = end + 1
 
-            # TODO: Filter labels to only keep training labels.
+            print('Extracting labeled articles...')
+            train_sentences, train_labels, test_sentences, test_labels = load_sentence_labels(nlp)
+
+            print('Loading cue verbs...')
+            with open('../data/cue_verbs.csv', 'r') as f:
+                reader = csv.reader(f)
+                cue_verbs = set(list(reader)[0])
 
             print('Evaluating different models...')
-            # TODO: Replace with actual cue verbs
-            cue_verbs = ['dire']
-            evaluate_classifiers(all_sentences, all_labels, cue_verbs)
-            print('Done')
+            model_scores = evaluate_classifiers(train_sentences, train_labels, cue_verbs)
+            for name, score in model_scores.items():
+                print(f'\n\nModel: {name}\n'
+                      f'\tAccuracy:  {score["accuracy"]}'
+                      f'\tPrecision: {score["precision"]}'
+                      f'\tF1:        {score["f1"]}')
+
 
         except IOError:
             raise CommandError('IO Error.')

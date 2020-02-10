@@ -21,25 +21,25 @@
       <ContentTagger/>
     </v-content>
 
-    <v-container fluid>
-      <v-row>
-        <v-col cols="12" justify="center">
-          <v-row>
-            <v-img
+    <v-container fluid style="width: 800px;">
+      <v-row dense justify="center" align="center">
+        <v-col cols="4">
+          <v-img
               :src="epfl_logo"
               alt="Logo EPFL"
               class="ma-3 pa-6"
-              max-height="50"
+              height="50"
               contain
             ></v-img>
+        </v-col>
+        <v-col cols="4">
             <v-img
               :src="heidi_logo"
               alt="Logo Heidi News"
               class="ma-3 pa-6"
-              max-height="50"
+              height="100"
               contain
             ></v-img>
-          </v-row>
         </v-col>
       </v-row>
     </v-container>

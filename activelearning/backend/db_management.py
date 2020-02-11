@@ -230,10 +230,10 @@ def load_sentence_labels(nlp):
             # Adds the data to the correct list
             if article.labeled['test_set'] == 0:
                 train_sentences.append(sentence)
-                train_labels.append(sum(sentence_labels))
+                train_labels.append(int(sum(sentence_labels) > 0))
             else:
                 test_sentences.append(sentence)
-                test_labels.append(sum(sentence_labels))
+                test_labels.append(int(sum(sentence_labels) > 0))
             start = end + 1
 
     return train_sentences, train_labels, test_sentences, test_labels

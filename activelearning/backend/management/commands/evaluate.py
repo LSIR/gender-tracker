@@ -38,7 +38,6 @@ class Command(BaseCommand):
 
             print('Extracting labeled articles...')
             train_sentences, train_labels, test_sentences, test_labels = load_sentence_labels(nlp)
-
             print('Loading cue verbs...')
             with open('../data/cue_verbs.csv', 'r') as f:
                 reader = csv.reader(f)

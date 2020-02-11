@@ -2,7 +2,7 @@ import numpy as np
 from backend.ml.feature_extraction import extract_quote_features, QUOTE_FEATURES
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
-from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import cross_validate
 
 
 """ File containing all methods to build a model for quote detection. """
@@ -50,8 +50,8 @@ def evaluate_classifiers(sentences, labels, cue_verbs):
     y = np.array(labels)
     model_scores = {}
     for name, classifier in CLASSIFIERS.items():
-        scoring = ['accuracy', 'precision', 'f1']
-        model_scores[name] = cross_val_score(classifier, X, y, cv=5, scoring=scoring)
+        scoring = ['accuracy', 'precision_macro', 'f1_macro']
+        model_scores[name] = cross_validate(classifier, X, y, cv=2, scoring=scoring)
     return model_scores
 
 

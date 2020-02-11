@@ -218,17 +218,19 @@ def load_sentence_labels(nlp):
     test_labels = []
     for article in articles:
         start = 0
+        # Check if the article already has its sentences assigned to the test or training set.
+        if 'test_set' not in article.labeled:
+            print('Adding test value')
+            article.labeled['test_set'] = [int(np.random.random()>0.9) for _ in range(len(article.labeled['labeled']))]
+            print(article.labeled['test_set'])
         for sentence_index, end in enumerate(article.sentences['sentences']):
             # Extract sentence text
             tokens = article.tokens['tokens'][start:end]
             sentence = nlp(''.join(tokens))
             # Compute consensus labels
             sentence_labels, sentence_authors, _ = aggregate_label(article, sentence_index)
-            # Check if the sentence already belongs to the training or test set. If it doesn't, adds it to one.
-            if 'test_set' not in article.labeled:
-                article.labeled['test_set'] = int(np.random.random() > 0.9)
             # Adds the data to the correct list
-            if article.labeled['test_set'] == 0:
+            if article.labeled['test_set'][sentence_index] == 0:
                 train_sentences.append(sentence)
                 train_labels.append(int(sum(sentence_labels) > 0))
             else:

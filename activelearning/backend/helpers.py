@@ -74,11 +74,8 @@ def change_confidence(article_id, confidences):
     old_conf = article.confidence['confidence']
     min_conf = min(confidences)
     if len(confidences) == len(old_conf) and min_conf >= 0 and max(confidences) <= 100:
-        new_conf = {
-            'confidence': confidences,
-            'min_confidence': min_conf,
-        }
-        article.confidence = new_conf
+        article.confidence['confidence'] = confidences
+        article.confidence['min_confidence'] = min_conf
         article.save()
         return min_conf
     return None

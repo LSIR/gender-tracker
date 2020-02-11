@@ -10,8 +10,8 @@ from sklearn.model_selection import cross_validate
 
 """ The model to use to classify """
 CLASSIFIERS = {
-    'L1 logistic': LogisticRegression(C=2, penalty='l1', solver='liblinear', max_iter=10000),
-    'L2 logistic': LogisticRegression(C=2, penalty='l2', solver='liblinear', max_iter=10000),
+    'L1 logistic': LogisticRegression(C=2, penalty='l1', solver='liblinear', max_iter=10000, multi_class='ovr'),
+    'L2 logistic': LogisticRegression(C=2, penalty='l2', solver='liblinear', max_iter=10000, multi_class='ovr'),
     'Linear SVC': SVC(kernel='linear', C=2, probability=True, random_state=0),
 }
 

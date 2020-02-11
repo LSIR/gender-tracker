@@ -1,8 +1,11 @@
 from django.test import TestCase
 from django.test import Client
 
-from backend.db_management import add_article_to_db, add_user_label_to_db, load_sentence_labels
-from backend.ml.quote_detection import evaluate_classifiers
+from backend.models import Article
+from backend.helpers import change_confidence
+from backend.db_management import add_article_to_db, add_user_label_to_db,\
+    load_sentence_labels, load_unlabeled_sentences
+from backend.ml.quote_detection import evaluate_classifiers, train, predict_quotes
 
 import spacy
 import csv
@@ -323,8 +326,6 @@ class QuoteDetectionTestCase(TestCase):
         self.a1 = add_article_to_db('../data/test_article_1.xml', nlp)
         self.a2 = add_article_to_db('../data/test_article_2.xml', nlp)
         self.a3 = add_article_to_db('../data/test_article_3.xml', nlp)
-        add_correct_labels(TEST_1, self.a1.id)
-        add_correct_labels(TEST_2, self.a2.id)
 
     def test_0_evaluate_models(self):
         """ Tests that the different models can be trained and their performance printed. Need to set only 2-fold cross-
@@ -333,7 +334,7 @@ class QuoteDetectionTestCase(TestCase):
         add_correct_labels(TEST_2, self.a2.id)
         add_correct_labels(TEST_3, self.a3.id)
 
-        print('\n\n\nTest 0')
+        print('\n\n\nTest 0\n')
         train_sentences, train_labels, test_sentences, test_labels = load_sentence_labels(nlp)
         print(f'\nTraining Examples: {len(train_sentences)}')
         print(f'Training Quotes: {sum(train_labels)}\n')
@@ -349,7 +350,49 @@ class QuoteDetectionTestCase(TestCase):
         model_scores = evaluate_classifiers(train_sentences, train_labels, cue_verbs)
         for name, score in model_scores.items():
             print(f'\n\nModel: {name}\n'
-                  f'\tAccuracy:  {score["test_accuracy"]}'
-                  f'\tPrecision: {score["test_precision_macro"]}'
-                  f'\tF1:        {score["test_f1_macro"]}')
+                  f'\tAccuracy:  {score["test_accuracy"]}\n'
+                  f'\tPrecision: {score["test_precision_macro"]}\n'
+                  f'\tF1:        {score["test_f1_macro"]}\n')
         print('\nFinished Test 0\n\n\n')
+
+    def test_1_train_model(self):
+        """ """
+        add_correct_labels(TEST_1, self.a1.id)
+        add_correct_labels(TEST_2, self.a2.id)
+
+        print('\n\n\nTest 1\n')
+        train_sentences, train_labels, test_sentences, test_labels = load_sentence_labels(nlp)
+        print(f'\nTraining Examples: {len(train_sentences)}')
+        print(f'Training Quotes: {sum(train_labels)}\n')
+        print(f'Test Examples: {len(test_sentences)}')
+        print(f'Test Quotes: {sum(test_labels)}\n')
+
+        print('Loading cue verbs...')
+        with open('../data/cue_verbs.csv', 'r') as f:
+            reader = csv.reader(f)
+            cue_verbs = set(list(reader)[0])
+
+        models = ['L1 logistic', 'L2 logistic', 'Linear SVC']
+        for m in models:
+            print(f'\nTraining model {m}')
+            trained_model = train(m, train_sentences, train_labels, cue_verbs)
+            print(f'\nComputing new confidences')
+            articles, sentences = load_unlabeled_sentences(nlp)
+            for article, article_sentences in zip(articles, sentences):
+                probabilities = predict_quotes(trained_model, article_sentences, cue_verbs)[:, 1]
+                # Map the probability that a sentence is a quote to a confidence:
+                #   * probability is 0.5: model has no clue, confidence 0
+                #   * probability is 0 or 1: model knows, confidence 1
+                confidence = [2 * abs(0.5 - prob) for prob in probabilities]
+                print('Probabilties:', list(probabilities))
+                print('Confidence:', confidence)
+                print('Labeled', list(article.labeled['labeled']))
+                # For sentences in the article that are fully labeled, the confidence is 1
+                new_confidences = [max(label, conf) for label, conf in zip(article.labeled['labeled'], confidence)]
+                print('New Confidence', new_confidences)
+                conf = change_confidence(article.id, new_confidences)
+            article_3 = Article.objects.get(id=self.a3.id)
+            print(f'\nConfidences for article 3: {article_3.confidence["confidence"]}\n'
+                  f'Minimum Confidence: {conf}\n')
+
+        print('\nFinished Test 1\n\n\n')

@@ -358,7 +358,7 @@ token of the speaker, quote_start is the index of the first token of q, quote_en
     * quote_end - s_index     if s is in a sentence after q (the value will always be negative)
 * the number of paragraphs between q and s
     * 0             if s and q are in the same paragraph
-    * > 0           if s is in a paragraph before q
+    * \> 0           if s is in a paragraph before q
     * < 0           if s is in a paragraph after q
 * the number of other sentences that are quotes in between s and q
 * the number of other speakers in between s and q

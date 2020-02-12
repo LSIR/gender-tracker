@@ -204,7 +204,7 @@ User labels are represented in the database with the following fields:
     * json file
         * keys: {author_index: list(int)}
     * The index of the name of the person quoted (can be multiple tokens), if the sentence contains reported speech.
-* _admin_label:
+* _admin_label_:
     * boolean
     * If the user who created the label is one of the administrators.
 
@@ -213,26 +213,28 @@ database with the correct article, sentence_index and session_id, but the labels
 
 ### Backend
 
-The backend keeps track of all articles and user labels. An article is considered fully labeled if all of its sentences
-are fully labeled. A sentence is fully labeled if:
-
-- There are at least COUNT_THRESHOLD user labels and the consensus between labels is at least CONSENSUS_THRESHOLD.
-- Or there is an admin label for the sentence.
-
-Selected users can become admin users by visiting the url: 
+The backend keeps track of all articles and user labels. There are two types of users that can add labels to sentences:
+normal users and admin users. Admin users are simply users that are fully trusted, and hence for which a single label is 
+enough to have a sentence be fully annotated. Selected users can become admin users by visiting the url: 
 
 ```{website_url}/api/admin_tagger?key=SECRET_KEY```
 
 Where the secret key is given by the administrators of the site.
 
+A sentence in an article is fully labeled if:
+- There are enough user labels (at least COUNT_THRESHOLD) and the consensus between labels (the proportion of labels 
+that agree on the contents of the sentence.) is large enough (at least CONSENSUS_THRESHOLD).
+- Or there is an admin label for the sentence.
+An article is considered fully labeled if all of its sentences are fully labeled.
+
 We set COUNT_THRESHOLD = 4 and CONSENSUS_THRESHOLD = 75%.
 
 There are two separate ways that user labels are created. The first is the most obvious one, where sentences are
 labelled one by one. In order to make labelling faster, users can also be asked to confirm that there is no reported 
-speech in a whole paragraph. This happens when the model is confident enough that no reported speech is present in the
-whole paragraph. If the user confirms that no reported speech is present, a user label is added to the database for each
-sentence in the paragraph. If the user reports that a quote is in the paragraph, the confidence for each sentence in the
-paragraph is set to 0, and each sentence is annotated one by one. 
+speech in a whole paragraph. This happens when the model is confident enough that no reported speech is present in any 
+sentence in a paragraph. If the user confirms that no reported speech is present, a user label is added to the database
+for each sentence in the paragraph. If the user reports that a quote is in the paragraph, the confidence for each
+sentence in the paragraph is set to 0, and each sentence is annotated one by one. 
 
 In order to improve the model with as little data as possible, we want to obtain labels for sentences where the model is
 most uncertain. In order to have a consistent database, with articles being either fully labeled, currently being
@@ -248,8 +250,8 @@ Json file as content, which contains the following keys:
     * 'data': a list containing the sentence, separated into tokens (~words).
     * 'task': either 'sentence' or paragraph, depending on whether or not a full paragraph is being annotated at once.
     This task also reports errors.
-* _Load Above_: This method is used to load the text above a given sentence. This is useful when reported speech is in the
-sentence, but the person who said this reported speech doesn't have their name in that sentence. By loading the text
+* _Load Above_: This method is used to load the text above a given sentence. This is useful when reported speech is in
+the sentence, but the person who said this reported speech doesn't have their name in that sentence. By loading the text
 above, the user can check (and select) if their name is there. This must be called with a GET request, with parameters 
 'article_id' (the id of the article already loaded in the frontend) and 'first_sentence' (the index of the first 
 sentence already loaded in the frontend). It returns a data in a Json format, containing the keys:
@@ -288,11 +290,62 @@ have as a request body a Json file with the following information:
     
 ### Frontend
 
-The frontend loads content using the methods from the API and displays them to the user.
+The frontend loads content using the methods from the API and displays them to the user. 
+
+#### Single sentence annotation:
+
+It stores a list of tokens, loaded from the backend with the loadContent method, where the task returned was 'sentence'.
+The tokens have 
+
+#### Paragraph annotation:
+
+It stores a list of tokens, loaded from the backend with the loadContent method, where the task returned was 'sentence'.
+A list of the same length as the list of tokens is stored, which indicates if each token is inside reported speech (1)
+or not (0). It's initially filled with 0s, which means no quote is in the displayed sentence.
+
+To select reported speech, the user first clicks on the first token of the quote, and then the last. This sets all
+indices in the boolean list between the two tokens to 1. Only one passage of reported speech per sentence can be 
+selected.
+
+To select which person said a quote, the user can click on any token shown once they are done selecting the first and
+last token of the quote. The indices of these tokens in the token list are stored.
+
+As some quotes last more than a single sentence, and sometimes the author of a quote is outside of the sentence where 
+they are quoted, the user can load more text with the loadAbove and loadBelow methods. They can also tag text in the 
+extra text loaded, but if they select a quote it must have at least one token in the original sentence.
 
 ### Machine Learning
 
+There are two separate models needed to determine how many men and women are quoted in an article. The first model is
+used to detect whether a sentence contains reported speech or not, and the second is used to determine which Named 
+Entity is the author of the reported speech.
 
+Different models for classification are tested, including Logistic Regression and SVMs.
+
+Each sentence is assigned to the training set with probability 90% and the test set with probability 10%. This assigment 
+is done for all sentences in a given article once it's fully labeled.
+
+#### Quote detection
+
+This model takes as input a sentence, and outputs a prediction as to whether or not the sentence contains a quote. The
+first step of this process is performing feature extraction. The following features are extracted from the sentence:
+
+* The length of the sentence.
+* Whether it contains quotation marks.
+* Whether it contains a named entity that is a person.
+* Whether it contains a verb in the verb-cue list.
+* Presence of a parataxis.
+* Presence of multiple verbs.
+
+These feature vectors are then passed through different models to be evaluated. As there are many more sentences that 
+don't contain quotes than ones that do, the set of sentences containing quotes is subsampled so that there are about the
+same number of sentences of both classes.
+
+#### Speaker Extraction
+
+This model takes as input a sentence and a list of named entities. It assigns a score between 0 and 1 to each named,
+where a score closer to 1 means it's more likely to be the author of the reported speech, using a classification model.
+The named entity with the highest score is predicted to be the author of the quote.
 
 ## Code
 

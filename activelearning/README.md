@@ -349,7 +349,24 @@ same number of sentences of both classes.
 
 This model takes as input a sentence and a list of named entities. It assigns a score between 0 and 1 to each named,
 where a score closer to 1 means it's more likely to be the author of the reported speech, using a classification model.
-The named entity with the highest score is predicted to be the author of the quote.
+The named entity with the highest score is predicted to be the author of the quote. The features extracted for each 
+named entity - sentence pair are the following. For a quote q and a speaker s, where s_index is the index of the last
+token of the speaker, quote_start is the index of the first token of q, quote_end is the index of the last token of q:
+* the distance between q and s:
+    * 0                       if s is in q
+    * quote_start - s_index   if s is in a sentence before q (the value will always be positive)
+    * quote_end - s_index     if s is in a sentence after q (the value will always be negative)
+* the number of paragraphs between q and s
+    * 0             if s and q are in the same paragraph
+    * > 0           if s is in a paragraph before q
+    * < 0           if s is in a paragraph after q
+* the number of other sentences that are quotes in between s and q
+* the number of other speakers in between s and q
+* the number of mentions of s in the 10 paragraphs before q
+* the number of mentions of other speakers in the 10 paragraphs before q
+* the number of quotes in the 10 paragraphs before q
+
+
 
 ## Code
 

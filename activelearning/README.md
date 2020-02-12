@@ -295,11 +295,6 @@ The frontend loads content using the methods from the API and displays them to t
 #### Single sentence annotation:
 
 It stores a list of tokens, loaded from the backend with the loadContent method, where the task returned was 'sentence'.
-The tokens have 
-
-#### Paragraph annotation:
-
-It stores a list of tokens, loaded from the backend with the loadContent method, where the task returned was 'sentence'.
 A list of the same length as the list of tokens is stored, which indicates if each token is inside reported speech (1)
 or not (0). It's initially filled with 0s, which means no quote is in the displayed sentence.
 
@@ -313,6 +308,15 @@ last token of the quote. The indices of these tokens in the token list are store
 As some quotes last more than a single sentence, and sometimes the author of a quote is outside of the sentence where 
 they are quoted, the user can load more text with the loadAbove and loadBelow methods. They can also tag text in the 
 extra text loaded, but if they select a quote it must have at least one token in the original sentence.
+
+The article id, the ids of the sentences that needed to be annotated, the list of labels the user created, the list of
+author indices, as well as information on the extra sentences the user might have loaded are returned to the backend.
+
+#### Paragraph annotation:
+
+It stores a list of tokens, loaded from the backend with the loadContent method, where the task returned was 'paragraph'
+. There are only two buttons: one to confirm that no reported speech is present (a list of 0s is returned), and one to
+indicate that there was in fact reported speech (a list of 1s is returned).
 
 ### Machine Learning
 

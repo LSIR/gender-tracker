@@ -193,4 +193,3 @@ def extract_speaker_features(p_ends, s_ends, quote_index, other_quotes,
         other_speaker_mentions(),
         other_quote_number(),
     ])
-

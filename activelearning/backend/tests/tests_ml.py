@@ -347,7 +347,7 @@ class QuoteDetectionTestCase(TestCase):
             cue_verbs = set(list(reader)[0])
 
         print('Evaluating different models...')
-        model_scores = evaluate_classifiers(train_sentences, train_labels, cue_verbs)
+        model_scores = evaluate_classifiers(train_sentences, train_labels, cue_verbs, cv_folds=2)
         for name, score in model_scores.items():
             print(f'\n\nModel: {name}\n'
                   f'\tAccuracy:  {score["test_accuracy"]}\n'

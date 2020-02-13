@@ -57,7 +57,7 @@ def balance_classes(X, y):
         indices = np.sort(np.concatenate((subsample, is_quote)))
     else:
         subsample = np.random.choice(is_quote, size=len(is_not_quote), replace=False)
-        indices = np.sort(np.concatenate((subsample, is_quote)))
+        indices = np.sort(np.concatenate((subsample, is_not_quote)))
     # Only keeps some of the values
     sampled_y = np.take(y, indices)
     sampled_X = np.take(X, indices, axis=0)

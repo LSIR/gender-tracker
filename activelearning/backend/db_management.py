@@ -2,6 +2,8 @@ from django.core.exceptions import ObjectDoesNotExist
 
 import numpy as np
 
+import random
+
 from backend.frontend_parsing.postgre_to_frontend import form_paragraph_json, form_sentence_json
 from backend.helpers import quote_end_sentence, label_consensus, aggregate_label
 from backend.models import Article, UserLabel
@@ -112,6 +114,7 @@ def add_article_to_db(path, nlp, source, admin_article=False):
     with open(path, 'r') as file:
         article_text = file.read()
 
+    article_text = article_text.replace('&', '&amp;')
     # Process the file
     data = process_article(article_text, nlp)
     labeled = len(data['s']) * [0]
@@ -133,7 +136,7 @@ def add_article_to_db(path, nlp, source, admin_article=False):
             'min_confidence': 0,
         },
         admin_article=admin_article,
-        source=data['source'],
+        source=source,
     )
 
 
@@ -148,10 +151,22 @@ def load_hardest_articles(n=None):
     :return: list(Article).
         The n hardest articles to classify.
     """
-    if n is None:
-        return Article.objects.filter(labeled__fully_labeled=0).order_by('confidence__min_confidence', 'id')
+    unlabeled_articles = Article.objects.filter(labeled__fully_labeled=0)
+    # Randomly select an article source, load all of its unlabeled articles
+    r = random.random()
+    if r < 1/3:
+        filtered_by_source = unlabeled_articles.filter(source='Heidi.News')
+    elif r > 2/3:
+        filtered_by_source = unlabeled_articles.filter(source='Parisien')
     else:
-        return Article.objects.filter(labeled__fully_labeled=0).order_by('confidence__min_confidence', 'id')[:n]
+        filtered_by_source = unlabeled_articles.filter(source='Republique')
+    # If it has at least one unlabeled article, return those. Otherwise return from all sources.
+    if len(filtered_by_source) > 0:
+        unlabeled_articles = filtered_by_source
+    if n is None:
+        return unlabeled_articles.order_by('confidence__min_confidence', 'id')
+    else:
+        return unlabeled_articles.order_by('confidence__min_confidence', 'id')[:n]
 
 
 def request_labelling_task(session_id):

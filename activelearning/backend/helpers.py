@@ -120,7 +120,7 @@ def quote_end_sentence(sentence_ends, in_quote, token_index):
     """
     while token_index < len(in_quote) and in_quote[token_index] == 1:
         token_index += 1
-    token_index -= 1
+    # token_index -= 1
     sentence_index = len(sentence_ends) - 1
     while sentence_index >= 0 and token_index <= sentence_ends[sentence_index]:
         sentence_index -= 1

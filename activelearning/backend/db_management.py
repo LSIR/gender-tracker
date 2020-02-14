@@ -93,7 +93,7 @@ def add_user_label_to_db(user_id, article_id, sentence_index, labels, author_ind
     )
 
 
-def add_article_to_db(path, nlp, admin_article=False):
+def add_article_to_db(path, nlp, source, admin_article=False):
     """
     Loads an article stored as an XML file, and adds it to the database after having processed it.
 
@@ -101,6 +101,8 @@ def add_article_to_db(path, nlp, admin_article=False):
         The URL of the stored XML file
     :param nlp: spaCy.Language.
         The language model used to tokenize the text.
+    :param source: string.
+        The newspaper in which the article was published.
     :param admin_article: boolean.
         Can this article only be seen by admins.
     :return: Article.
@@ -131,6 +133,7 @@ def add_article_to_db(path, nlp, admin_article=False):
             'min_confidence': 0,
         },
         admin_article=admin_article,
+        source=data['source'],
     )
 
 

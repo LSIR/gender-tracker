@@ -25,10 +25,14 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('path', help="Path of the article to add to the database")
+        parser.add_argument('--source', help="The newspaper in which the articles were published")
         parser.add_argument('--dir', action='store_true', help="Adds all xml files in the directory to the database")
 
     def handle(self, *args, **options):
         path = options['path']
+        source = 'None'
+        if options['source']:
+            source = options['source']
         print(f'Loading data from: {path}')
         try:
             if options['dir']:
@@ -41,12 +45,12 @@ class Command(BaseCommand):
                 nlp.add_pipe(set_custom_boundaries, before="parser")
                 print('Adding articles to the database...')
                 for article_path in article_files:
-                    articles.append(add_article_to_db(article_path, nlp))
+                    articles.append(add_article_to_db(article_path, nlp, source))
             else:
                 print('Loading language model...')
                 nlp = spacy.load('fr_core_news_md')
                 nlp.add_pipe(set_custom_boundaries, before="parser")
-                articles = [add_article_to_db(path, nlp)]
+                articles = [add_article_to_db(path, nlp, source)]
         except IOError:
             raise CommandError('Article could not be added. IOError.')
 

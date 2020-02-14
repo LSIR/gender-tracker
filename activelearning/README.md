@@ -97,11 +97,11 @@ format:
 
 A single article can be added to the database from by running:
 
-```python manage.py addarticle path/to/the/article.xml```
+```python manage.py addarticle path/to/the/article.xml --source newspaper_a```
 
 In order to add all articles in a directory to the database, run:
 
-```python manage.py addarticle path/to/the/article/directory```
+```python manage.py addarticle path/to/the/article/directory  --source newspaper_a --dir```
 
 Once a article has been fully labeled, it can be exported with annotations in the following format.
 
@@ -182,6 +182,9 @@ Articles are represented by a database containing the following fields:
 * _admin_article_:
     * boolean
     * If the article text should only be shown to administrators.
+* _source_:
+    * string (maximum 200 characters)
+    * The newspaper in which the article was published.
 
 #### User labels
 

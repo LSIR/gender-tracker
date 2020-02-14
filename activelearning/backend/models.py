@@ -27,6 +27,8 @@ class Article(models.Model):
     confidence = JSONField()
     # If this article can only be seen by admins
     admin_article = BooleanField()
+    # The newspaper in which the article was published
+    source = CharField(max_length=200)
 
     def __str__(self):
         return f'Article id: {self.id}'

@@ -238,9 +238,7 @@ def load_sentence_labels(nlp):
         start = 0
         # Check if the article already has its sentences assigned to the test or training set.
         if 'test_set' not in article.labeled:
-            print('Adding test value')
             article.labeled['test_set'] = [int(np.random.random()>0.9) for _ in range(len(article.labeled['labeled']))]
-            print(article.labeled['test_set'])
         for sentence_index, end in enumerate(article.sentences['sentences']):
             # Extract sentence text
             tokens = article.tokens['tokens'][start:end]

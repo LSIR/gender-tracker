@@ -27,9 +27,6 @@ def form_sentence(nlp, tokens):
 class Command(BaseCommand):
     help = 'Evaluates the different models using cross validation.'
 
-    def add_arguments(self, parser):
-        parser.add_argument('model', help="Model to train. One of {'L1 logistic', 'L2 logistic', 'Linear SVC'}")
-
     def handle(self, *args, **options):
         try:
             print('Loading language model...')
@@ -47,9 +44,9 @@ class Command(BaseCommand):
             model_scores = evaluate_classifiers(train_sentences, train_labels, cue_verbs)
             for name, score in model_scores.items():
                 print(f'\n\nModel: {name}\n'
-                      f'\tAccuracy:  {score["accuracy"]}'
-                      f'\tPrecision: {score["precision"]}'
-                      f'\tF1:        {score["f1"]}')
+                      f'\tAccuracy:  {score["test_accuracy"]}\n'
+                      f'\tPrecision: {score["test_precision_macro"]}\n'
+                      f'\tF1:        {score["test_f1_macro"]}\n')
 
         except IOError:
             raise CommandError('IO Error.')

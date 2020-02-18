@@ -7,7 +7,7 @@ methods to extract features to determine speaker extraction for quotes.
 """
 
 """ The number of features used to detect if a sentence contains reported speech. """
-QUOTE_FEATURES = 6
+QUOTE_FEATURES = 7
 
 """ The number of features used to detect if a named entity is the author of reported speech. """
 SPEAKER_FEATURES = 7
@@ -42,9 +42,9 @@ def extract_quote_features(sentence, cue_verbs):
         start_mark_seen = False
         end_mark_seen = False
         for token in sentence:
-            if not start_mark_seen and token == '"':
+            if not start_mark_seen and token.text == '"':
                 start_mark_seen = True
-            elif start_mark_seen and not end_mark_seen and token == '"':
+            elif start_mark_seen and not end_mark_seen and token.text == '"':
                 end_mark_seen = True
             elif start_mark_seen and not end_mark_seen:
                 tokens_inside += 1

@@ -84,7 +84,11 @@ def evaluate_classifiers(sentences, labels, cue_verbs, cv_folds=5):
     model_scores = {}
     for name, classifier in CLASSIFIERS.items():
         scoring = ['accuracy', 'precision_macro', 'f1_macro']
-        model_scores[name] = cross_validate(classifier, X, y, cv=cv_folds, scoring=scoring)
+        # Returns scores for each split in a numpy array
+        results = cross_validate(classifier, X, y, cv=cv_folds, scoring=scoring)
+        # Change score for each split into average score
+        results = {key: round(sum(val) / len(val), 3) for key, val in results.items()}
+        model_scores[name] = results
     return model_scores
 
 
@@ -125,4 +129,4 @@ def predict_quotes(trained_model, sentences, cue_verbs):
         The probability for each sentence.
     """
     X = create_input_matrix(sentences, cue_verbs)
-    return trained_model.predict_proba(X)
+    return trained_model.predict_proba(X)[:, 1]

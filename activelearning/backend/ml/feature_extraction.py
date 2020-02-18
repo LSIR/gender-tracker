@@ -18,6 +18,11 @@ def extract_quote_features(sentence, cue_verbs):
     Gets features for possible elements in the sentence that can hint to it having a quote:
         * The length of the sentence.
         * Whether it contains quotation marks.
+        * If the sentence contains quotation marks:
+            * The number of tokens between them.
+            * TODO: What if there are multiple quotes in the sentence?
+                * Have a fixed number of entries like "tokens between first, second, and third quotes" and most of the
+                time second and third are empty?
         * Whether it contains a named entity that is a person.
         * Whether it contains a verb in the verb-cue list.
         * Presence of a parataxis.
@@ -31,6 +36,20 @@ def extract_quote_features(sentence, cue_verbs):
         The features extracted.
     """
     contains_quote = int('"' in sentence.text)
+
+    def tokens_inside_quote():
+        tokens_inside = 0
+        start_mark_seen = False
+        end_mark_seen = False
+        for token in sentence:
+            if not start_mark_seen and token == '"':
+                start_mark_seen = True
+            elif start_mark_seen and not end_mark_seen and token == '"':
+                end_mark_seen = True
+            elif start_mark_seen and not end_mark_seen:
+                tokens_inside += 1
+        return tokens_inside
+
     contains_named_entity = int(len(sentence.ents) > 0)
 
     def contains_cue_verb():
@@ -54,6 +73,7 @@ def extract_quote_features(sentence, cue_verbs):
     return np.array([
         len(sentence),
         contains_quote,
+        tokens_inside_quote(),
         contains_named_entity,
         contains_cue_verb(),
         contains_pronoun(),

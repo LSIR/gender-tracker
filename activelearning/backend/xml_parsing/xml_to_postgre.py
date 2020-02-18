@@ -127,9 +127,9 @@ def process_article(article_text, nlp):
         for s in p.sents:
             for token in s:
                 in_quotes.append(in_quote)
-                if token.text == '"' and in_quote == 0:
+                if '"' in token.text and in_quote == 0:
                     in_quote = 1
-                elif token.text == '"':
+                elif '"' in token.text:
                     in_quote = 0
                     in_quotes[-1] = 0
                 article_tokens.append(token.text_with_ws)

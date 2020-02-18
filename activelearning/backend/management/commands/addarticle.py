@@ -25,7 +25,8 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('path', help="Path of the article to add to the database")
-        parser.add_argument('--source', help="The newspaper in which the articles were published")
+        parser.add_argument('--source', required=True, choices=['Heidi.News', 'Parisien', 'Republique'],
+                            help="The newspaper in which the articles were published")
         parser.add_argument('--dir', action='store_true', help="Adds all xml files in the directory to the database")
 
     def handle(self, *args, **options):

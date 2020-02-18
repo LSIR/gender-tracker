@@ -209,7 +209,7 @@ def request_labelling_task(session_id):
                     sent_end = sentence_ends[j]
                     if article.in_quotes['in_quotes'][sent_end] == 1:
                         last_sent = quote_end_sentence(sentence_ends, article.in_quotes['in_quotes'], sent_end)
-                        labelling_task = list(range(labelling_task[0], last_sent + 1))
+                        labelling_task = list(range(labelling_task[0], min(last_sent + 1, len(sentence_ends))))
                     return form_sentence_json(article, labelling_task)
             prev_par_end = p
     return None

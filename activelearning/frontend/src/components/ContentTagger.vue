@@ -419,10 +419,8 @@ export default {
                     this.toggle_selection += 1
                 }
             // Tagging author tokens
-            }else if (
-                (this.toggle_selection === 2) &&
-                (!this.author_indices.includes(index)) &&
-                (this.quote_markers[index] === 0)){
+            }else if ((this.toggle_selection === 2) &&
+                        (!this.author_indices.includes(index))){
                 // Tag the author only if the index isn't already noted as reported speech or an author
                 this.author_indices.push(index);
                 this.author_indices.sort((a, b) => a - b);
@@ -435,10 +433,10 @@ export default {
             this.submitTags();
         },
         button_color: function (index) {
-            if (this.quote_markers[index] === 1) {
-                return "deep-orange lighten-4"
-            }else if (this.author_indices.includes(index)){
+            if (this.author_indices.includes(index)){
                 return "green lighten-4"
+            }else if (this.quote_markers[index] === 1){
+                return "deep-orange lighten-4"
             }else{
                 return "white"
             }

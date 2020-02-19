@@ -16,7 +16,7 @@ CLASSIFIERS = {
 }
 
 
-def create_input_matrix(sentences, cue_verbs):
+def create_input_matrix(sentences, cue_verbs, in_quotes):
     """
      Trains the model.
 
@@ -24,12 +24,14 @@ def create_input_matrix(sentences, cue_verbs):
         The list of all sentences to use for training, treated by a language model.
     :param cue_verbs: list(string)
         The list of all "cue verbs", which are verbs that often introduce reported speech.
+    :param in_quotes: list(list(int)).
+        Whether each token in each sentence is between quotes or not
     :return: np.array
         The input matrix X, with shape: len(sentences) x QUOTE_FEATURES
     """
     X = np.zeros((len(sentences), QUOTE_FEATURES))
     for i, s in enumerate(sentences):
-        feature_vector = extract_quote_features(s, cue_verbs)
+        feature_vector = extract_quote_features(s, cue_verbs, in_quotes[i])
         X[i, :] = feature_vector
     return X
 
@@ -64,7 +66,7 @@ def balance_classes(X, y):
     return sampled_X, sampled_y
 
 
-def evaluate_classifiers(sentences, labels, cue_verbs, cv_folds=5):
+def evaluate_classifiers(sentences, labels, cue_verbs, in_quotes, cv_folds=5):
     """
     Evaluates different classifiers, and returns their performance.
 
@@ -74,11 +76,13 @@ def evaluate_classifiers(sentences, labels, cue_verbs, cv_folds=5):
         An int for each sentence: 1 if it was labeled as containing a quote, 0 if it wasn't.
     :param cue_verbs: list(string)
         The list of all "cue verbs", which are verbs that often introduce reported speech.
+    :param in_quotes: list(list(int)).
+        Whether each token in each sentence is between quotes or not
     :param cv_folds: int
         The number of folds in cross-validation.
     :return:
     """
-    X = create_input_matrix(sentences, cue_verbs)
+    X = create_input_matrix(sentences, cue_verbs, in_quotes)
     y = np.array(labels)
     X, y = balance_classes(X, y)
     model_scores = {}
@@ -92,7 +96,7 @@ def evaluate_classifiers(sentences, labels, cue_verbs, cv_folds=5):
     return model_scores
 
 
-def train(model, sentences, labels, cue_verbs):
+def train(model, sentences, labels, cue_verbs, in_quotes):
     """
     Trains a classifier to detect if sentences contains quotes or not.
 
@@ -104,10 +108,12 @@ def train(model, sentences, labels, cue_verbs):
         An int for each sentence: 1 if it was labeled as containing a quote, 0 if it wasn't.
     :param cue_verbs: list(string)
         The list of all "cue verbs", which are verbs that often introduce reported speech.
+    :param in_quotes: list(list(int)).
+        Whether each token in each sentence is between quotes or not
     :return: sklearn.linear_model
         The trained model to predict probabilities for sentences.
     """
-    X = create_input_matrix(sentences, cue_verbs)
+    X = create_input_matrix(sentences, cue_verbs, in_quotes)
     y = np.array(labels)
     X, y = balance_classes(X, y)
     classifier = CLASSIFIERS[model]
@@ -115,7 +121,7 @@ def train(model, sentences, labels, cue_verbs):
     return classifier
 
 
-def predict_quotes(trained_model, sentences, cue_verbs):
+def predict_quotes(trained_model, sentences, cue_verbs, in_quotes):
     """
     Computes probabilities that each sentence contains a quote.
 
@@ -125,8 +131,10 @@ def predict_quotes(trained_model, sentences, cue_verbs):
         The list of all sentences to use for training, treated by a language model.
     :param cue_verbs: list(string)
         The list of all "cue verbs", which are verbs that often introduce reported speech.
+    :param in_quotes: list(list(int)).
+        Whether each token in each sentence is between quotes or not
     :return: np.array()
         The probability for each sentence.
     """
-    X = create_input_matrix(sentences, cue_verbs)
+    X = create_input_matrix(sentences, cue_verbs, in_quotes)
     return trained_model.predict_proba(X)[:, 1]

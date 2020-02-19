@@ -34,14 +34,14 @@ class Command(BaseCommand):
             nlp.add_pipe(set_custom_boundaries, before="parser")
 
             print('Extracting labeled articles...')
-            train_sentences, train_labels, test_sentences, test_labels = load_sentence_labels(nlp)
+            train_sentences, train_labels, train_in_quotes, _, _, _ = load_sentence_labels(nlp)
             print('Loading cue verbs...')
             with open('../data/cue_verbs.csv', 'r') as f:
                 reader = csv.reader(f)
                 cue_verbs = set(list(reader)[0])
 
             print('Evaluating different models...')
-            model_scores = evaluate_classifiers(train_sentences, train_labels, cue_verbs)
+            model_scores = evaluate_classifiers(train_sentences, train_labels, cue_verbs, train_in_quotes)
             for name, score in model_scores.items():
                 print(f'\n\nModel: {name}\n'
                       f'\tAccuracy:  {score["test_accuracy"]}\n'

@@ -26,7 +26,7 @@ COUNT_THRESHOLD = 4
 CONSENSUS_THRESHOLD = 0.75
 
 """ The minimum confidence required for an a full paragraph to be labeled at once. """
-CONFIDENCE_THRESHOLD = 75
+CONFIDENCE_THRESHOLD = 60
 
 
 def add_user_label_to_db(user_id, article_id, sentence_index, labels, author_index, admin):
@@ -232,16 +232,19 @@ def load_sentence_labels(nlp):
     articles = Article.objects.filter(labeled__fully_labeled=1)
     train_sentences = []
     train_labels = []
+    train_in_quotes = []
     test_sentences = []
     test_labels = []
+    test_in_quotes = []
     for article in articles:
         start = 0
         # Check if the article already has its sentences assigned to the test or training set.
         if 'test_set' not in article.labeled:
-            article.labeled['test_set'] = [int(np.random.random()>0.9) for _ in range(len(article.labeled['labeled']))]
+            article.labeled['test_set'] = [int(np.random.random() > 0.9) for _ in range(len(article.labeled['labeled']))]
         for sentence_index, end in enumerate(article.sentences['sentences']):
             # Extract sentence text
-            tokens = article.tokens['tokens'][start:end]
+            tokens = article.tokens['tokens'][start:end + 1]
+            in_quotes = article.in_quotes['in_quotes'][start:end + 1]
             sentence = nlp(''.join(tokens))
             # Compute consensus labels
             sentence_labels, sentence_authors, _ = aggregate_label(article, sentence_index)
@@ -249,12 +252,14 @@ def load_sentence_labels(nlp):
             if article.labeled['test_set'][sentence_index] == 0:
                 train_sentences.append(sentence)
                 train_labels.append(int(sum(sentence_labels) > 0))
+                train_in_quotes.append(in_quotes)
             else:
                 test_sentences.append(sentence)
                 test_labels.append(int(sum(sentence_labels) > 0))
+                test_in_quotes.append(in_quotes)
             start = end + 1
 
-    return train_sentences, train_labels, test_sentences, test_labels
+    return train_sentences, train_labels, train_in_quotes, test_sentences, test_labels, test_in_quotes
 
 
 def load_unlabeled_sentences(nlp):
@@ -269,15 +274,17 @@ def load_unlabeled_sentences(nlp):
     """
     articles = list(Article.objects.filter(labeled__fully_labeled=0))
     sentences = []
+    in_quotes = []
     for article in articles:
         start = 0
         article_sentences = []
         for sentence_index, end in enumerate(article.sentences['sentences']):
             # Extract sentence text
-            tokens = article.tokens['tokens'][start:end]
+            tokens = article.tokens['tokens'][start:end + 1]
             sentence = nlp(''.join(tokens))
             article_sentences.append(sentence)
+            in_quotes.append(article.in_quotes['in_quotes'][start:end + 1])
             start = end + 1
         sentences.append(article_sentences)
 
-    return articles, sentences
+    return articles, sentences, in_quotes

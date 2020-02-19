@@ -7,13 +7,13 @@ methods to extract features to determine speaker extraction for quotes.
 """
 
 """ The number of features used to detect if a sentence contains reported speech. """
-QUOTE_FEATURES = 7
+QUOTE_FEATURES = 9
 
 """ The number of features used to detect if a named entity is the author of reported speech. """
 SPEAKER_FEATURES = 7
 
 
-def extract_quote_features(sentence, cue_verbs):
+def extract_quote_features(sentence, cue_verbs, in_quotes):
     """
     Gets features for possible elements in the sentence that can hint to it having a quote:
         * The length of the sentence.
@@ -27,11 +27,16 @@ def extract_quote_features(sentence, cue_verbs):
         * Whether it contains a verb in the verb-cue list.
         * Presence of a parataxis.
         * Presence of multiple verbs.
+        * TODO: Presence of a verb in between quotes
+        * Is the whole sentence in between quotes
+        * The proportion of tokens in the sentence that are between quotes
 
     :param sentence: spaCy.doc.
         The sentence to extract features from.
     :param cue_verbs: list(string).
         The sentence to extract features from.
+    :param in_quotes: list(int).
+        Whether each token in the sentence is between quotes or not
     :return: np.array
         The features extracted.
     """
@@ -70,6 +75,9 @@ def extract_quote_features(sentence, cue_verbs):
                 return 1
         return 0
 
+    sentence_inside_quotes = int(len(in_quotes) == sum(in_quotes))
+    inside_quote_proportion = sum(in_quotes)/len(in_quotes)
+
     return np.array([
         len(sentence),
         contains_quote,
@@ -77,7 +85,9 @@ def extract_quote_features(sentence, cue_verbs):
         contains_named_entity,
         contains_cue_verb(),
         contains_pronoun(),
-        contains_parataxis()
+        contains_parataxis(),
+        sentence_inside_quotes,
+        inside_quote_proportion
     ])
 
 

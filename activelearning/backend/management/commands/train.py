@@ -39,7 +39,7 @@ class Command(BaseCommand):
             nlp.add_pipe(set_custom_boundaries, before="parser")
 
             print('Extracting labeled articles...')
-            train_sentences, train_labels, test_sentences, test_labels = load_sentence_labels(nlp)
+            train_sentences, train_labels, train_in_quotes, _, _, _ = load_sentence_labels(nlp)
 
             print('Loading cue verbs...')
             with open('../data/cue_verbs.csv', 'r') as f:
@@ -47,12 +47,12 @@ class Command(BaseCommand):
                 cue_verbs = set(list(reader)[0])
 
             print('Training model...')
-            trained_model = train(model, train_sentences, train_labels, cue_verbs)
+            trained_model = train(model, train_sentences, train_labels, cue_verbs, train_in_quotes)
 
             print('Evaluating all unlabeled quotes...')
-            articles, sentences = load_unlabeled_sentences(nlp)
+            articles, sentences, in_quotes = load_unlabeled_sentences(nlp)
             for article, sentences in zip(articles, sentences):
-                probabilities = predict_quotes(trained_model, sentences, cue_verbs)
+                probabilities = predict_quotes(trained_model, sentences, cue_verbs, in_quotes)
                 # Map the probability that a sentence is a quote to a confidence:
                 #   * probability is 0.5: model has no clue, confidence 0
                 #   * probability is 0 or 1: model knows, confidence 1

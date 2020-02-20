@@ -3,6 +3,7 @@ from backend.ml.feature_extraction import extract_quote_features, QUOTE_FEATURES
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from sklearn.model_selection import cross_validate
+from sklearn.preprocessing import PolynomialFeatures
 
 
 """ File containing all methods to build a model for quote detection. """
@@ -89,6 +90,8 @@ def evaluate_classifiers(sentences, labels, cue_verbs, in_quotes, cv_folds=5):
     for name, classifier in CLASSIFIERS.items():
         scoring = ['accuracy', 'precision_macro', 'f1_macro']
         # Returns scores for each split in a numpy array
+        poly = PolynomialFeatures(2, interaction_only=True)
+        poly.fit_transform(X)
         results = cross_validate(classifier, X, y, cv=cv_folds, scoring=scoring)
         # Change score for each split into average score
         results = {key: round(sum(val) / len(val), 3) for key, val in results.items()}

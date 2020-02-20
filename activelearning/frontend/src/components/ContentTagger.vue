@@ -83,9 +83,25 @@
                 <h3>
                     Est-ce qu'une citation est présente dans ce paragraphe?
                 </h3>
+            </v-flex>
+        </v-layout>
+        <v-layout
+                text-left
+                wrap
+                v-if="tagging_task==='paragraph'"
+        >
+            <v-flex mb-4>
                 <div>
-                    {{ text[0] }}
+                    {{ text.reduce((acc, val) => acc + val)}}
                 </div>
+            </v-flex>
+        </v-layout>
+        <v-layout
+                text-center
+                wrap
+                v-if="tagging_task==='paragraph'"
+        >
+            <v-flex mb-4>
                 <div>
                     <v-btn-toggle tile>
                         <v-btn class="ma-2" color="white" v-on:click.native=submit_paragraph(1)>Oui</v-btn>

@@ -26,7 +26,7 @@ COUNT_THRESHOLD = 4
 CONSENSUS_THRESHOLD = 0.75
 
 """ The minimum confidence required for an a full paragraph to be labeled at once. """
-CONFIDENCE_THRESHOLD = 60
+CONFIDENCE_THRESHOLD = 0.8
 
 
 def add_user_label_to_db(user_id, article_id, sentence_index, labels, author_index, admin):
@@ -207,6 +207,12 @@ def request_labelling_task(session_id):
                     # Checks that the sentence's last token is inside quotes, in which case the next sentence would
                     # also need to be returned
                     sent_end = sentence_ends[j]
+                    # If the last character is a quotation mark ("), and is the start of a quote (the next character is
+                    # in between quotes, return the next sentence too).
+                    if article.tokens['tokens'][sent_end].strip() == '"' and \
+                            (sent_end == 0 or article.in_quotes['in_quotes'][sent_end - 1] == 0):
+                        labelling_task = [j, j + 1]
+                        sent_end = sen
                     if article.in_quotes['in_quotes'][sent_end] == 1:
                         last_sent = quote_end_sentence(sentence_ends, article.in_quotes['in_quotes'], sent_end)
                         labelling_task = list(range(labelling_task[0], min(last_sent + 1, len(sentence_ends))))

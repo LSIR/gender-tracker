@@ -171,10 +171,10 @@ Articles are represented by a database containing the following fields:
     is in the training set (0) or in the test set (1).
 * _confidence_:
     * json file
-        * keys: {confidence: list(int), min_confidence: int}
+        * keys: {confidence: list(float), min_confidence: float}
     * The confidence key has as a value a list containing how confident the model is on whether or not each sentence 
     contains reported speech.
-    * The min_confidence key has as a value an integer containing the lowest confidence for the entire article.
+    * The min_confidence key has as a value an float containing the lowest confidence for the entire article.
 * _admin_article_:
     * boolean
     * If the article text should only be shown to administrators.

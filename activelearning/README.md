@@ -95,15 +95,11 @@ format:
 </text>
 ```
 
-A single article can be added to the database from by running:
-
-```python manage.py addarticle path/to/the/article.xml --source newspaper_a```
-
 In order to add all articles in a directory to the database, run:
 
-```python manage.py addarticle path/to/the/article/directory  --source newspaper_a --dir```
+```python manage.py addarticle path/to/the/article/directory  --source newspaper_a```
 
-Once a article has been fully labeled, it can be exported with annotations in the following format.
+Where 'newspaper_a' is one of 'Heidi.News', 'Parisien' or 'Republique'. Once a article has been fully labeled, it can be exported with annotations in the following format.
 
 ```xml
 <?xml version="1.0"?>

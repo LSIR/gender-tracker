@@ -94,6 +94,46 @@ def extract_quote_features(sentence, cue_verbs, in_quotes):
 def extract_speaker_features(p_ends, s_ends, quote_index, other_quotes,
                              speaker_index, speaker_other_indices, other_speakers):
     """
+    Gets the features for speaker attribution for a quote and a speaker. For a quote q and a speaker s, where s_index is
+    the index of the last token of the speaker, quote_start is the index of the first token of q, quote_end is the
+    index of the last token of q:
+        * The number of sentences between q and s: q_index - s_index
+            * Will be positive if the speaker is before the sentence, 0 if in the sentence and negative if after the sentence.
+        * The number of paragraphs between q and s
+            * Will be positive if the speaker is before the sentence, 0 if they are in the same paragraph and negative if after the sentence.
+        * Whether or not s is between quotes.
+        * Whether s is a descendent of a root verb or descendant of a parataxis
+        * Whether s is a subject in the sentence
+        * The number of mentions of the same speaker between q and s
+        * The number of mentions of other speakers between q and s
+        * The number of other sentences that are quotes in between s and q
+        * The number of mentions of s in the 10 paragraphs before q
+        * The number of mentions of other speakers in the 10 paragraphs before q
+        * Whether or not s is the descendant of a cue verb
+
+    :param p_ends: list(int)
+        The index of all sentences that are the last in a paragraph.
+    :param s_ends: list(int)
+        The index of all tokens that are the last in a sentence.
+    :param quote_index: int
+        The index of the reported speech sentence in the document.
+    :param other_quotes: list(int)
+        The indices of other sentences in the document that are quotes.
+    :param speaker_index: int
+        The index of the last token of the speaker in the document.
+    :param speaker_other_indices: list(int)
+        The indices of other tokens that are the last token for another mention of the same speaker.
+    :param other_speakers: list(int)
+        The indices of the last token of other speakers in the document.
+    :return: np.array
+        The features extracted.
+    """
+    return np.array([])
+
+
+def extract_speaker_features_complex(p_ends, s_ends, quote_index, other_quotes,
+                                        speaker_index, speaker_other_indices, other_speakers):
+    """
     Gets the features for speaker attribution for a quote and a speaker. The following features are taken, for a
     quote q and a speaker s, where s_index is the index of the last token of the speaker, quote_start is the index of
     the first token of q, quote_end is the index of the last token of q:
@@ -110,12 +150,6 @@ def extract_speaker_features(p_ends, s_ends, quote_index, other_quotes,
         * the number of mentions of s in the 10 paragraphs before q
         * the number of mentions of other speakers in the 10 paragraphs before q
         * the number of quotes in the 10 paragraphs before q
-        * whether the tokens before/after the speaker/quote is:
-            * punctuation
-            * the last token of the quote
-            * a different speaker
-            * a different quote
-            * a reported speech verb
 
     :param p_ends: list(int)
         The index of all sentences that are the last in a paragraph.

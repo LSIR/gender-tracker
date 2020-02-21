@@ -1,5 +1,5 @@
 import numpy as np
-
+from spacy.tokens import Span
 
 """
 Contains all methods to extract features from sentences to determine if they contain a quote or not, as well as
@@ -11,6 +11,112 @@ QUOTE_FEATURES = 9
 
 """ The number of features used to detect if a named entity is the author of reported speech. """
 SPEAKER_FEATURES = 7
+
+
+def is_substring(person, name):
+    """
+    Determines if name is a substring of person.
+
+    :param person: string
+        The complete string.
+    :param name: string
+        The string for which we want to know if it's a substring of person.
+    :return: boolean
+        True iff name is a subtring of person
+    """
+    person_tokens = person.split(' ')
+    name_tokens = name.split(' ')
+    for i in range(len(person_tokens)):
+        j = 0
+        while (i + j) < len(person_tokens) and j < len(name_tokens) and person_tokens[i + j] == name_tokens[j]:
+            j = j + 1
+        if j == len(name_tokens):
+            return True
+    return False
+
+
+def find_full_name(all_people, name):
+    """
+    Determines if name is simply another mention of someone in all_people, or if it's the first mention of someone.
+
+    :param all_people: list(string)
+        The full name of everyone already seen in the document.
+    :param name: string
+        The mention of some person.
+    :return:
+        The full name of the person of it's another mention, or name if it's the first mention.
+    """
+    for person in all_people:
+        if is_substring(person, name):
+            return person
+    return name
+
+
+def correct_hyphen_errors(article):
+    """
+    Corrects an error that spaCy makes (seperates names that contain a hyphen into two named entities).
+
+    :param article: spaCy.Doc
+        The article in which to correct the entities.
+    :return: list(spaCy.Span)
+        The corrected entities.
+    """
+    entities = article.ents
+    corrected_ents = []
+    prev_per_ent = None
+    for ent in entities:
+        if ent.label_ == 'PER':
+            if (prev_per_ent is not None) and \
+                    (prev_per_ent.end_char == ent.start_char - 1) and \
+                    (article.text[prev_per_ent.end_char] == '-'):
+                # Create a new NE for the name with the hyphen
+                merged_ent = Span(article, prev_per_ent.start, ent.end, label="PER")
+                # Remove the last entity and add the new one.
+                corrected_ents[-1] = merged_ent
+            else:
+                corrected_ents.append(ent)
+            prev_per_ent = ent
+        else:
+            corrected_ents.append(ent)
+            prev_per_ent = None
+    return corrected_ents
+
+
+def extract_person_mentions(article):
+    """
+    Finds all mentions of people in the article, and groups them into the same entity.
+
+    :param article: spaCy.Doc
+        The article text in which to find speaker mentions.
+    :return: set(string), list(spaCy.Span), list(string)
+        * A set containing the names of all people in the article
+        * A list of all mentions of people in the article
+        * A list of the full names of all people mentioned
+
+    """
+    # Correct entity splits on hyphens
+    article.ents = correct_hyphen_errors(article)
+    # Extract all mentions of people
+    person_mentions = [ent for ent in article.ents if ent.label_ == 'PER']
+    # Sort from the longest name to the shortest
+    person_mentions.sort(key=lambda x: -len(x.text.split(' ')))
+    # The set of people mentioned in the article (their full name)
+    people = set()
+    # Each mention of a person in the text
+    mentions = []
+    # The full name for each mention
+    full_names = []
+    for mention in person_mentions:
+        mentions.append(mention)
+        if mention.text not in people:
+            full_name = find_full_name(people, mention.text)
+            full_names.append(full_name)
+            if mention.text == full_name:
+                people.add(mention.text)
+        else:
+            full_names.append(mention.text)
+
+    return people, mentions, full_names
 
 
 def extract_quote_features(sentence, cue_verbs, in_quotes):
@@ -91,42 +197,37 @@ def extract_quote_features(sentence, cue_verbs, in_quotes):
     ])
 
 
-def extract_speaker_features(p_ends, s_ends, quote_index, other_quotes,
-                             speaker_index, speaker_other_indices, other_speakers):
+def extract_speaker_features_one_vs_one(article, quote_index, other_quotes, speaker_1, speaker_2):
     """
-    Gets the features for speaker attribution for a quote and a speaker. For a quote q and a speaker s, where s_index is
-    the index of the last token of the speaker, quote_start is the index of the first token of q, quote_end is the
-    index of the last token of q:
-        * The number of sentences between q and s: q_index - s_index
-            * Will be positive if the speaker is before the sentence, 0 if in the sentence and negative if after the sentence.
-        * The number of paragraphs between q and s
-            * Will be positive if the speaker is before the sentence, 0 if they are in the same paragraph and negative if after the sentence.
+    Gets the features for speaker attribution for a the one vs one case. The following features are taken, for a
+    quote q and speakers s1, s2 where q.sent is the index of the sentence containing the quote, s.start is the index of
+    the first token of the speaker s, s.end of the last, and s.sent is the index.
+
+    For both s1 and s2:
+        * the distance between q and s: q.sent - s.sent
+            * The value is positive if s is in a sentence before q, negative if after and 0 in the same.
+        * the number of paragraphs between q and s
+            * 0             if s and q are in the same paragraph
+            * > 0           if s is in a paragraph before q
+            * < 0           if s is in a paragraph after q
+        * the number of other sentences that are quotes in between s and q
+        * the number of quotes in the 5 paragraphs before q
         * Whether or not s is between quotes.
         * Whether s is a descendent of a root verb or descendant of a parataxis
         * Whether s is a subject in the sentence
-        * The number of mentions of the same speaker between q and s
-        * The number of mentions of other speakers between q and s
-        * The number of other sentences that are quotes in between s and q
-        * The number of mentions of s in the 10 paragraphs before q
-        * The number of mentions of other speakers in the 10 paragraphs before q
         * Whether or not s is the descendant of a cue verb
 
-    :param p_ends: list(int)
-        The index of all sentences that are the last in a paragraph.
-    :param s_ends: list(int)
-        The index of all tokens that are the last in a sentence.
+    :param article: models.Article
+        The article from which the quote and speakers are taken.
     :param quote_index: int
-        The index of the reported speech sentence in the document.
+        The index of the sentence containing a quote in the article.
     :param other_quotes: list(int)
-        The indices of other sentences in the document that are quotes.
-    :param speaker_index: int
-        The index of the last token of the speaker in the document.
-    :param speaker_other_indices: list(int)
-        The indices of other tokens that are the last token for another mention of the same speaker.
-    :param other_speakers: list(int)
-        The indices of the last token of other speakers in the document.
-    :return: np.array
-        The features extracted.
+        The index of other sentences containing quotes in the article.
+    :param speaker_1: spaCy.Span
+        The span of the first speaker.
+    :param speaker_2: spaCy.Span
+        The span of the second speaker.
+    :return:
     """
     return np.array([])
 

@@ -19,7 +19,7 @@ CLASSIFIERS = {
 
 def create_input_matrix(sentences, cue_verbs, in_quotes):
     """
-     Trains the model.
+    Creates the input matrix from the raw data.
 
     :param sentences: list(spaCy.doc)
         The list of all sentences to use for training, treated by a language model.

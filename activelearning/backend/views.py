@@ -1,16 +1,17 @@
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.core.exceptions import ObjectDoesNotExist
-
-from backend.frontend_parsing.postgre_to_frontend import load_paragraph_above, load_paragraph_below
-from backend.frontend_parsing.frontend_to_postgre import clean_user_labels
-from backend.db_management import add_user_label_to_db, request_labelling_task
-from backend.helpers import change_confidence
-from .models import Article
 import json
+import sys
+import traceback
 import uuid
 
-import sys, traceback
+from django.core.exceptions import ObjectDoesNotExist
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+
+from backend.db_management import add_user_label_to_db, request_labelling_task
+from backend.frontend_parsing.frontend_to_postgre import clean_user_labels
+from backend.frontend_parsing.postgre_to_frontend import load_paragraph_above, load_paragraph_below
+from backend.helpers import change_confidence
+from .models import Article
 
 # The life span of a cookie, in seconds
 COOKIE_LIFE_SPAN = 1 * 60 * 60

@@ -1,10 +1,10 @@
 from django.core.management.base import BaseCommand, CommandError
-
 import spacy
 import csv
 
-from backend.db_management import load_sentence_labels
-from backend.ml.quote_detection import evaluate_classifiers
+from backend.db_management import load_sentence_labels, load_quote_authors
+from backend.ml.quote_detection import evaluate_quote_detection
+from backend.ml.quote_attribution import evaluate_quote_attribution
 
 
 def set_custom_boundaries(doc):
@@ -40,8 +40,17 @@ class Command(BaseCommand):
                 reader = csv.reader(f)
                 cue_verbs = set(list(reader)[0])
 
-            print('Evaluating different models...')
-            model_scores = evaluate_classifiers(train_sentences, train_labels, cue_verbs, train_in_quotes)
+            print('Evaluating quote detection...')
+            model_scores = evaluate_quote_detection(train_sentences, train_labels, cue_verbs, train_in_quotes)
+            for name, score in model_scores.items():
+                print(f'\n\nModel: {name}\n'
+                      f'\tAccuracy:  {score["test_accuracy"]}\n'
+                      f'\tPrecision: {score["test_precision_macro"]}\n'
+                      f'\tF1:        {score["test_f1_macro"]}\n')
+
+            print('\nEvaluating quote attribution...')
+            articles, article_docs, train_ids, train_labels, test_ids, test_labels = load_quote_authors(nlp)
+            model_scores = evaluate_quote_attribution(articles, article_docs, train_ids, train_labels, cue_verbs)
             for name, score in model_scores.items():
                 print(f'\n\nModel: {name}\n'
                       f'\tAccuracy:  {score["test_accuracy"]}\n'

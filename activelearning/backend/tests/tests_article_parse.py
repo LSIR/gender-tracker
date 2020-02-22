@@ -11,7 +11,7 @@ class ArticleParsingTestCase(TestCase):
 
     def setUp(self):
         # Add the articles to the database
-        add_article_to_db('../data/article01.xml', self.nlp)
+        add_article_to_db('../data/article01.xml', self.nlp, 'Heidi.News')
 
     def test_articles_text(self):
         with open('../data/article01Parsed.txt', 'r') as file:

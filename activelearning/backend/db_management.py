@@ -8,6 +8,7 @@ from backend.frontend_parsing.postgre_to_frontend import form_paragraph_json, fo
 from backend.helpers import quote_end_sentence, label_consensus, aggregate_label
 from backend.models import Article, UserLabel
 from backend.xml_parsing.xml_to_postgre import process_article
+from backend.xml_parsing.xml_to_postgre import parse_text
 
 
 """ File containing all methods used for database management """
@@ -264,10 +265,12 @@ def load_sentence_labels(nlp):
     return train_sentences, train_labels, train_in_quotes, test_sentences, test_labels, test_in_quotes
 
 
-def load_quote_authors():
+def load_quote_authors(nlp):
     """
     Finds all sentences containing quotes, and the author of each quote.
 
+    :param nlp: spaCy.Language
+        The language model used to tokenize the text.
     :return: list(Article), list(list(int)), list(list(list(int))), list(list(int)), list(list(list(int)))
         * A list of fully labeled articles
         * A list of sentences containing quotes that are in the training set, for each article in the articles list
@@ -276,6 +279,8 @@ def load_quote_authors():
         * A list of authors (a list of token indices) for test sentences that contain quotes for each article
     """
     articles = Article.objects.filter(labeled__fully_labeled=1)
+    # The list of spacy docs for each article
+    article_docs = []
     # list of training sentence indices that are quotes in each article
     train_ids = []
     # list of training author indices for each sentence that is a quote in each article
@@ -285,6 +290,8 @@ def load_quote_authors():
     # list of test author indices for each sentence that is a quote in each article
     test_labels = []
     for article in articles:
+        # Add the doc for the article to the list
+        article_docs.append(parse_text(article.text, nlp))
         # The lists of sentence indices that are quotes in the training set in this article, with there correct authors
         article_train_ids = []
         article_train_authors = []
@@ -313,7 +320,7 @@ def load_quote_authors():
         test_ids.append(article_test_ids)
         test_labels.append(article_test_authors)
 
-    return list(articles), train_ids, train_labels, test_ids, test_labels
+    return list(articles), article_docs, train_ids, train_labels, test_ids, test_labels
 
 
 def load_unlabeled_sentences(nlp):

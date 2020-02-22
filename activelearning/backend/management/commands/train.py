@@ -5,7 +5,7 @@ import csv
 
 from backend.db_management import load_sentence_labels, load_unlabeled_sentences
 from backend.helpers import change_confidence
-from backend.ml.quote_detection import train, predict_quotes
+from backend.ml.quote_detection import train_quote_detection, predict_quotes
 
 
 def set_custom_boundaries(doc):
@@ -47,7 +47,7 @@ class Command(BaseCommand):
                 cue_verbs = set(list(reader)[0])
 
             print('Training model...')
-            trained_model = train(model, train_sentences, train_labels, cue_verbs, train_in_quotes)
+            trained_model = train_quote_detection(model, train_sentences, train_labels, cue_verbs, train_in_quotes)
 
             print('Evaluating all unlabeled quotes...')
             articles, sentences, in_quotes = load_unlabeled_sentences(nlp)

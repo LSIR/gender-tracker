@@ -564,9 +564,9 @@ class SingleUserTestCase(TestCase):
 
     def setUp(self):
         # Add an article to the database
-        self.a1 = add_article_to_db('../data/test_article_1.xml', nlp)
-        self.a2 = add_article_to_db('../data/test_article_2.xml', nlp)
-        self.a3 = add_article_to_db('../data/test_article_3.xml', nlp)
+        self.a1 = add_article_to_db('../data/test_article_1.xml', nlp, 'Heidi.News')
+        self.a2 = add_article_to_db('../data/test_article_2.xml', nlp, 'Heidi.News')
+        self.a3 = add_article_to_db('../data/test_article_3.xml', nlp, 'Heidi.News')
 
     def test_0_loading(self):
         """
@@ -858,9 +858,9 @@ class TwoUserAdminTestCase(TestCase):
 
     def setUp(self):
         # Add an article to the database
-        self.a1 = add_article_to_db('../data/test_article_1.xml', nlp)
-        self.a2 = add_article_to_db('../data/test_article_2.xml', nlp)
-        self.a3 = add_article_to_db('../data/test_article_3.xml', nlp)
+        self.a1 = add_article_to_db('../data/test_article_1.xml', nlp, 'Heidi.News')
+        self.a2 = add_article_to_db('../data/test_article_2.xml', nlp, 'Heidi.News')
+        self.a3 = add_article_to_db('../data/test_article_3.xml', nlp, 'Heidi.News')
 
     def test_1_admin_trivial(self):
         """
@@ -1224,9 +1224,9 @@ class FourUserTestCase(TestCase):
 
     def setUp(self):
         # Add an article to the database
-        self.a1 = add_article_to_db('../data/test_article_1.xml', nlp)
-        self.a2 = add_article_to_db('../data/test_article_2.xml', nlp)
-        self.a3 = add_article_to_db('../data/test_article_3.xml', nlp)
+        self.a1 = add_article_to_db('../data/test_article_1.xml', nlp, 'Heidi.News')
+        self.a2 = add_article_to_db('../data/test_article_2.xml', nlp, 'Heidi.News')
+        self.a3 = add_article_to_db('../data/test_article_3.xml', nlp, 'Heidi.News')
 
     def test_1_trivial(self):
         """

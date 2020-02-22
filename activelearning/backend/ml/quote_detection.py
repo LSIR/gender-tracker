@@ -67,7 +67,7 @@ def balance_classes(X, y):
     return sampled_X, sampled_y
 
 
-def evaluate_classifiers(sentences, labels, cue_verbs, in_quotes, cv_folds=5):
+def evaluate_quote_detection(sentences, labels, cue_verbs, in_quotes, cv_folds=5):
     """
     Evaluates different classifiers, and returns their performance.
 
@@ -99,7 +99,7 @@ def evaluate_classifiers(sentences, labels, cue_verbs, in_quotes, cv_folds=5):
     return model_scores
 
 
-def train(model, sentences, labels, cue_verbs, in_quotes):
+def train_quote_detection(model, sentences, labels, cue_verbs, in_quotes):
     """
     Trains a classifier to detect if sentences contains quotes or not.
 

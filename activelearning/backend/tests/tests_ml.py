@@ -5,7 +5,7 @@ from backend.models import Article
 from backend.helpers import change_confidence
 from backend.db_management import add_article_to_db, add_user_label_to_db,\
     load_sentence_labels, load_unlabeled_sentences
-from backend.ml.quote_detection import evaluate_classifiers, train, predict_quotes
+from backend.ml.quote_detection import evaluate_quote_detection, train_quote_detection, predict_quotes
 
 import spacy
 import csv
@@ -323,9 +323,9 @@ class QuoteDetectionTestCase(TestCase):
 
     def setUp(self):
         # Add an article to the database
-        self.a1 = add_article_to_db('../data/test_article_1.xml', nlp)
-        self.a2 = add_article_to_db('../data/test_article_2.xml', nlp)
-        self.a3 = add_article_to_db('../data/test_article_3.xml', nlp)
+        self.a1 = add_article_to_db('../data/test_article_1.xml', nlp, 'Heidi.News')
+        self.a2 = add_article_to_db('../data/test_article_2.xml', nlp, 'Heidi.News')
+        self.a3 = add_article_to_db('../data/test_article_3.xml', nlp, 'Heidi.News')
 
     def test_0_evaluate_models(self):
         """ Tests that the different models can be trained and their performance printed. Need to set only 2-fold cross-
@@ -335,7 +335,7 @@ class QuoteDetectionTestCase(TestCase):
         add_correct_labels(TEST_3, self.a3.id)
 
         print('\n\n\nTest 0\n')
-        train_sentences, train_labels, test_sentences, test_labels = load_sentence_labels(nlp)
+        train_sentences, train_labels, train_iq, test_sentences, test_labels, _ = load_sentence_labels(nlp)
         print(f'\nTraining Examples: {len(train_sentences)}')
         print(f'Training Quotes: {sum(train_labels)}\n')
         print(f'Test Examples: {len(test_sentences)}')
@@ -347,7 +347,7 @@ class QuoteDetectionTestCase(TestCase):
             cue_verbs = set(list(reader)[0])
 
         print('Evaluating different models...')
-        model_scores = evaluate_classifiers(train_sentences, train_labels, cue_verbs, cv_folds=2)
+        model_scores = evaluate_quote_detection(train_sentences, train_labels, cue_verbs, train_iq, cv_folds=2)
         for name, score in model_scores.items():
             print(f'\n\nModel: {name}\n'
                   f'\tAccuracy:  {score["test_accuracy"]}\n'
@@ -361,7 +361,7 @@ class QuoteDetectionTestCase(TestCase):
         add_correct_labels(TEST_2, self.a2.id)
 
         print('\n\n\nTest 1\n')
-        train_sentences, train_labels, test_sentences, test_labels = load_sentence_labels(nlp)
+        train_sentences, train_labels, train_iq, test_sentences, test_labels, _ = load_sentence_labels(nlp)
         print(f'\nTraining Examples: {len(train_sentences)}')
         print(f'Training Quotes: {sum(train_labels)}\n')
         print(f'Test Examples: {len(test_sentences)}')
@@ -375,11 +375,11 @@ class QuoteDetectionTestCase(TestCase):
         models = ['L1 logistic', 'L2 logistic', 'Linear SVC']
         for m in models:
             print(f'\nTraining model {m}')
-            trained_model = train(m, train_sentences, train_labels, cue_verbs)
+            trained_model = train_quote_detection(m, train_sentences, train_labels, cue_verbs, train_iq)
             print(f'\nComputing new confidences')
-            articles, sentences = load_unlabeled_sentences(nlp)
+            articles, sentences, in_quotes = load_unlabeled_sentences(nlp)
             for article, article_sentences in zip(articles, sentences):
-                probabilities = predict_quotes(trained_model, article_sentences, cue_verbs)[:, 1]
+                probabilities = predict_quotes(trained_model, article_sentences, cue_verbs, in_quotes)
                 # Map the probability that a sentence is a quote to a confidence:
                 #   * probability is 0.5: model has no clue, confidence 0
                 #   * probability is 0 or 1: model knows, confidence 1

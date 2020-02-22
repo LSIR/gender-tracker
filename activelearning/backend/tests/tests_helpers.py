@@ -271,7 +271,7 @@ class QuoteEndSentenceTestCase(TestCase):
     def test_0_trivial(self):
         """ Tests that the method works for a single sentence in the article. """
         sentence_ends = [4]
-        in_quote = [1, 1, 1, 1, 1]
+        in_quote = [1, 1, 1, 1, 0]
         token_index = 4
         index = quote_end_sentence(sentence_ends, in_quote, token_index)
         self.assertEquals(index, 0)
@@ -282,12 +282,12 @@ class QuoteEndSentenceTestCase(TestCase):
         in_quote = [0, 0, 0, 0, 1]
         token_index = 4
         index = quote_end_sentence(sentence_ends, in_quote, token_index)
-        self.assertEquals(index, 0)
+        self.assertEquals(index, 1)
 
     def test_2_two_sentences(self):
         """ Tests that the method works for two sentences in the article. """
         sentence_ends = [4, 7]
-        in_quote = [0, 0, 0, 1, 1] + [0, 1, 1]
+        in_quote = [0, 0, 0, 1, 0] + [0, 1, 0]
         token_index = 4
         index = quote_end_sentence(sentence_ends, in_quote, token_index)
         self.assertEquals(index, 0)
@@ -314,7 +314,7 @@ class QuoteEndSentenceTestCase(TestCase):
     def test_5_two_sentences(self):
         """ Tests that the method works for two sentences in the article. """
         sentence_ends = [4, 7]
-        in_quote = [1, 1, 1, 1, 1] + [1, 1, 1]
+        in_quote = [1, 1, 1, 1, 1] + [1, 1, 0]
         token_index = 4
         index = quote_end_sentence(sentence_ends, in_quote, token_index)
         self.assertEquals(index, 1)
@@ -325,7 +325,7 @@ class QuoteEndSentenceTestCase(TestCase):
     def test_6_three_sentences(self):
         """ Tests that the method works for three sentences in the article. """
         sentence_ends = [4, 7, 10]
-        in_quote = [1, 1, 1, 1, 1] + [1, 1, 1] + [1, 1, 1]
+        in_quote = [1, 1, 1, 1, 1] + [1, 1, 1] + [1, 1, 0]
         index = quote_end_sentence(sentence_ends, in_quote, 4)
         self.assertEquals(index, 2)
         index = quote_end_sentence(sentence_ends, in_quote, 7)
@@ -336,7 +336,7 @@ class QuoteEndSentenceTestCase(TestCase):
     def test_7_three_sentences(self):
         """ Tests that the method works for three sentences in the article. """
         sentence_ends = [4, 7, 10]
-        in_quote = [1, 1, 1, 1, 1] + [0, 1, 1] + [0, 1, 1]
+        in_quote = [1, 1, 1, 1, 0] + [0, 1, 0] + [0, 1, 0]
         index = quote_end_sentence(sentence_ends, in_quote, 4)
         self.assertEquals(index, 0)
         index = quote_end_sentence(sentence_ends, in_quote, 7)
@@ -347,7 +347,7 @@ class QuoteEndSentenceTestCase(TestCase):
     def test_8_three_sentences(self):
         """ Tests that the method works for three sentences in the article. """
         sentence_ends = [4, 7, 10]
-        in_quote = [1, 1, 1, 1, 1] + [1, 1, 0] + [1, 1, 1]
+        in_quote = [1, 1, 1, 1, 1] + [1, 1, 0] + [1, 1, 0]
         index = quote_end_sentence(sentence_ends, in_quote, 4)
         self.assertEquals(index, 1)
         index = quote_end_sentence(sentence_ends, in_quote, 10)
@@ -356,7 +356,7 @@ class QuoteEndSentenceTestCase(TestCase):
     def test_9_three_sentences(self):
         """ Tests that the method works for three sentences in the article. """
         sentence_ends = [4, 7, 10]
-        in_quote = [1, 1, 1, 1, 0] + [1, 1, 1] + [1, 1, 1]
+        in_quote = [1, 1, 1, 1, 0] + [1, 1, 1] + [1, 1, 0]
         index = quote_end_sentence(sentence_ends, in_quote, 7)
         self.assertEquals(index, 2)
         index = quote_end_sentence(sentence_ends, in_quote, 10)
@@ -365,7 +365,7 @@ class QuoteEndSentenceTestCase(TestCase):
     def test_10_three_sentences(self):
         """ Tests that the method works for three sentences in the article. """
         sentence_ends = [4, 7, 10]
-        in_quote = [1, 1, 1, 1, 0] + [0, 1, 1] + [1, 0, 0]
+        in_quote = [1, 1, 1, 1, 0] + [0, 1, 1] + [0, 0, 0]
         index = quote_end_sentence(sentence_ends, in_quote, 7)
         self.assertEquals(index, 2)
         index = quote_end_sentence(sentence_ends, in_quote, 10)

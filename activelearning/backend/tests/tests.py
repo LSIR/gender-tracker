@@ -15,7 +15,7 @@ class HelperTestCase(TestCase):
 
     def setUp(self):
         # Add the articles to the database
-        self.a1 = add_article_to_db('../data/article01.xml', nlp)
+        self.a1 = add_article_to_db('../data/article01.xml', nlp, 'Heidi.News')
 
     def test_label_consensus(self):
         label1 = [0, 1, 1, 1, 1, 0, 0]
@@ -69,7 +69,7 @@ class HelperTestCase(TestCase):
 class TaskParsingTestCase(TestCase):
 
     def setUp(self):
-        self.a1 = add_article_to_db('../data/article01.xml', nlp)
+        self.a1 = add_article_to_db('../data/article01.xml', nlp, 'Heidi.News')
 
     def test_clean_user_labels_no_quote1(self):
         """ Test for when no text is annotated as a quote for a single sentence as a task, and no extra text. """
@@ -225,9 +225,9 @@ class TaskLoadingTestCase(TestCase):
 
     def setUp(self):
         # Add the articles to the database
-        self.a1 = add_article_to_db('../data/article01.xml', nlp)
-        self.a2 = add_article_to_db('../data/article02clean.xml', nlp)
-        self.a3 = add_article_to_db('../data/article03clean.xml', nlp)
+        self.a1 = add_article_to_db('../data/article01.xml', nlp, 'Heidi.News')
+        self.a2 = add_article_to_db('../data/article02clean.xml', nlp, 'Heidi.News')
+        self.a3 = add_article_to_db('../data/article03clean.xml', nlp, 'Heidi.News')
 
     def test_load_paragraph_above(self):
         data = load_paragraph_above(self.a1.id, 0)

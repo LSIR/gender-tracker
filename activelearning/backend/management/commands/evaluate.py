@@ -4,7 +4,7 @@ import csv
 
 from backend.db_management import load_sentence_labels, load_quote_authors
 from backend.ml.quote_detection import evaluate_quote_detection
-from backend.ml.quote_attribution import evaluate_quote_attribution
+from backend.ml.quote_attribution import evaluate_ovo_quote_attribution, evaluate_speaker_prediction
 
 
 def set_custom_boundaries(doc):
@@ -43,19 +43,26 @@ class Command(BaseCommand):
             print('Evaluating quote detection...')
             model_scores = evaluate_quote_detection(train_sentences, train_labels, cue_verbs, train_in_quotes)
             for name, score in model_scores.items():
-                print(f'\n\nModel: {name}\n'
-                      f'\tAccuracy:  {score["test_accuracy"]}\n'
-                      f'\tPrecision: {score["test_precision_macro"]}\n'
-                      f'\tF1:        {score["test_f1_macro"]}\n')
+                print(f'\n\n  Model: {name}\n'
+                      f'    Accuracy:  {score["test_accuracy"]}\n'
+                      f'    Precision: {score["test_precision_macro"]}\n'
+                      f'    F1:        {score["test_f1_macro"]}\n')
 
             print('\nEvaluating quote attribution...')
+            print('\n  One vs One scores:')
             articles, article_docs, train_ids, train_labels, test_ids, test_labels = load_quote_authors(nlp)
-            model_scores = evaluate_quote_attribution(articles, article_docs, train_ids, train_labels, cue_verbs)
+            model_scores = evaluate_ovo_quote_attribution(articles, article_docs, train_ids, train_labels, cue_verbs)
             for name, score in model_scores.items():
-                print(f'\n\nModel: {name}\n'
-                      f'\tAccuracy:  {score["test_accuracy"]}\n'
-                      f'\tPrecision: {score["test_precision_macro"]}\n'
-                      f'\tF1:        {score["test_f1_macro"]}\n')
+                print(f'\n\n    Model: {name}\n'
+                      f'      Accuracy:  {score["test_accuracy"]}\n'
+                      f'      Precision: {score["test_precision_macro"]}\n'
+                      f'      F1:        {score["test_f1_macro"]}\n')
+            print('\n  Correct Speaker Precision:')
+            model_scores = evaluate_speaker_prediction(articles, article_docs, train_ids, train_labels, cue_verbs)
+            for name, score in model_scores.items():
+                print(f'\n\n    Model: {name}\n'
+                      f'        Training:  {score["training"]}\n'
+                      f'        Test:      {score["test"]}\n')
 
         except IOError:
             raise CommandError('IO Error.')

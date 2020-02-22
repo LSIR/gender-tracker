@@ -197,7 +197,7 @@ def extract_quote_features(sentence, cue_verbs, in_quotes):
     ])
 
 
-def extract_single_speaker_features(article, quote_index, other_quotes, speaker, cue_verbs):
+def extract_single_speaker_features(article, article_doc, quote_index, other_quotes, speaker, cue_verbs):
     """
     Gets the features for speaker attribution for a single speaker, in the one vs one case. The following features are
     taken, for a quote q and a speaker s where q.sent is the index of the sentence containing the quote, s.start is the
@@ -212,6 +212,7 @@ def extract_single_speaker_features(article, quote_index, other_quotes, speaker,
         * the number of other sentences that are quotes in between s and q
         * the number of quotes in the 5 paragraphs before q
         * Whether or not s is between quotes.
+        * Whether s is in the same sentence as a cue verb
 
         # TODO: ALL THESE AND FIGURE OUT HOW TO INCLUDE SPACY STUFF (PROBABLY NEED TO HAVE THE DOC AS PARAMETER)
         * Whether s is a descendent of a root verb or descendant of a parataxis
@@ -263,20 +264,49 @@ def extract_single_speaker_features(article, quote_index, other_quotes, speaker,
 
     speaker_in_quotes = article.in_quotes['in_quotes'][speaker.end - 1]
 
+    def speaker_with_cue_verb():
+        sentence_start = 0
+        if s_sent > 0:
+            sentence_start = article.sentences['sentences'][s_sent - 1] + 1
+        sentence_end = article.sentences['sentences'][s_sent]
+        tokens = article_doc[sentence_start:sentence_end]
+        for token in tokens:
+            if token.lemma_ in cue_verbs:
+                return True
+        return False
+
     return np.array([
         sentence_dist,
         paragraph_dist,
         separating_quotes(),
         quotes_above_q(),
         speaker_in_quotes,
+        speaker_with_cue_verb(),
     ])
 
 
-def extract_speaker_features_ovo(article, quote_index, other_quotes, speaker_1, speaker_2, cue_verbs):
+def extract_speaker_features_ovo(article, article_doc, quote_index, other_quotes, speaker_1, speaker_2, cue_verbs):
     """
     Gets the features for speaker attribution for a the one vs one case. The following features are taken, for a
     quote q and speakers s1, s2 where q.sent is the index of the sentence containing the quote, s.start is the index of
     the first token of the speaker s, s.end of the last, and s.sent is the index.
+
+    # TODO: For q
+    For q:
+        * The length of the sentence.
+        * Whether it contains quotation marks.
+        * If the sentence contains quotation marks:
+            * The number of tokens between them.
+            * TODO: What if there are multiple quotes in the sentence?
+                * Have a fixed number of entries like "tokens between first, second, and third quotes" and most of the
+                time second and third are empty?
+        * Whether it contains a named entity that is a person.
+        * Whether it contains a verb in the verb-cue list.
+        * Presence of a parataxis.
+        * Presence of multiple verbs.
+        * TODO: Presence of a verb in between quotes
+        * Is the whole sentence in between quotes
+        * The proportion of tokens in the sentence that are between quotes
 
     For both s1 and s2:
         * the distance between q and s: q.sent - s.sent
@@ -286,7 +316,6 @@ def extract_speaker_features_ovo(article, quote_index, other_quotes, speaker_1, 
             * > 0           if s is in a paragraph before q
             * < 0           if s is in a paragraph after q
         * the number of other sentences that are quotes in between s and q
-        * the number of quotes in the 5 paragraphs before q
         * Whether or not s is between quotes.
         * Whether s is a descendent of a root verb or descendant of a parataxis
         * Whether s is a subject in the sentence
@@ -307,9 +336,16 @@ def extract_speaker_features_ovo(article, quote_index, other_quotes, speaker_1, 
     :return: np.array
         The features extracted
     """
-    speaker_1_features = extract_single_speaker_features(article, quote_index, other_quotes, speaker_1, cue_verbs)
-    speaker_2_features = extract_single_speaker_features(article, quote_index, other_quotes, speaker_2, cue_verbs)
-    return np.concatenate((speaker_1_features, speaker_2_features), axis=0)
+    quote_start = 0
+    if quote_index > 0:
+        quote_start = article.sentences['sentences'][quote_index - 1] + 1
+    quote_end = article.sentences['sentences'][quote_index]
+    q_in_quotes = article.in_quotes['in_quotes'][quote_start:quote_end + 1]
+    quote_features = extract_quote_features(article_doc[quote_start:quote_end], cue_verbs, q_in_quotes)
+
+    speaker_1_features = extract_single_speaker_features(article, article_doc, quote_index, other_quotes, speaker_1, cue_verbs)
+    speaker_2_features = extract_single_speaker_features(article, article_doc, quote_index, other_quotes, speaker_2, cue_verbs)
+    return np.concatenate((quote_features, speaker_1_features, speaker_2_features), axis=0)
 
 
 def extract_speaker_features_complex(p_ends, s_ends, quote_index, other_quotes,

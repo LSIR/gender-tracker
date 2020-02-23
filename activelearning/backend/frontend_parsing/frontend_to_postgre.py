@@ -5,27 +5,17 @@
 
 def check_label_validity(labels):
     """
-    Check that the user labels are in the correct format. Checks that they contain only 0s and 1s, and if they contain
-    1s that they are in a continuous (the user cannot select two quotes in a sentence).
+    Check that the user labels are in the correct format. Checks that they contain only 0s and 1s.
 
     :param labels: list(int).
         The labels that a user created.
     :return: Boolean.
         True if and only if the labels are valid.
     """
-    first_one_seen = False
-    first_one_segment_seen = False
     for label in labels:
         # If labels not in {0, 1} not valid
         if label not in [0, 1]:
             return False
-        # Two different quotes found
-        if first_one_segment_seen and label == 1:
-            return False
-        if first_one_seen and label == 0:
-            first_one_segment_seen = True
-        if not first_one_seen and label == 1:
-            first_one_seen = True
     return True
 
 

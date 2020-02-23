@@ -8,6 +8,12 @@
       <v-spacer></v-spacer>
       <v-btn
         text
+        v-on:click.native="change_drag()"
+      >
+        Drag Mode
+      </v-btn>
+      <v-btn
+        text
         v-on:click.native="change_helper()"
       >
         <span class="mr-2">{{helper_text}}</span>
@@ -17,8 +23,13 @@
     <v-content v-if="helper_page">
       <HelperPage/>
     </v-content>
+    <v-content v-else-if="drag_mode">
+      <ContentTaggerDrag/>
+      <BottomHelper/>
+    </v-content>
     <v-content v-else>
       <ContentTagger/>
+      <BottomHelper/>
     </v-content>
 
     <v-container fluid style="width: 800px;">
@@ -49,16 +60,21 @@
 <script>
 
 import ContentTagger from "./components/ContentTagger";
+import ContentTaggerDrag from "./components/ContentTaggerDrag";
 import HelperPage from "./components/HelperPage";
+import BottomHelper from "./components/BottomHelper";
 
 export default {
   name: 'App',
   components: {
     ContentTagger,
+    ContentTaggerDrag,
     HelperPage,
+    BottomHelper,
   },
   data: () => ({
       helper_page: false,
+      drag_mode: false,
       helper_text: 'FAQ',
       epfl_logo: require('@/assets/epfl_logo.svg'),
       heidi_logo: require('@/assets/heidi_news.png'),
@@ -72,7 +88,9 @@ export default {
               this.helper_text = 'FAQ'
           }
       },
-
+      change_drag: function () {
+          this.drag_mode = !this.drag_mode
+      }
   }
 };
 </script>

@@ -8,6 +8,9 @@
                 <h1 class="display-2 font-weight-bold mb-3">
                     Gender Tracker Project
                 </h1>
+                <h2>
+                    Dragging
+                </h2>
             </v-flex>
         </v-layout>
         <v-layout
@@ -46,6 +49,9 @@
                                 depressed
                                 v-bind:style="buttonStyle"
                                 v-on:click.native="tagWord(p_edges[0] + j)"
+                                v-on:mousedown.native="start_dragging(p_edges[0] + j)"
+                                v-on:mouseup.native="stop_dragging()"
+                                v-on:mouseover.native="drag_tag(p_edges[0] + j)"
                                 v-bind:color="button_color(p_edges[0] + j)"
                         >
                             {{ word }}
@@ -72,12 +78,31 @@
                             shaped
                             mandatory
                     >
-                        <v-btn small v-bind:color="selecting_author === 0 ? 'deep-orange lighten-4' : 'white'">
-                            Citation
-                        </v-btn>
-                        <v-btn small v-bind:color="selecting_author === 1 ? 'green lighten-4' : 'white'">
-                            Auteur
-                        </v-btn>
+                        <v-tooltip left>
+                            <template v-slot:activator="{ on }">
+                                <v-btn
+                                        small
+                                        v-on="on"
+                                        v-bind:color="selecting_author === 0 ? 'deep-orange lighten-4' : 'white'"
+                                >
+                                    Citation
+                                </v-btn>
+                            </template>
+                            <span>Pour ajouter plus de texte à la citation, cliquez ici.</span>
+                        </v-tooltip>
+                        <v-tooltip v-model="show_author_tip" right>
+                            <template v-slot:activator="{ on }">
+                                <v-btn
+                                        small
+                                        v-on="on"
+                                        v-on:click="show_author_tip = false"
+                                        v-bind:color="selecting_author === 1 ? 'green lighten-4' : 'white'"
+                                >
+                                    Auteur
+                                </v-btn>
+                            </template>
+                            <span>Si toute la citation à été annotée, cliquez ici pour annoter l'auteur.</span>
+                        </v-tooltip>
                     </v-btn-toggle>
                 </div>
                 <br>
@@ -214,6 +239,12 @@ export default {
 
         // Whether the user is tagging the quote (0) or the author (1)
         selecting_author: 0,
+
+        // Whether or not to show the tooltip to annotate the author
+        show_author_tip: false,
+
+        // Whether the user is doing click and drag
+        dragging: false,
 
         // Helper text to be displayed
         tag_first_token: "Clickez sur le premier mot du text cité, ou sur \"Aucune Citation\" si il n'y en a pas.",
@@ -365,11 +396,17 @@ export default {
             // Don't let the user report a quote with no author
             const reducer = (accumulator, currentValue) => accumulator + currentValue;
             if ((this.quote_markers.reduce(reducer) > 0) &&
-                (this.author_indices.length === 0) &&
-                (this.tagging_task === 'sentence')){
+                    (this.author_indices.length === 0) &&
+                    (this.tagging_task === 'sentence')) {
                 alert("Vous avez indiqué la présence d'un citation, mais pas d'auteur. Merci de sélectionner le nom " +
                     "la personne qui est citée. Si la phrase ne contient pas de citation, vous pouvez recommencer en " +
                     "cliquant sur le bouton \"réinitialiser\". ");
+            }else if ((this.quote_markers.reduce(reducer) === 0) &&
+                        (this.author_indices.length > 0) &&
+                        (this.tagging_task === 'sentence')){
+                alert("Vous avez indiqué la présence d'un auteur, mais pas de citation. Merci de sélectionner le " +
+                    "texte qui à été dit par l'auteur. Si la phrase ne contient pas de citation, vous pouvez " +
+                    "recommencer en cliquant sur le bouton \"réinitialiser\". ");
             }else{
                 const that = this;
                 $.ajax({
@@ -453,8 +490,24 @@ export default {
                     this.quote_markers[i] = 1
                 }
                 this.quote_open = false;
+                this.show_author_tip = true;
             }
             this.$forceUpdate();
+        },
+        start_dragging: function (index) {
+            // You can only drag for authors
+            if (this.selecting_author === 1){
+                this.dragging = true;
+                this.tagWord(index)
+            }
+        },
+        stop_dragging: function () {
+            this.dragging = false;
+        },
+        drag_tag: function (index) {
+            if (this.dragging && this.selecting_author === 1) {
+                this.tagWord(index)
+            }
         },
         submit_paragraph: function (tag) {
             this.sentence_tags = new Array(this.text.length);

@@ -1,122 +1,17 @@
 import numpy as np
-from spacy.tokens import Span
+
 
 """
 Contains all methods to extract features from sentences to determine if they contain a quote or not, as well as
 methods to extract features to determine speaker extraction for quotes. 
 """
 
+
 """ The number of features used to detect if a sentence contains reported speech. """
 QUOTE_FEATURES = 9
 
 """ The number of features used to detect if a named entity is the author of reported speech. """
 SPEAKER_FEATURES = 7
-
-
-def is_substring(person, name):
-    """
-    Determines if name is a substring of person.
-
-    :param person: string
-        The complete string.
-    :param name: string
-        The string for which we want to know if it's a substring of person.
-    :return: boolean
-        True iff name is a subtring of person
-    """
-    person_tokens = person.split(' ')
-    name_tokens = name.split(' ')
-    for i in range(len(person_tokens)):
-        j = 0
-        while (i + j) < len(person_tokens) and j < len(name_tokens) and person_tokens[i + j] == name_tokens[j]:
-            j = j + 1
-        if j == len(name_tokens):
-            return True
-    return False
-
-
-def find_full_name(all_people, name):
-    """
-    Determines if name is simply another mention of someone in all_people, or if it's the first mention of someone.
-
-    :param all_people: list(string)
-        The full name of everyone already seen in the document.
-    :param name: string
-        The mention of some person.
-    :return:
-        The full name of the person of it's another mention, or name if it's the first mention.
-    """
-    for person in all_people:
-        if is_substring(person, name):
-            return person
-    return name
-
-
-def correct_hyphen_errors(article):
-    """
-    Corrects an error that spaCy makes (seperates names that contain a hyphen into two named entities).
-
-    :param article: spaCy.Doc
-        The article in which to correct the entities.
-    :return: list(spaCy.Span)
-        The corrected entities.
-    """
-    entities = article.ents
-    corrected_ents = []
-    prev_per_ent = None
-    for ent in entities:
-        if ent.label_ == 'PER':
-            if (prev_per_ent is not None) and \
-                    (prev_per_ent.end_char == ent.start_char - 1) and \
-                    (article.text[prev_per_ent.end_char] == '-'):
-                # Create a new NE for the name with the hyphen
-                merged_ent = Span(article, prev_per_ent.start, ent.end, label="PER")
-                # Remove the last entity and add the new one.
-                corrected_ents[-1] = merged_ent
-            else:
-                corrected_ents.append(ent)
-            prev_per_ent = ent
-        else:
-            corrected_ents.append(ent)
-            prev_per_ent = None
-    return corrected_ents
-
-
-def extract_person_mentions(article):
-    """
-    Finds all mentions of people in the article, and groups them into the same entity.
-
-    :param article: spaCy.Doc
-        The article text in which to find speaker mentions.
-    :return: set(string), list(spaCy.Span), list(string)
-        * A set containing the names of all people in the article
-        * A list of all mentions of people in the article
-        * A list of the full names of all people mentioned
-
-    """
-    # Correct entity splits on hyphens
-    article.ents = correct_hyphen_errors(article)
-    # Extract all mentions of people
-    person_mentions = [ent for ent in article.ents if ent.label_ == 'PER']
-    # Sort from the longest name to the shortest
-    person_mentions.sort(key=lambda x: -len(x.text.split(' ')))
-    # The set of people mentioned in the article (their full name)
-    people = set()
-    # Each mention of a person in the text
-    mentions = []
-    # The full name for each mention
-    full_names = []
-    for mention in person_mentions:
-        mentions.append(mention)
-        if mention.text not in people:
-            full_name = find_full_name(people, mention.text)
-            full_names.append(full_name)
-            if mention.text == full_name:
-                people.add(mention.text)
-        else:
-            full_names.append(mention.text)
-
-    return people, mentions, full_names
 
 
 def extract_quote_features(sentence, cue_verbs, in_quotes):
@@ -197,7 +92,7 @@ def extract_quote_features(sentence, cue_verbs, in_quotes):
     ])
 
 
-def extract_single_speaker_features(article, article_doc, quote_index, other_quotes, speaker, cue_verbs):
+def extract_single_speaker_features(nlp, article, quote_index, other_quotes, speaker, cue_verbs):
     """
     Gets the features for speaker attribution for a single speaker, in the one vs one case. The following features are
     taken, for a quote q and a speaker s where q.sent is the index of the sentence containing the quote, s.start is the
@@ -219,6 +114,8 @@ def extract_single_speaker_features(article, article_doc, quote_index, other_quo
         * Whether s is a subject in the sentence
         * Whether or not s is the descendant of a cue verb
 
+    :param nlp:
+        spaCy.Language The language model used to tokenize the text
     :param article: models.Article
         The article from which the quote and speakers are taken.
     :param quote_index: int
@@ -269,7 +166,7 @@ def extract_single_speaker_features(article, article_doc, quote_index, other_quo
         if s_sent > 0:
             sentence_start = article.sentences['sentences'][s_sent - 1] + 1
         sentence_end = article.sentences['sentences'][s_sent]
-        tokens = article_doc[sentence_start:sentence_end]
+        tokens = nlp(''.join(article.tokens['tokens'][sentence_start:sentence_end + 1]))
         for token in tokens:
             if token.lemma_ in cue_verbs:
                 return True
@@ -285,7 +182,7 @@ def extract_single_speaker_features(article, article_doc, quote_index, other_quo
     ])
 
 
-def extract_speaker_features_ovo(article, article_doc, quote_index, other_quotes, speaker_1, speaker_2, cue_verbs):
+def extract_speaker_features_ovo(nlp, article, quote_index, other_quotes, speaker_1, speaker_2, cue_verbs):
     """
     Gets the features for speaker attribution for a the one vs one case. The following features are taken, for a
     quote q and speakers s1, s2 where q.sent is the index of the sentence containing the quote, s.start is the index of
@@ -321,6 +218,8 @@ def extract_speaker_features_ovo(article, article_doc, quote_index, other_quotes
         * Whether s is a subject in the sentence
         * Whether or not s is the descendant of a cue verb
 
+    :param nlp:
+        spaCy.Language The language model used to tokenize the text
     :param article: models.Article
         The article from which the quote and speakers are taken.
     :param quote_index: int
@@ -341,10 +240,11 @@ def extract_speaker_features_ovo(article, article_doc, quote_index, other_quotes
         quote_start = article.sentences['sentences'][quote_index - 1] + 1
     quote_end = article.sentences['sentences'][quote_index]
     q_in_quotes = article.in_quotes['in_quotes'][quote_start:quote_end + 1]
-    quote_features = extract_quote_features(article_doc[quote_start:quote_end], cue_verbs, q_in_quotes)
+    q_sentence = nlp(''.join(article.tokens['tokens'][quote_start:quote_end + 1]))
+    quote_features = extract_quote_features(q_sentence, cue_verbs, q_in_quotes)
 
-    speaker_1_features = extract_single_speaker_features(article, article_doc, quote_index, other_quotes, speaker_1, cue_verbs)
-    speaker_2_features = extract_single_speaker_features(article, article_doc, quote_index, other_quotes, speaker_2, cue_verbs)
+    speaker_1_features = extract_single_speaker_features(nlp, article, quote_index, other_quotes, speaker_1, cue_verbs)
+    speaker_2_features = extract_single_speaker_features(nlp, article, quote_index, other_quotes, speaker_2, cue_verbs)
     return np.concatenate((quote_features, speaker_1_features, speaker_2_features), axis=0)
 
 

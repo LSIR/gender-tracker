@@ -1,5 +1,6 @@
 import xml.etree.ElementTree as ET
 
+from backend.xml_parsing.named_entity_linking import extract_person_mentions
 
 """ File containing all methods to parse XML files into representations that can be stored in the database. """
 
@@ -128,8 +129,6 @@ def process_article(article_text, nlp):
     paragraph_indices = []
     # A list of indices of tokens at which sentences end
     sentence_indices = []
-    # A list of all PER named entities in the article, stored as (start_token_index, end_token_index)
-    people_indices = []
     # A list of all quotation mark indices in the article
     in_quote = 0
     in_quotes = []
@@ -139,7 +138,6 @@ def process_article(article_text, nlp):
     # The sentence index at which the previous paragraph ended
     prev_par_index = -1
     for p in paragraphs:
-        people_indices += extract_people(p, prev_sent_index + 1)
         for s in p.sents:
             for token in s:
                 in_quotes.append(in_quote)
@@ -154,11 +152,14 @@ def process_article(article_text, nlp):
             prev_par_index += 1
         paragraph_indices.append(prev_par_index)
 
+    people, mentions_found = extract_person_mentions(paragraphs)
+
     return {
         'name': article_name,
         'tokens': article_tokens,
         'p': paragraph_indices,
         's': sentence_indices,
-        'people': people_indices,
+        'people': people,
+        'mentions': mentions_found,
         'in_quotes': in_quotes,
     }

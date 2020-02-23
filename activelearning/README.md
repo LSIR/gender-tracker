@@ -143,8 +143,14 @@ Articles are represented by a database containing the following fields:
     * The xml file in the form of a string.
 * _people_:
     * json file
-        * keys: {people: list(string)}
-    * A list of names found in the article.
+        * keys: {people: set(string), 'mentions': list(dict)}
+    * 'people': A set of names found in the article.
+    * 'mentions': A dict containing all 'PER' named entities in the article (named entities representing people), 
+    with keys:
+        * 'name': string. The string of the named entity.
+        * 'full_name': The longest version of the name, as found in the article.
+        * 'start': The index of the first token of this mention.
+        * 'end': The index of the last token of this mention.
 * _tokens_:
     * json file
         * keys: {tokens: list(string)}

@@ -35,22 +35,20 @@ def find_true_author_index(true_author, mentions):
     """
     reported_start = true_author[0]
     reported_end = true_author[-1]
-    for index, m in enumerate(mentions):
-        # (m.end - 1) as m.end is the index of the first token after the span, and
-        # reported_start is the first token of the reported author
-        if m.start <= reported_end and (m.end - 1) >= reported_start:
+    for index, (m_start, m_end) in enumerate(mentions):
+        if m_start <= reported_end and m_end >= reported_start:
             return index
     return -1
 
 
-def create_input_matrix(articles, article_docs, sentence_ids, labels, cue_verbs):
+def create_input_matrix(nlp, articles, sentence_ids, labels, cue_verbs):
     """
     Creates the input matrix from the raw data.
 
+    :param nlp:
+        spaCy.Language The language model used to tokenize the text
     :param articles: list(Article)
         A list of fully labeled articles
-    :param article_docs: list(spacy.Doc)
-        A list of of the docs for the fully labeled articles.
     :param sentence_ids: list(list(int))
         A list of sentences containing quotes that are in the training set, for each article in the articles list
     :param labels: list(list(list(int)))
@@ -64,8 +62,7 @@ def create_input_matrix(articles, article_docs, sentence_ids, labels, cue_verbs)
     # The index of the true mention in the article
     true_mention_indices = None
     for i, article in enumerate(articles):
-        article_doc = article_docs[i]
-        people, mentions, full_names = extract_person_mentions(article_doc)
+        people, mentions, full_names = extract_person_mentions(article)
         for j, sent_index in enumerate(sentence_ids[i]):
             # List of indices of the tokens of the true author of the quote
             true_author = labels[i][j]
@@ -88,7 +85,7 @@ def create_input_matrix(articles, article_docs, sentence_ids, labels, cue_verbs)
                     s2 = mentions[true_mention_index]
                     label = np.array([1])
 
-                features = extract_speaker_features_ovo(article, article_doc, sent_index, other_quotes, s1, s2, cue_verbs)
+                features = extract_speaker_features_ovo(nlp, article, sent_index, other_quotes, s1, s2, cue_verbs)
                 features = features.reshape(1, -1)
                 true_index = np.array([true_mention_index])
                 if X is None:
@@ -106,16 +103,16 @@ def create_input_matrix(articles, article_docs, sentence_ids, labels, cue_verbs)
     return X, y, true_mention_indices
 
 
-def train_ovo_quote_attribution(model, articles, article_docs, sentence_ids, labels, cue_verbs):
+def train_ovo_quote_attribution(model, nlp, articles, sentence_ids, labels, cue_verbs):
     """
     Trains a classifier to choose which speaker between two of them are more likely.
 
     :param model: string
         The model to use for classification. One of {'L1 logistic', 'L2 logistic', 'Linear SVC'}.
+    :param nlp:
+        spaCy.Language The language model used to tokenize the text
     :param articles: list(Article)
         A list of fully labeled articles
-    :param article_docs: list(spacy.Doc)
-        A list of of the docs for the fully labeled articles.
     :param sentence_ids: list(list(int))
         A list of sentences containing quotes that are in the training set, for each article in the articles list
     :param labels: list(list(list(int)))
@@ -125,7 +122,7 @@ def train_ovo_quote_attribution(model, articles, article_docs, sentence_ids, lab
     :return: sklearn.linear_model
         The trained model to predict probabilities for sentences.
     """
-    X, y, _ = create_input_matrix(articles, article_docs, sentence_ids, labels, cue_verbs)
+    X, y, _ = create_input_matrix(nlp, articles, sentence_ids, labels, cue_verbs)
     poly = PolynomialFeatures(2, interaction_only=True)
     X = poly.fit_transform(X)
     classifier = CLASSIFIERS[model]
@@ -133,16 +130,16 @@ def train_ovo_quote_attribution(model, articles, article_docs, sentence_ids, lab
     return classifier
 
 
-def evaluate_ovo_quote_attribution(articles, article_docs, sentence_ids, labels, cue_verbs, cv_folds=5):
+def evaluate_ovo_quote_attribution(nlp, articles, sentence_ids, labels, cue_verbs, cv_folds=5):
     """
     Evaluates different classifiers for one vs one speaker prediction. This is the performance of the model when
     it's given two quotes (the true span that is the author of the quote and a negative sample) and has to choose which
     one is the true speaker.
 
+    :param nlp:
+        spaCy.Language The language model used to tokenize the text
     :param articles: list(Article)
         A list of fully labeled articles
-    :param article_docs: list(spacy.Doc)
-        A list of of the docs for the fully labeled articles.
     :param sentence_ids: list(list(int))
         A list of sentences containing quotes that are in the training set, for each article in the articles list
     :param labels: list(list(list(int)))
@@ -153,7 +150,7 @@ def evaluate_ovo_quote_attribution(articles, article_docs, sentence_ids, labels,
         The number of folds in cross-validation.
     :return:
     """
-    X, y, _ = create_input_matrix(articles, article_docs, sentence_ids, labels, cue_verbs)
+    X, y, _ = create_input_matrix(nlp, articles, sentence_ids, labels, cue_verbs)
     poly = PolynomialFeatures(2, interaction_only=True)
     X = poly.fit_transform(X)
     model_scores = {}
@@ -167,16 +164,16 @@ def evaluate_ovo_quote_attribution(articles, article_docs, sentence_ids, labels,
     return model_scores
 
 
-def predict_speakers(trained_model, articles, article_docs, sentence_ids, cue_verbs):
+def predict_speakers(trained_model, nlp, articles, sentence_ids, cue_verbs):
     """
     Computes probabilities that each sentence contains a quote.
 
     :param trained_model: sklearn.linear_model
         A trained model to predict probabilities for sentences.
+    :param nlp:
+        spaCy.Language The language model used to tokenize the text
     :param articles: list(Article)
         A list of articles
-    :param article_docs: list(spacy.Doc)
-        A list of of the docs for the articles.
     :param sentence_ids: list(list(int))
         A list of sentences containing quotes, for each article in the articles list
     :param cue_verbs: list(string)
@@ -189,15 +186,14 @@ def predict_speakers(trained_model, articles, article_docs, sentence_ids, cue_ve
     poly = PolynomialFeatures(2, interaction_only=True)
     for i, article in enumerate(articles):
         article_speakers = []
-        article_doc = article_docs[i]
-        people, mentions, full_names = extract_person_mentions(article_doc)
+        people, mentions, full_names = extract_person_mentions(article)
         for j, sent_index in enumerate(sentence_ids[i]):
             mentions_wins = len(mentions) * [0]
             other_quotes = sentence_ids[i][:j] + sentence_ids[i][j + 1:]
             for s1_index, s1 in enumerate(mentions):
                 for s2_index, s2 in enumerate(mentions):
                     if s1_index != s2_index:
-                        features = extract_speaker_features_ovo(article, article_doc, sent_index, other_quotes, s1, s2, cue_verbs)
+                        features = extract_speaker_features_ovo(nlp, article, sent_index, other_quotes, s1, s2, cue_verbs)
                         features = features.reshape(1, -1)
                         features = poly.fit_transform(features)
                         prediction = trained_model.predict_proba(features)
@@ -210,16 +206,16 @@ def predict_speakers(trained_model, articles, article_docs, sentence_ids, cue_ve
     return np.array(mention_indices), speakers
 
 
-def evaluate_speaker_prediction(articles, article_docs, sentence_ids, labels, cue_verbs, cv_folds=5):
+def evaluate_speaker_prediction(nlp, articles, sentence_ids, labels, cue_verbs, cv_folds=5):
     """
     Evaluates different classifiers, and returns their performance.
 
     Creates the input matrix from the raw data.
 
+    :param nlp:
+        spaCy.Language The language model used to tokenize the text
     :param articles: list(Article)
         A list of fully labeled articles
-    :param article_docs: list(spacy.Doc)
-        A list of of the docs for the fully labeled articles.
     :param sentence_ids: list(list(int))
         A list of sentences containing quotes that are in the training set, for each article in the articles list
     :param labels: list(list(list(int)))
@@ -230,7 +226,7 @@ def evaluate_speaker_prediction(articles, article_docs, sentence_ids, labels, cu
         The number of folds in cross-validation.
     :return:
     """
-    X, y, true_mention_indices = create_input_matrix(articles, article_docs, sentence_ids, labels, cue_verbs)
+    X, y, true_mention_indices = create_input_matrix(nlp, articles, sentence_ids, labels, cue_verbs)
     poly = PolynomialFeatures(2, interaction_only=True)
     X = poly.fit_transform(X)
     kf = KFold(n_splits=cv_folds)
@@ -241,7 +237,7 @@ def evaluate_speaker_prediction(articles, article_docs, sentence_ids, labels, cu
         for train, test in kf.split(X):
             X_train, X_test, y_train, y_test = X[train], X[test], y[train], y[test]
             classifier.fit(X_train, y_train)
-            mention_indices, _ = predict_speakers(classifier, articles, article_docs, sentence_ids, cue_verbs)
+            mention_indices, _ = predict_speakers(classifier, nlp, articles, sentence_ids, cue_verbs)
 
             train_labels = true_mention_indices[train]
             train_predictions = mention_indices[train]

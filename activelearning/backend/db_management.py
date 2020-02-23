@@ -123,7 +123,10 @@ def add_article_to_db(path, nlp, source, admin_article=False):
     return Article.objects.create(
         name=data['name'],
         text=article_text,
-        people={'people': data['people']},
+        people={
+            'people': data['people'],
+            'mentions': data['mentions'],
+        },
         tokens={'tokens': data['tokens']},
         paragraphs={'paragraphs': data['p']},
         sentences={'sentences': data['s']},

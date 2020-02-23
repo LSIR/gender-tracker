@@ -143,8 +143,8 @@ Articles are represented by a database containing the following fields:
     * The xml file in the form of a string.
 * _people_:
     * json file
-        * keys: {people: set(string), 'mentions': list(dict)}
-    * 'people': A set of names found in the article.
+        * keys: {people: list(string), 'mentions': list(dict)}
+    * 'people': A list of people (their full names) found in the article.
     * 'mentions': A dict containing all 'PER' named entities in the article (named entities representing people), 
     with keys:
         * 'name': string. The string of the named entity.

@@ -50,15 +50,15 @@ class Command(BaseCommand):
 
             print('\nEvaluating quote attribution...')
             print('\n  One vs One scores:')
-            articles, article_docs, train_ids, train_labels, test_ids, test_labels = load_quote_authors(nlp)
-            model_scores = evaluate_ovo_quote_attribution(articles, article_docs, train_ids, train_labels, cue_verbs)
+            articles, train_ids, train_labels, test_ids, test_labels = load_quote_authors()
+            model_scores = evaluate_ovo_quote_attribution(nlp, articles, train_ids, train_labels, cue_verbs)
             for name, score in model_scores.items():
                 print(f'\n\n    Model: {name}\n'
                       f'      Accuracy:  {score["test_accuracy"]}\n'
                       f'      Precision: {score["test_precision_macro"]}\n'
                       f'      F1:        {score["test_f1_macro"]}\n')
             print('\n  Correct Speaker Precision:')
-            model_scores = evaluate_speaker_prediction(articles, article_docs, train_ids, train_labels, cue_verbs)
+            model_scores = evaluate_speaker_prediction(nlp, articles, train_ids, train_labels, cue_verbs)
             for name, score in model_scores.items():
                 print(f'\n\n    Model: {name}\n'
                       f'        Training:  {score["training"]}\n'

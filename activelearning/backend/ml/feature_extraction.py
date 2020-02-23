@@ -10,9 +10,6 @@ methods to extract features to determine speaker extraction for quotes.
 """ The number of features used to detect if a sentence contains reported speech. """
 QUOTE_FEATURES = 9
 
-""" The number of features used to detect if a named entity is the author of reported speech. """
-SPEAKER_FEATURES = 7
-
 
 def extract_quote_features(sentence, cue_verbs, in_quotes):
     """
@@ -122,16 +119,15 @@ def extract_single_speaker_features(nlp, article, quote_index, other_quotes, spe
         The index of the sentence containing a quote in the article.
     :param other_quotes: list(int)
         The index of other sentences containing quotes in the article.
-    :param speaker: spaCy.Span
-        The span of the speaker.
+    :param speaker: dict.
+        The speaker. Has keys 'name', 'full_name', 'start', 'end', as described in the database.
     :param cue_verbs: list(string).
         The sentence to extract features from.
     :return: np.array
         The features extracted
     """
     s_sent = 0
-    # The '-  1' is due to speaker.end being the first token after the span
-    while s_sent < len(article.sentences['sentences']) and article.sentences['sentences'][s_sent] < speaker.end - 1:
+    while s_sent < len(article.sentences['sentences']) and article.sentences['sentences'][s_sent] < speaker['end']:
         s_sent = s_sent + 1
 
     s_par = 0
@@ -159,7 +155,7 @@ def extract_single_speaker_features(nlp, article, quote_index, other_quotes, spe
                 quotes_above += 1
         return quotes_above
 
-    speaker_in_quotes = article.in_quotes['in_quotes'][speaker.end - 1]
+    speaker_in_quotes = article.in_quotes['in_quotes'][speaker['end']]
 
     def speaker_with_cue_verb():
         sentence_start = 0
@@ -182,13 +178,15 @@ def extract_single_speaker_features(nlp, article, quote_index, other_quotes, spe
     ])
 
 
-def extract_speaker_features_ovo(nlp, article, quote_index, other_quotes, speaker_1, speaker_2, cue_verbs):
+def extract_speaker_features(nlp, article, quote_index, other_quotes, cue_verbs):
     """
-    Gets the features for speaker attribution for a the one vs one case. The following features are taken, for a
-    quote q and speakers s1, s2 where q.sent is the index of the sentence containing the quote, s.start is the index of
-    the first token of the speaker s, s.end of the last, and s.sent is the index.
+    Gets the features for speaker attribution for a the one vs one case for a given quote. The features are created for
+    for all pairs of speakers in the article.
 
-    # TODO: For q
+    The following features are taken, for a quote q and speakers s1, s2 where q.sent is the index of the sentence
+    containing the quote, s.start is the index of the first token of the speaker s, s.end of the last, and s.sent is
+    the index.
+
     For q:
         * The length of the sentence.
         * Whether it contains quotation marks.
@@ -218,23 +216,23 @@ def extract_speaker_features_ovo(nlp, article, quote_index, other_quotes, speake
         * Whether s is a subject in the sentence
         * Whether or not s is the descendant of a cue verb
 
-    :param nlp:
-        spaCy.Language The language model used to tokenize the text
+    :param nlp: spaCy.Language
+        The language model used to tokenize the text
     :param article: models.Article
         The article from which the quote and speakers are taken.
     :param quote_index: int
         The index of the sentence containing a quote in the article.
     :param other_quotes: list(int)
         The index of other sentences containing quotes in the article.
-    :param speaker_1: spaCy.Span
-        The span of the first speaker.
-    :param speaker_2: spaCy.Span
-        The span of the second speaker.
     :param cue_verbs: list(string).
         The sentence to extract features from.
     :return: np.array
-        The features extracted
+        The features extracted. The array is of shape (m, m, d), where m is the number of mentions in the article and d
+        is the number of features in a feature vector. The element [i, j, :] of the array is the feature vector for
+        for the given quote index and mentions[i], mentions[j].
     """
+    mentions = article.people['mentions']
+
     quote_start = 0
     if quote_index > 0:
         quote_start = article.sentences['sentences'][quote_index - 1] + 1
@@ -243,9 +241,22 @@ def extract_speaker_features_ovo(nlp, article, quote_index, other_quotes, speake
     q_sentence = nlp(''.join(article.tokens['tokens'][quote_start:quote_end + 1]))
     quote_features = extract_quote_features(q_sentence, cue_verbs, q_in_quotes)
 
-    speaker_1_features = extract_single_speaker_features(nlp, article, quote_index, other_quotes, speaker_1, cue_verbs)
-    speaker_2_features = extract_single_speaker_features(nlp, article, quote_index, other_quotes, speaker_2, cue_verbs)
-    return np.concatenate((quote_features, speaker_1_features, speaker_2_features), axis=0)
+    speaker_features = []
+    for s in mentions:
+        s_features = extract_single_speaker_features(nlp, article, quote_index, other_quotes, s, cue_verbs)
+        speaker_features.append(s_features)
+
+    dim = len(quote_features) + 2 * len(speaker_features[0])
+    features = np.zeros((len(mentions), len(mentions), dim))
+    for s1_index, s1 in enumerate(mentions):
+        for s2_index, s2 in enumerate(mentions):
+            if s1_index != s2_index:
+                s1_features = speaker_features[s1_index]
+                s2_features = speaker_features[s2_index]
+                s1_s2_features = np.concatenate((quote_features, s1_features, s2_features), axis=0)
+                features[s1_index, s2_index, :] = s1_s2_features
+
+    return features
 
 
 def extract_speaker_features_complex(p_ends, s_ends, quote_index, other_quotes,

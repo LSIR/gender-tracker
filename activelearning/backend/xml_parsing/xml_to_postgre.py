@@ -79,22 +79,6 @@ def extract_people(doc, start_index):
     return people
 
 
-def parse_text(article_text, nlp):
-    """
-    Parses an xml string into a spaCy doc for the full text.
-
-    :param article_text: string.
-        The article in XML format stored as a string
-    :param nlp:
-        spaCy.Language The language model used to tokenize the text
-    :return: spaCy.Doc
-        The parsed article text.
-    """
-    root = ET.fromstring(article_text)
-    full_text = '\n'.join(extract_paragraphs(root))
-    return nlp(full_text)
-
-
 def process_article(article_text, nlp):
     """
     Processes an article stored as an XML file, and returns all the information necessary

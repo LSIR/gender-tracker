@@ -1,5 +1,5 @@
 import numpy as np
-from backend.ml.feature_extraction import extract_quote_features, QUOTE_FEATURES
+from backend.ml.feature_extraction import extract_quote_features
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from sklearn.model_selection import cross_validate
@@ -11,9 +11,9 @@ from sklearn.preprocessing import PolynomialFeatures
 
 """ The model to use to classify """
 CLASSIFIERS = {
-    'L1 logistic': LogisticRegression(C=2, penalty='l1', solver='liblinear', max_iter=10000, multi_class='ovr'),
-    'L2 logistic': LogisticRegression(C=2, penalty='l2', solver='liblinear', max_iter=10000, multi_class='ovr'),
-    'Linear SVC': SVC(kernel='linear', C=2, probability=True, random_state=0),
+    'L1 logistic': LogisticRegression(C=0.5, penalty='l1', solver='liblinear', max_iter=10000, multi_class='ovr'),
+    'L2 logistic': LogisticRegression(C=0.5, penalty='l2', solver='liblinear', max_iter=10000, multi_class='ovr'),
+    'Linear SVC': SVC(kernel='linear', C=0.5, probability=True, random_state=0),
 }
 
 
@@ -30,10 +30,13 @@ def create_input_matrix(sentences, cue_verbs, in_quotes):
     :return: np.array
         The input matrix X, with shape: len(sentences) x QUOTE_FEATURES
     """
-    X = np.zeros((len(sentences), QUOTE_FEATURES))
+    X = None
     for i, s in enumerate(sentences):
-        feature_vector = extract_quote_features(s, cue_verbs, in_quotes[i])
-        X[i, :] = feature_vector
+        feature_vector = extract_quote_features(s, cue_verbs, in_quotes[i]).reshape(1, -1)
+        if X is None:
+            X = feature_vector
+        else:
+            X = np.concatenate((X, feature_vector), axis=0)
     return X
 
 

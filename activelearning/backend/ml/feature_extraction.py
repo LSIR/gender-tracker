@@ -7,27 +7,21 @@ methods to extract features to determine speaker extraction for quotes.
 """
 
 
-""" The number of features used to detect if a sentence contains reported speech. """
-QUOTE_FEATURES = 9
-
-
 def extract_quote_features(sentence, cue_verbs, in_quotes):
     """
     Gets features for possible elements in the sentence that can hint to it having a quote:
         * The length of the sentence.
         * Whether it contains quotation marks.
-        * If the sentence contains quotation marks:
             * The number of tokens between them.
-            * TODO: What if there are multiple quotes in the sentence?
-                * Have a fixed number of entries like "tokens between first, second, and third quotes" and most of the
-                time second and third are empty?
-        * Whether it contains a named entity that is a person.
+        * Whether it contains a named entity.
+        * Whether it contains a 'person' named entity.
         * Whether it contains a verb in the verb-cue list.
         * Presence of a parataxis.
-        * Presence of multiple verbs.
-        * TODO: Presence of a verb in between quotes
+        * Number of verbs.
+        * Presence of a verb in between quotes
         * Is the whole sentence in between quotes
         * The proportion of tokens in the sentence that are between quotes
+        * If the sentence contains the word 'selon'
 
     :param sentence: spaCy.doc.
         The sentence to extract features from.
@@ -38,22 +32,13 @@ def extract_quote_features(sentence, cue_verbs, in_quotes):
     :return: np.array
         The features extracted.
     """
-    contains_quote = int('"' in sentence.text)
+    sentence_length = len(sentence)
 
-    def tokens_inside_quote():
-        tokens_inside = 0
-        start_mark_seen = False
-        end_mark_seen = False
-        for token in sentence:
-            if not start_mark_seen and token.text == '"':
-                start_mark_seen = True
-            elif start_mark_seen and not end_mark_seen and token.text == '"':
-                end_mark_seen = True
-            elif start_mark_seen and not end_mark_seen:
-                tokens_inside += 1
-        return tokens_inside
+    contains_quote = int('"' in sentence.text)
+    tokens_inside_quote = sum(in_quotes)
 
     contains_named_entity = int(len(sentence.ents) > 0)
+    contains_per_named_entity = int(len([ne for ne in sentence.ents if ne.label_ == 'PER']) > 0)
 
     def contains_cue_verb():
         for token in sentence:
@@ -73,19 +58,42 @@ def extract_quote_features(sentence, cue_verbs, in_quotes):
                 return 1
         return 0
 
+    def number_of_verbs():
+        verbs = 0
+        for token in sentence:
+            if token.pos_ == 'VERB':
+                verbs += 1
+        return verbs
+
+    def verb_inside_quotes():
+        for index, token in enumerate(sentence):
+            if token.pos_ == 'VERB' and in_quotes[index] == 1:
+                return 1
+        return 0
+
     sentence_inside_quotes = int(len(in_quotes) == sum(in_quotes))
     inside_quote_proportion = sum(in_quotes)/len(in_quotes)
 
+    def contains_selon():
+        for token in sentence:
+            if token.text.lower() == 'selon':
+                return True
+        return False
+
     return np.array([
-        len(sentence),
+        sentence_length,
         contains_quote,
-        tokens_inside_quote(),
+        tokens_inside_quote,
         contains_named_entity,
+        contains_per_named_entity,
         contains_cue_verb(),
         contains_pronoun(),
         contains_parataxis(),
+        number_of_verbs(),
+        verb_inside_quotes(),
         sentence_inside_quotes,
-        inside_quote_proportion
+        inside_quote_proportion,
+        contains_selon(),
     ])
 
 

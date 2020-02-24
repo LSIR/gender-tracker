@@ -142,4 +142,6 @@ def predict_quotes(trained_model, sentences, cue_verbs, in_quotes):
         The probability for each sentence.
     """
     X = create_input_matrix(sentences, cue_verbs, in_quotes)
+    poly = PolynomialFeatures(2, interaction_only=True)
+    X = poly.fit_transform(X)
     return trained_model.predict_proba(X)[:, 1]

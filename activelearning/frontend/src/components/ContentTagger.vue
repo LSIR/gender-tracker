@@ -457,9 +457,36 @@ export default {
             this.$forceUpdate();
         },
         submit_paragraph: function (tag) {
-            this.sentence_tags = new Array(this.text.length);
-            this.sentence_tags.fill(tag);
-            this.submitTags();
+            const sentence_tags = new Array(this.text.length);
+            sentence_tags.fill(tag);
+            const that = this;
+            $.ajax({
+                type: 'POST',
+                url: '/api/submitTags/',
+                data: JSON.stringify({
+                    'article_id': that.article_id,
+                    'sentence_id': that.sentence_id,
+                    'first_sentence': that.first_sentence,
+                    'last_sentence': that.last_sentence,
+                    'tags': sentence_tags,
+                    'authors': [],
+                    'task': that.tagging_task,
+                }),
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                success: function (response) {
+                    if (response['success'] === true){
+                        that.loadContent()
+                    }else if (response['reason'] === 'cookies'){
+                        that.task = 'cookies'
+                    }else{
+                        that.task = 'error'
+                    }
+                },
+                error: function () {
+                    that.task = 'error'
+                }
+            });
         },
         button_color: function (index) {
             if (this.author_indices.includes(index)){

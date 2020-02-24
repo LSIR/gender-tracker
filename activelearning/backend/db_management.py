@@ -199,7 +199,8 @@ def request_labelling_task(session_id):
             # For high enough confidences, annotate the whole paragraph
             if min_conf >= CONFIDENCE_THRESHOLD \
                     and labeled[prev_par_end + 1] == 0 \
-                    and (prev_par_end + 1) not in annotated_sentences:
+                    and (prev_par_end + 1) not in annotated_sentences\
+                    and p - prev_par_end > 2:
                 return form_paragraph_json(article, i)
 
             # For all sentences in the paragraph, check if they can be annotated by the user

@@ -42,7 +42,7 @@ class Command(BaseCommand):
             train_sentences, train_labels, train_in_quotes, _, _, _ = load_sentence_labels(nlp)
 
             print('Loading cue verbs...')
-            with open('../data/cue_verbs.csv', 'r') as f:
+            with open('data/cue_verbs.csv', 'r') as f:
                 reader = csv.reader(f)
                 cue_verbs = set(list(reader)[0])
 

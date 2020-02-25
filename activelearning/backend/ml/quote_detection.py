@@ -1,5 +1,7 @@
 import numpy as np
 from backend.ml.feature_extraction import extract_quote_features
+from backend.ml.helpers import balance_classes
+
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from sklearn.model_selection import cross_validate
@@ -38,36 +40,6 @@ def create_input_matrix(sentences, cue_verbs, in_quotes):
         else:
             X = np.concatenate((X, feature_vector), axis=0)
     return X
-
-
-def balance_classes(X, y):
-    """
-    Given the input matrices for an unbalanced classification task (where one class is present much more often than the
-    other in the data), balances the classes so they both have the same number of samples by sub-sampling from the class
-    that's more present.
-
-    :param X: np.ndarray
-        The input vectors.
-    :param y: np.ndarray
-        The labels.
-    :return: np.ndarray, np.ndarray
-        X, y: the input vectors and labels.
-    """
-    # Indices where the label is 0 (no reported speech is present)
-    is_not_quote = (y == 0).nonzero()[0]
-    # Indices where the label is 1 (reported speech is present)
-    is_quote = (y == 1).nonzero()[0]
-    # Takes random indices from the class most present, and all indices from the one least present
-    if len(is_quote) < len(is_not_quote):
-        subsample = np.random.choice(is_not_quote, size=len(is_quote), replace=False)
-        indices = np.sort(np.concatenate((subsample, is_quote)))
-    else:
-        subsample = np.random.choice(is_quote, size=len(is_not_quote), replace=False)
-        indices = np.sort(np.concatenate((subsample, is_not_quote)))
-    # Only keeps some of the values
-    sampled_y = np.take(y, indices)
-    sampled_X = np.take(X, indices, axis=0)
-    return sampled_X, sampled_y
 
 
 def evaluate_quote_detection(sentences, labels, cue_verbs, in_quotes, cv_folds=5):

@@ -1,15 +1,16 @@
 import numpy as np
 
-from backend.ml.feature_extraction import extract_quote_features, extract_single_speaker_features
-from backend.ml.helpers import find_true_author_index, parse_sentence, balance_classes
+from backend.ml.feature_extraction import extract_ovo_features
+from backend.ml.helpers import find_true_author_index
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
-from sklearn.model_selection import cross_validate, KFold
+from sklearn.model_selection import KFold
 from sklearn.preprocessing import PolynomialFeatures
+from sklearn.metrics import precision_recall_fscore_support
 
 
-""" File containing all methods to build a model for one vs all quote attribution. """
+""" File containing all methods to build a model for one vs one quote attribution. """
 
 
 """ The models used for quote attribution """
@@ -48,37 +49,36 @@ def create_article_features(nlp, article_dict, cue_verbs):
         true_author = article_dict['authors'][i]
         true_mention_index = find_true_author_index(true_author, mentions)
 
-        # Create features for all mentions in the article
-        other_quotes = article_dict['quotes'][:i] + article_dict['quotes'][i + 1:]
-
-        q_doc, q_in_quotes = parse_sentence(nlp, article_dict['article'], sent_index)
-        quote_features = extract_quote_features(q_doc, cue_verbs, q_in_quotes)
-
         # Create features for all speakers in the article
-        for index, mention in enumerate(mentions):
-            ne_features = extract_single_speaker_features(nlp, article_dict['article'], sent_index, other_quotes,
-                                                          mention, cue_verbs)
-            features = np.concatenate((quote_features, ne_features), axis=0).reshape(1, -1)
+        other_quotes = article_dict['quotes'][:i] + article_dict['quotes'][i + 1:]
+        q_attribution_features = extract_ovo_features(nlp, article_dict['article'], i, other_quotes, cue_verbs)
 
-            label = np.array([0])
-            if index == true_mention_index:
-                label = np.array([1])
+        all_features = []
+        labels = []
 
-            if X is None:
-                X = features
-                y = label
+        for neg_sample_index in range(len(mentions)):
+            # If the negative sample is equal to the true author, replace it with the weasel feature.
+            if neg_sample_index == true_mention_index:
+                neg_sample_index = len(mentions)
+
+            if np.random.random() > 0.5:
+                # Speaker 1 is the true speaker
+                features = q_attribution_features[true_mention_index, neg_sample_index, :]
+                label = 0
             else:
-                X = np.concatenate((X, features), axis=0)
-                y = np.concatenate((y, label), axis=0)
+                # Speaker 2 is the true speaker
+                features = q_attribution_features[neg_sample_index, true_mention_index, :]
+                label = 1
 
-        # Create weasel feature:
-        weasel_feature = np.zeros((1, X.shape[1]))
-        weasel_feature[0, :len(quote_features)] = quote_features
-        label = np.array([0])
-        if true_mention_index == -1:
-            label = np.array([1])
-        X = np.concatenate((X, weasel_feature), axis=0)
-        y = np.concatenate((y, label), axis=0)
+            all_features.append(features)
+            labels.append(label)
+
+        if X is None:
+            X = np.array(all_features)
+            y = np.array(labels)
+        else:
+            X = np.concatenate((X, np.array(all_features)), axis=0)
+            y = np.concatenate((y, np.array(labels)), axis=0)
 
     return X, y
 
@@ -117,37 +117,11 @@ def create_input_matrix(nlp, data, cue_verbs):
     return X, y
 
 
-def train_quote_attribution(model, nlp, data, cue_verbs):
+def evaluate_ovo_quote_attribution(nlp, data, cue_verbs, cv_folds=5):
     """
-    Trains a classifier to learn if a speaker is likely to be the author of a quote or not.
-
-    :param model: string
-        The model to use for classification. One of {'L1 logistic', 'L2 logistic', 'Linear SVC'}.
-    :param nlp: spaCy.Language
-        The language model used to tokenize the text
-    :param data: list(dict)
-        A list of dicts containing information about fully labeled articles. Keys:
-            * 'article': models.Article, the article containing the quote
-            * 'quotes': list(int), the indices of sentences that contain quotes in the article.
-            * 'author': list(list(int)), the indices of the tokens of the author for each quote.
-    :param cue_verbs: list(string)
-        The list of all "cue verbs", which are verbs that often introduce reported speech.
-    :return: sklearn.linear_model
-        The trained model to predict probabilities for sentences.
-    """
-    X, y = create_input_matrix(nlp, data, cue_verbs)
-    X, y = balance_classes(X, y)
-    poly = PolynomialFeatures(2, interaction_only=True)
-    X = poly.fit_transform(X)
-    classifier = CLASSIFIERS[model]
-    classifier.fit(X, y)
-    return classifier
-
-
-def evaluate_quote_attribution(nlp, data, cue_verbs, cv_folds=5):
-    """
-    Evaluates different classifiers for one vs all speaker prediction. This is the performance of the model when
-    it's given on speaker and has to predict if it's the true speaker or not.
+    Evaluates different classifiers for one vs one speaker prediction. This is the performance of the model when
+    it's given two speakers (the true span that is the author of the quote and a negative sample) and has to choose which
+    one is the true speaker.
 
     :param nlp: spaCy.Language
         The language model used to tokenize the text
@@ -166,20 +140,105 @@ def evaluate_quote_attribution(nlp, data, cue_verbs, cv_folds=5):
             * keys: 'test_accuracy', 'test_precision_macro', 'test_f1_macro'
             * values: the (test) accuracy/precision/f1 score.
     """
-    X, y = create_input_matrix(nlp, data, cue_verbs)
-    X, y = balance_classes(X, y)
+    kf = KFold(n_splits=cv_folds)
     poly = PolynomialFeatures(2, interaction_only=True)
-    X = poly.fit_transform(X)
+
+    print('        Loading data')
+    article_features = np.array([create_article_features(nlp, article, cue_verbs) for article in data])
+
     model_scores = {}
     for name, classifier in CLASSIFIERS.items():
-        scoring = ['accuracy', 'precision_macro', 'f1_macro']
-        # Returns scores for each split in a numpy array
-        results = cross_validate(classifier, X, y, cv=cv_folds, scoring=scoring)
-        # Change score for each split into average score
-        results = {key: round(sum(val) / len(val), 3) for key, val in results.items()}
-        model_scores[name] = results
+
+        print(f'        Evaluating {name}')
+
+        model_scores[name] = {
+            'train_precision': 0,
+            'train_recall': 0,
+            'train_f1': 0,
+            'test_precision': 0,
+            'test_recall': 0,
+            'test_f1': 0,
+        }
+
+        folds = 0
+        for train, test in kf.split(data):
+            print(f'          Fold {folds}')
+            folds += 1
+
+            print(f'            Seperating into train and test ({len(train)} train, {len(test)} test articles)')
+            train_data, test_data = article_features[train], article_features[test]
+
+            X_train = None
+            y_train = None
+            for a in train_data:
+                if X_train is None:
+                    X_train = a[0]
+                    y_train = a[1]
+                else:
+                    X_train = np.concatenate((X_train, a[0]), axis=0)
+                    y_train = np.concatenate((y_train, a[1]), axis=0)
+
+            X_test = None
+            y_test = None
+            for a in test_data:
+                if X_test is None:
+                    X_test = a[0]
+                    y_test = a[1]
+                else:
+                    X_test = np.concatenate((X_test, a[0]), axis=0)
+                    y_test = np.concatenate((y_test, a[1]), axis=0)
+
+            print('            Feature Expansion')
+            X_train = poly.fit_transform(X_train)
+            X_test = poly.fit_transform(X_test)
+
+            print('            Training')
+            classifier.fit(X_train, y_train)
+
+            print('            Evaluating')
+            y_train_pred = classifier.predict(X_train)
+            y_test_pred = classifier.predict(X_test)
+
+            train_p, train_r, train_f, _ = precision_recall_fscore_support(y_train, y_train_pred, average='macro')
+            test_p, test_r, test_f, _ = precision_recall_fscore_support(y_test, y_test_pred, average='macro')
+
+            model_scores[name]['train_precision'] += train_p
+            model_scores[name]['train_recall'] += train_r
+            model_scores[name]['train_f1'] += train_f
+            model_scores[name]['test_precision'] += test_p
+            model_scores[name]['test_recall'] += test_r
+            model_scores[name]['test_f1'] += test_f
+
+        for key in model_scores[name].keys():
+            model_scores[name][key] = round(model_scores[name][key]/cv_folds, 3)
 
     return model_scores
+
+
+def train_ovo_quote_attribution(model, nlp, data, cue_verbs):
+    """
+    Trains a classifier to choose which speaker between two of them are more likely.
+
+    :param model: string
+        The model to use for classification. One of {'L1 logistic', 'L2 logistic', 'Linear SVC'}.
+    :param nlp: spaCy.Language
+        The language model used to tokenize the text
+    :param data: list(dict)
+        A list of dicts containing information about fully labeled articles. Keys:
+            * 'article': models.Article, the article containing the quote
+            * 'quotes': list(int), the indices of sentences that contain quotes in the article.
+            * 'author': list(list(int)), the indices of the tokens of the author for each quote.
+    :param cue_verbs: list(string)
+        The list of all "cue verbs", which are verbs that often introduce reported speech.
+    :return: sklearn.linear_model
+        The trained model to predict probabilities for sentences.
+    """
+    X, y = create_input_matrix(nlp, data, cue_verbs)
+    poly = PolynomialFeatures(2, interaction_only=True)
+    X = poly.fit_transform(X)
+    classifier = CLASSIFIERS[model]
+    classifier.fit(X, y)
+    return classifier
 
 
 def predict_article_speakers(trained_model, nlp, article_dict, cue_verbs, use_proba=False):
@@ -201,46 +260,36 @@ def predict_article_speakers(trained_model, nlp, article_dict, cue_verbs, use_pr
     :return:
     """
     poly = PolynomialFeatures(2, interaction_only=True)
-    mentions = article_dict['article'].people['mentions']
     predicted_authors = []
     for i, sent_index in enumerate(article_dict['quotes']):
-        # List of indices of the tokens of the true author of the quote
-        true_author = article_dict['authors'][i]
-        true_mention_index = find_true_author_index(true_author, mentions)
 
-        # Create features for all mentions in the article
+        # Create features for all speakers in the article
         other_quotes = article_dict['quotes'][:i] + article_dict['quotes'][i + 1:]
+        q_attribution_features = extract_ovo_features(nlp, article_dict['article'], i, other_quotes, cue_verbs)
 
-        q_doc, q_in_quotes = parse_sentence(nlp, article_dict['article'], sent_index)
-        quote_features = extract_quote_features(q_doc, cue_verbs, q_in_quotes)
+        num_mentions = q_attribution_features.shape[0]
+        mentions_wins = num_mentions * [0]
 
-        best_mention = 0
-        best_mention_proba = 0
-
-        # Evaluate features all speakers in the article
-        for index, mention in enumerate(mentions):
-            ne_features = extract_single_speaker_features(nlp, article_dict['article'], sent_index, other_quotes,
-                                                          mention, cue_verbs)
-            features = np.concatenate((quote_features, ne_features), axis=0).reshape(1, -1)
-            features = poly.fit_transform(features)
-            prediction = trained_model.predict_proba(features)
-            if prediction[0, 1] > best_mention_proba:
-                best_mention = index
-                best_mention_proba = prediction[0, 1]
-
-        # Create weasel feature:
-        weasel_feature = np.zeros(features.shape)
-        weasel_feature[0, :len(quote_features)] = quote_features
-        prediction = trained_model.predict_proba(weasel_feature)
-        if prediction[0, 1] > best_mention_proba:
-            best_mention = -1
-
-        predicted_authors.append(best_mention)
+        for m in range(num_mentions):
+            for n in range(num_mentions):
+                if m != n:
+                    features = q_attribution_features[m, n, :].reshape(1, -1)
+                    features = poly.fit_transform(features)
+                    if use_proba:
+                        prediction = trained_model.predict_proba(features)
+                        mentions_wins[m] += prediction[0, 0]
+                        mentions_wins[n] += prediction[0, 1]
+                    else:
+                        prediction = trained_model.predict(features)[0]
+                        mentions_wins[m] += 1 - prediction
+                        mentions_wins[n] += prediction
+        speaker_index = np.argmax(mentions_wins)
+        predicted_authors.append(speaker_index)
 
     return predicted_authors
 
 
-def evaluate_speaker_prediction(nlp, data, cue_verbs, cv_folds=5):
+def evaluate_ovo_speaker_prediction(nlp, data, cue_verbs, cv_folds=5):
     """
     Evaluates different classifiers on predicting the correct speaker, and returns their performance. Creates the input
     matrix from the raw data.

@@ -7,6 +7,11 @@ methods to extract features to determine speaker extraction for quotes.
 """
 
 
+########################################################################################################################
+#############################################   Quote Detection Features   #############################################
+########################################################################################################################
+
+
 def extract_quote_features(sentence, cue_verbs, in_quotes):
     """
     Gets features for possible elements in the sentence that can hint to it having a quote:
@@ -95,6 +100,11 @@ def extract_quote_features(sentence, cue_verbs, in_quotes):
         inside_quote_proportion,
         contains_selon(),
     ])
+
+
+########################################################################################################################
+#############################################   Quote Attribution Features   ###########################################
+########################################################################################################################
 
 
 def extract_single_speaker_features(nlp, article, quote_index, other_quotes, speaker, cue_verbs):
@@ -186,7 +196,7 @@ def extract_single_speaker_features(nlp, article, quote_index, other_quotes, spe
     ])
 
 
-def extract_speaker_features(nlp, article, quote_index, other_quotes, cue_verbs):
+def extract_ovo_features(nlp, article, quote_index, other_quotes, cue_verbs):
     """
     Gets the features for speaker attribution for a the one vs one case for a given quote. The features are created for
     for all pairs of speakers in the article.
@@ -255,11 +265,17 @@ def extract_speaker_features(nlp, article, quote_index, other_quotes, cue_verbs)
         speaker_features.append(s_features)
 
     dim = len(quote_features) + 2 * len(speaker_features[0])
-    features = np.zeros((len(mentions), len(mentions), dim))
+    features = np.zeros((len(mentions) + 1, len(mentions) + 1, dim))
     for s1_index, s1 in enumerate(mentions):
+        s1_features = speaker_features[s1_index]
+        # "Weasel features": when there is no speaker for the quote.
+        s1_weasel_features = np.concatenate((quote_features, s1_features, np.zeros(s1_features.shape)), axis=0)
+        weasel_s1_features = np.concatenate((quote_features, np.zeros(s1_features.shape), s1_features), axis=0)
+        features[s1_index, len(mentions), :] = s1_weasel_features
+        features[len(mentions), s1_index, :] = weasel_s1_features
+        # Features with other speakers
         for s2_index, s2 in enumerate(mentions):
             if s1_index != s2_index:
-                s1_features = speaker_features[s1_index]
                 s2_features = speaker_features[s2_index]
                 s1_s2_features = np.concatenate((quote_features, s1_features, s2_features), axis=0)
                 features[s1_index, s2_index, :] = s1_s2_features

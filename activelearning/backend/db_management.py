@@ -246,7 +246,7 @@ def load_sentence_labels(nlp):
         start = 0
         # Check if the article already has its sentences assigned to the test or training set.
         if 'test_set' not in article.labeled:
-            article.labeled['test_set'] = [int(np.random.random() > 0.9) for _ in range(len(article.labeled['labeled']))]
+            article.labeled['test_set'] = int(np.random.random() > 0.9)
         for sentence_index, end in enumerate(article.sentences['sentences']):
             # Extract sentence text
             tokens = article.tokens['tokens'][start:end + 1]
@@ -255,7 +255,7 @@ def load_sentence_labels(nlp):
             # Compute consensus labels
             sentence_labels, sentence_authors, _ = aggregate_label(article, sentence_index)
             # Adds the data to the correct list
-            if article.labeled['test_set'][sentence_index] == 0:
+            if article.labeled['test_set'] == 0:
                 train_sentences.append(sentence)
                 train_labels.append(int(sum(sentence_labels) > 0))
                 train_in_quotes.append(in_quotes)
@@ -266,60 +266,6 @@ def load_sentence_labels(nlp):
             start = end + 1
 
     return train_sentences, train_labels, train_in_quotes, test_sentences, test_labels, test_in_quotes
-
-
-def load_quote_authors():
-    """
-    Finds all sentences containing quotes, and the author of each quote.
-
-    :param nlp: spaCy.Language
-        The language model used to tokenize the text.
-    :return: list(Article), list(list(int)), list(list(list(int))), list(list(int)), list(list(list(int)))
-        * A list of fully labeled articles
-        * A list of sentences containing quotes that are in the training set, for each article in the articles list
-        * A list of authors (a list of token indices) for training sentences that contain quotes for each article
-        * A list of sentences containing quotes that are in the test set, for each article in the articles list
-        * A list of authors (a list of token indices) for test sentences that contain quotes for each article
-    """
-    articles = Article.objects.filter(labeled__fully_labeled=1)
-    # list of training sentence indices that are quotes in each article
-    train_ids = []
-    # list of training author indices for each sentence that is a quote in each article
-    train_labels = []
-    # list of test sentence indices that are quotes in each article
-    test_ids = []
-    # list of test author indices for each sentence that is a quote in each article
-    test_labels = []
-    for article in articles:
-        # The lists of sentence indices that are quotes in the training set in this article, with there correct authors
-        article_train_ids = []
-        article_train_authors = []
-        # The lists of sentence indices that are quotes in the test set in this article, with there correct authors
-        article_test_ids = []
-        article_test_authors = []
-        # Check if the article already has its sentences assigned to the test or training set.
-        if 'test_set' not in article.labeled:
-            article.labeled['test_set'] = [int(np.random.random() > 0.9) for _ in
-                                           range(len(article.labeled['labeled']))]
-        for sentence_index, end in enumerate(article.sentences['sentences']):
-            # Compute consensus labels
-            sentence_labels, sentence_authors, _ = aggregate_label(article, sentence_index)
-            # Check if the sentence contains reported speech. If it does, add to the training or test set.
-            if int(sum(sentence_labels) > 0):
-                if article.labeled['test_set'][sentence_index] == 0:
-                    article_train_ids.append(sentence_index)
-                    article_train_authors.append(sentence_authors)
-                else:
-                    article_test_ids.append(sentence_index)
-                    article_test_authors.append(sentence_authors)
-
-        # Add the ids and authors to the full lists
-        train_ids.append(article_train_ids)
-        train_labels.append(article_train_authors)
-        test_ids.append(article_test_ids)
-        test_labels.append(article_test_authors)
-
-    return list(articles), train_ids, train_labels, test_ids, test_labels
 
 
 def load_unlabeled_sentences(nlp):
@@ -348,3 +294,49 @@ def load_unlabeled_sentences(nlp):
         sentences.append(article_sentences)
 
     return articles, sentences, in_quotes
+
+
+def load_quote_authors():
+    """
+    Finds all sentences containing quotes, and the author of each quote.
+
+    :param nlp: spaCy.Language
+        The language model used to tokenize the text.
+    :return: list(dict), list(dict)
+        Lists of dicts containing training and test quotes, respectively. Keys:
+            * 'article': models.Article, the article containing the quote
+            * 'quotes': list(int), the indices of sentences that contain quotes in the article.
+            * 'author': list(list(int)), the indices of the tokens of the author of the quote.
+    """
+    articles = Article.objects.filter(labeled__fully_labeled=1)
+    # list of training articles
+    train_articles = []
+    # list of test quotes
+    test_articles = []
+    for article in articles:
+        # Check if the article already has its sentences assigned to the test or training set.
+        if 'test_set' not in article.labeled or type(article.labeled['test_set']) is not int:
+            article.labeled['test_set'] = int(np.random.random() > 0.9)
+
+        quotes = []
+        authors = []
+        for sentence_index, end in enumerate(article.sentences['sentences']):
+            # Compute consensus labels
+            sentence_labels, sentence_authors, _ = aggregate_label(article, sentence_index)
+            # Check if the sentence contains reported speech. If it does, add to the training or test set.
+            if int(sum(sentence_labels) > 0):
+                quotes.append(sentence_index)
+                authors.append(sentence_authors)
+
+        if len(quotes) > 0:
+            article_quotes = {
+                'article': article,
+                'quotes': quotes,
+                'authors': authors,
+            }
+            if article.labeled['test_set'] == 0:
+                train_articles.append(article_quotes)
+            else:
+                test_articles.append(article_quotes)
+
+    return train_articles, test_articles

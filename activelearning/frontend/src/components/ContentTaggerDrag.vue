@@ -5,12 +5,9 @@
     >
         <v-layout text-center wrap>
             <v-flex mb-4>
-                <h1 class="display-2 font-weight-bold mb-3">
+                <h1 class="display-1 font-weight-bold mb-6">
                     Gender Tracker Project
                 </h1>
-                <h2>
-                    Dragging
-                </h2>
             </v-flex>
         </v-layout>
         <v-layout
@@ -107,10 +104,12 @@
                 </div>
                 <br>
                 <div>
-                    <v-btn class="ma-2" outlined v-on:click.native=submitTags>Aucune Citation</v-btn>
-                    <v-btn class="ma-2" outlined v-on:click.native=submitTags>Soumettre</v-btn>
-                    <v-btn class="ma-2" outlined v-on:click.native=clearAnswers>Réinitialiser</v-btn>
-                    <v-btn class="ma-2" outlined v-on:click.native=skip_sentence>Sauter</v-btn>
+                    <v-btn class="ma-2" width="180px" mb-10 outlined v-on:click.native=submitTags>Soumettre</v-btn>
+                </div>
+                <div>
+                    <v-btn class="ma-2" width="180px" outlined v-on:click.native=submitTags>Aucune Citation</v-btn>
+                    <v-btn class="ma-2" width="180px" outlined v-on:click.native=clearAnswers>Réinitialiser</v-btn>
+                    <v-btn class="ma-2" width="180px" outlined v-on:click.native=skip_sentence>Sauter</v-btn>
                 </div>
             </v-flex>
         </v-layout>

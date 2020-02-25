@@ -1,17 +1,10 @@
 <template>
   <v-app>
     <v-app-bar app>
-      <v-toolbar-title class="headline text-uppercase">
-        <span>GENDERTRACKER</span>
-        <span class="font-weight-light">PROJECT</span>
+      <v-toolbar-title class="headline">
+        <span>GenderTracker</span>
       </v-toolbar-title>
       <v-spacer></v-spacer>
-      <v-btn
-        text
-        v-on:click.native="change_drag()"
-      >
-        Drag Mode
-      </v-btn>
       <v-btn
         text
         v-on:click.native="change_helper()"
@@ -23,12 +16,8 @@
     <v-content v-if="helper_page">
       <HelperPage/>
     </v-content>
-    <v-content v-else-if="drag_mode">
-      <ContentTaggerDrag/>
-      <BottomHelper/>
-    </v-content>
     <v-content v-else>
-      <ContentTagger/>
+      <ContentTaggerDrag/>
       <BottomHelper/>
     </v-content>
 
@@ -59,7 +48,7 @@
 
 <script>
 
-import ContentTagger from "./components/ContentTagger";
+// import ContentTagger from "./components/ContentTagger";
 import ContentTaggerDrag from "./components/ContentTaggerDrag";
 import HelperPage from "./components/HelperPage";
 import BottomHelper from "./components/BottomHelper";
@@ -67,7 +56,7 @@ import BottomHelper from "./components/BottomHelper";
 export default {
   name: 'App',
   components: {
-    ContentTagger,
+    // ContentTagger,
     ContentTaggerDrag,
     HelperPage,
     BottomHelper,

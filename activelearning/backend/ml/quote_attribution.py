@@ -266,12 +266,12 @@ def evaluate_speaker_prediction(nlp, data, cue_verbs, cv_folds=5):
     poly = PolynomialFeatures(2, interaction_only=True)
     model_scores = {}
 
-    print('            Loading data')
+    print('        Loading data')
     article_features = np.array([create_article_features(nlp, article, cue_verbs) for article in data])
 
     for name, classifier in CLASSIFIERS.items():
 
-        print(f'            Evaluating {name}')
+        print(f'        Evaluating {name}')
 
         model_scores[name] = {
             'train_accuracy': 0,
@@ -280,10 +280,7 @@ def evaluate_speaker_prediction(nlp, data, cue_verbs, cv_folds=5):
 
         folds = 0
         for train, test in kf.split(data):
-            print(f'              Fold {folds}')
             folds += 1
-
-            print('                Seperating into train and test')
             train_data = article_features[train]
 
             X_train = None
@@ -296,14 +293,9 @@ def evaluate_speaker_prediction(nlp, data, cue_verbs, cv_folds=5):
                     X_train = np.concatenate((X_train, a[0]), axis=0)
                     y_train = np.concatenate((y_train, a[1]), axis=0)
 
-
-            print('                Feature Expansion')
             X_train = poly.fit_transform(X_train)
-
-            print('                Training')
             classifier.fit(X_train, y_train)
 
-            print('                Evaluating on Training Set')
             train_acc = 0
             for a in np.array(data)[train]:
                 mentions = a['article'].people['mentions']
@@ -312,7 +304,6 @@ def evaluate_speaker_prediction(nlp, data, cue_verbs, cv_folds=5):
                 train_acc += np.sum(np.equal(y_train, y_train_pred)) / len(y_train)
             train_acc /= len(np.array(data)[train])
 
-            print('                Evaluating on Test Set')
             test_acc = 0
             for a in np.array(data)[test]:
                 mentions = a['article'].people['mentions']

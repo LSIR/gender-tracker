@@ -28,7 +28,14 @@ def form_sentence(nlp, tokens):
 class Command(BaseCommand):
     help = 'Evaluates the different models using cross validation.'
 
+    def add_arguments(self, parser):
+        parser.add_argument('--folds', type=int, help="The number of folds to perform cross-validation on.")
+
     def handle(self, *args, **options):
+        folds = 5
+        if options['folds']:
+            folds = options['folds']
+
         try:
             print('Loading language model...')
             nlp = spacy.load('fr_core_news_md')
@@ -53,7 +60,7 @@ class Command(BaseCommand):
             train_quotes, test_quotes = load_quote_authors()
 
             print('\n  One vs All scores:')
-            model_scores = evaluate_quote_attribution(nlp, train_quotes, cue_verbs, cv_folds=2)
+            model_scores = evaluate_quote_attribution(nlp, train_quotes, cue_verbs, cv_folds=folds)
             for name, score in model_scores.items():
                 print(f'\n\n  Model: {name}\n'
                       f'    Accuracy:  {score["test_accuracy"]}\n'
@@ -61,14 +68,14 @@ class Command(BaseCommand):
                       f'    F1:        {score["test_f1_macro"]}\n')
 
             print('\n  Correct Speaker Precision:')
-            model_scores = evaluate_speaker_prediction(nlp, train_quotes, cue_verbs, cv_folds=2)
+            model_scores = evaluate_speaker_prediction(nlp, train_quotes, cue_verbs, cv_folds=folds)
             for name, score in model_scores.items():
                 print(f'\n\n    Model: {name}\n'
                       f'        Training Accuracy: {score["train_accuracy"]}\n'
                       f'        Test Accuracy:     {score["test_accuracy"]}\n')
 
             print('\n  One vs One scores:')
-            model_scores = evaluate_ovo_quote_attribution(nlp, train_quotes, cue_verbs, cv_folds=2)
+            model_scores = evaluate_ovo_quote_attribution(nlp, train_quotes, cue_verbs, cv_folds=folds)
             for name, score in model_scores.items():
                 print(f'\n\n  Model: {name}\n'
                       f'    Training:\n'
@@ -81,7 +88,7 @@ class Command(BaseCommand):
                       f'        F1:        {score["test_f1"]}\n')
 
             print('\n  Correct Speaker Precision:')
-            model_scores = evaluate_ovo_speaker_prediction(nlp, train_quotes, cue_verbs, cv_folds=2)
+            model_scores = evaluate_ovo_speaker_prediction(nlp, train_quotes, cue_verbs, cv_folds=folds)
             for name, score in model_scores.items():
                 print(f'\n\n    Model: {name}\n'
                       f'        Training Accuracy: {score["train_accuracy"]}\n'

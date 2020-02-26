@@ -247,6 +247,7 @@ def load_sentence_labels(nlp):
         # Check if the article already has its sentences assigned to the test or training set.
         if 'test_set' not in article.labeled:
             article.labeled['test_set'] = int(np.random.random() > 0.9)
+            article.save()
         for sentence_index, end in enumerate(article.sentences['sentences']):
             # Extract sentence text
             tokens = article.tokens['tokens'][start:end + 1]
@@ -315,9 +316,9 @@ def load_quote_authors():
     test_articles = []
     for article in articles:
         # Check if the article already has its sentences assigned to the test or training set.
-        if 'test_set' not in article.labeled or type(article.labeled['test_set']) is not int:
+        if 'test_set' not in article.labeled:
             article.labeled['test_set'] = int(np.random.random() > 0.9)
-
+            article.save()
         quotes = []
         authors = []
         for sentence_index, end in enumerate(article.sentences['sentences']):

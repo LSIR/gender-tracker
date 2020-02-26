@@ -1,4 +1,5 @@
 from functools import reduce
+from numpy.random import random
 
 from django.core.management.base import BaseCommand
 
@@ -14,6 +15,10 @@ class Command(BaseCommand):
         articles_count = {'Heidi.News': 0, 'Parisien': 0, 'Republique': 0}
         # Number of labeled articles for each source
         labeled_articles = {'Heidi.News': 0, 'Parisien': 0, 'Republique': 0}
+        # Number of labeled articles for each source
+        train_articles = {'Heidi.News': 0, 'Parisien': 0, 'Republique': 0}
+        # Number of labeled articles for each source
+        test_articles = {'Heidi.News': 0, 'Parisien': 0, 'Republique': 0}
         # Number of labeled sentences for each source
         labeled_sentences = {'Heidi.News': 0, 'Parisien': 0, 'Republique': 0}
         # Number of total sentences for each source
@@ -27,6 +32,17 @@ class Command(BaseCommand):
             sentences_count[a.source] += len(a.sentences['sentences'])
             if a.labeled['fully_labeled'] == 1:
                 labeled_articles[a.source] += 1
+
+                # Check if the article is in the training or test set.
+                if 'test_set' not in a.labeled or type(a.labeled['test_set']) is not int:
+                    a.labeled['test_set'] = int(random() > 0.9)
+                    a.save()
+                if a.labeled['test_set'] == 0:
+                    train_articles[a.source] += 1
+                else:
+                    test_articles[a.source] += 1
+
+                # Check if each sentence is a quote or not.
                 for sentence_index, end in enumerate(a.sentences['sentences']):
                     labeled_sentences[a.source] += 1
                     # Compute consensus labels
@@ -35,21 +51,33 @@ class Command(BaseCommand):
                     if sum(sentence_labels) > 0:
                         labeled_quotes[a.source] += 1
 
-        print('\n{:^20} | {:^20} | {:^20} | {:^20}'.format('Source', 'Articles', 'Sentences', 'Quotes'))
-        print(f'{90 * "-"}')
+        def form_string(base_string, article_source):
+            return base_string.format(
+                source,
+                f'{labeled_articles[article_source]}/{articles_count[article_source]}',
+                f'{train_articles[article_source]}/{labeled_articles[article_source]}',
+                f'{test_articles[article_source]}/{labeled_articles[article_source]}',
+                f'{labeled_sentences[article_source]}/{sentences_count[article_source]}',
+                f'{labeled_quotes[article_source]}/?'
+            )
+
+        base = '{:^15} | {:^15} | {:^15} | {:^15} | {:^15} | {:^15}'
+
+        print('\n')
+        print(base.format('Source', 'Articles', 'Train', 'Test', 'Sentences', 'Quotes'))
+        print(f'{110 * "-"}')
         for source in labeled_articles.keys():
-            print('{:^20} | {:^20} | {:^20} | {:^20}'.format(source,
-                                                             f'{labeled_articles[source]}/{articles_count[source]}',
-                                                             f'{labeled_sentences[source]}/{sentences_count[source]}',
-                                                             f'{labeled_quotes[source]}/?'))
+            print(form_string(base, source))
+
         all_articles = reduce(lambda x, y: x + y, articles_count.values())
         labeled_articles = reduce(lambda x, y: x + y, labeled_articles.values())
+        training_articles = reduce(lambda x, y: x + y, train_articles.values())
+        testing_articles = reduce(lambda x, y: x + y, test_articles.values())
         all_sentences = reduce(lambda x, y: x + y, sentences_count.values())
         labeled_sentences = reduce(lambda x, y: x + y, labeled_sentences.values())
         all_quotes = reduce(lambda x, y: x + y, labeled_quotes.values())
-        print('{:^20} | {:^20} | {:^20} | {:^20}'.format('', '', '', ''))
-        print('{:^20} | {:^20} | {:^20} | {:^20}'.format('Total',
-                                                         f'{labeled_articles}/{all_articles}',
-                                                         f'{labeled_sentences}/{all_sentences}',
-                                                         f'{all_quotes}/?'))
+        print(base.format('', '', '', '', '', ''))
+        print(base.format('Total', f'{labeled_articles}/{all_articles}', f'{training_articles}/{labeled_articles}',
+                          f'{testing_articles}/{labeled_articles}', f'{labeled_sentences}/{all_sentences}',
+                          f'{all_quotes}/?'))
         print('\n')

@@ -51,7 +51,7 @@ def extract_features(article, quote_index, speaker, other_quotes, nlp, cue_verbs
     def quotes_above_q():
         quotes_above = 0
         for other_q in other_quotes:
-            if 0 < quote_index - other_q <= 5:
+            if 0 < quote_index - other_q <= 10:
                 quotes_above += 1
         return quotes_above
 
@@ -121,7 +121,7 @@ def parse_article(article_dict, quote_dataset, nlp, cue_verbs, poly=None):
             ne_features = extract_features(article_dict['article'], sent_index, mention, other_quotes, nlp, cue_verbs)
             quote_mention_features = np.concatenate((quote_features, ne_features), axis=0)
             if poly:
-                quote_mention_features = poly.fit_transform(quote_mention_features)
+                quote_mention_features = poly.fit_transform(quote_mention_features.reshape((-1, 1))).reshape((-1,))
             label = int(true_mention_index == j)
             features.append(quote_mention_features)
             labels.append(label)
@@ -136,10 +136,82 @@ def parse_article(article_dict, quote_dataset, nlp, cue_verbs, poly=None):
     return features, labels, len(article_dict['quotes']), len(mentions) + 1
 
 
+def parse_article_ovo(article_dict, quote_dataset, nlp, cue_verbs, poly=None):
+    """
+    Creates feature vectors for each sentence in the article from the raw data.
+
+    :param article_dict: dict
+        A dict containing information about the fully labeled article. Keys:
+            * 'article': models.Article, the article containing the quote
+            * 'quotes': list(int), the indices of sentences that contain quotes in the article.
+            * 'author': list(list(int)), the indices of the tokens of the author for each quote.
+    :param quote_dataset: QuoteDetectionDataset
+        The dataset for quote detection in which this article is contained.
+    :param nlp: spaCy.Language
+        The language model used to tokenize the text
+    :param cue_verbs: list(string)
+        The list of all "cue verbs", which are verbs that often introduce reported speech.
+    :param poly: sklearn.preprocessing.PolynomialFeatures
+        If defined, used for feature expansion.
+    :return: list(np.array), list(int), int, int
+        * The features for each (quote, speaker) pair in the article. The features for the i-th quote in the article
+        and the j-th mention is at index [i * (num_mentions + 1) + j].
+        * The label for each (quote, speaker) pair in the article. The label for the i-th quote in the article
+        and the j-th mention is at index [i * (num_mentions + 1) + j].
+        * The number of quotes in the article
+        * The number of mentions in the article (num_mentions).
+    """
+    features = []
+    labels = []
+    mentions = article_dict['article'].people['mentions']
+    for i, sent_index in enumerate(article_dict['quotes']):
+        # List of indices of the tokens of the true author of the quote
+        true_author = article_dict['authors'][i]
+        true_index = find_true_author_index(true_author, mentions)
+
+        # Create features for all mentions in the article
+        other_quotes = article_dict['quotes'][:i] + article_dict['quotes'][i + 1:]
+
+        # The quote detection features for this sentence
+        quote_features = quote_dataset.get_sentence_features(article_dict['article'].id, sent_index)
+
+        # Mention features for single mentions
+        single_features = []
+        for mention in mentions:
+            single_features.append(extract_features(article_dict['article'], sent_index,
+                                                    mention, other_quotes, nlp, cue_verbs))
+
+        # Create weasel feature:
+        weasel_feature = np.zeros(single_features[-1].shape[0])
+        weasel_feature[:len(quote_features)] = quote_features
+        single_features.append(weasel_feature)
+
+        if true_index == -1:
+            true_index = len(single_features) - 1
+
+        for m1_index, f1 in enumerate(single_features):
+            for m2_index, f2 in enumerate(single_features):
+                if m1_index != m2_index:
+                    quote_m1_m2_features = np.concatenate((quote_features, f1, f2), axis=0)
+                    if poly:
+                        quote_m1_m2_features = poly.fit_transform(quote_m1_m2_features.reshape((-1, 1))).reshape((-1,))
+
+                    if true_index == m1_index:
+                        label = 0
+                    elif true_index == m2_index:
+                        label = 1
+                    else:
+                        label = -1
+                    features.append(quote_m1_m2_features)
+                    labels.append(label)
+
+    return features, labels, len(article_dict['quotes']), len(mentions) + 1
+
+
 class QuoteAttributionDataset(Dataset):
     """ Dataset comprised of labeled articles, with features extracted for quote attribution """
 
-    def __init__(self, article_dicts, quote_dataset, nlp, cue_verbs, poly=None):
+    def __init__(self, article_dicts, quote_dataset, nlp, cue_verbs, ovo=False, poly=None):
         """
         Initializes the dataset.
 
@@ -154,6 +226,8 @@ class QuoteAttributionDataset(Dataset):
             The language model used to tokenize the text
         :param cue_verbs: list(string)
             The list of all "cue verbs", which are verbs that often introduce reported speech.
+        :param ovo: boolean
+            Whether or not to load one-vs-one features
         :param poly: sklearn.preprocessing.PolynomialFeatures
             If defined, used for feature expansion.
         """
@@ -168,7 +242,10 @@ class QuoteAttributionDataset(Dataset):
         total_sentences = 0
 
         for a_dict in article_dicts:
-            a_features, a_labels, a_quotes, a_mentions = parse_article(a_dict, quote_dataset, nlp, cue_verbs, poly)
+            if ovo:
+                a_features, a_labels, a_quotes, a_mentions = parse_article_ovo(a_dict, quote_dataset, nlp, cue_verbs, poly)
+            else:
+                a_features, a_labels, a_quotes, a_mentions = parse_article(a_dict, quote_dataset, nlp, cue_verbs, poly)
             self.features += a_features
             self.labels += a_labels
             self.article_features[a_dict['article'].id] = (total_sentences, total_sentences + len(a_labels) - 1,

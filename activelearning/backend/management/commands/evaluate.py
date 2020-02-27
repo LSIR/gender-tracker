@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand, CommandError
 import spacy
 import csv
 
-from backend.db_management import load_sentence_labels, load_quote_authors
+from backend.db_management import load_sentence_labels
 from backend.ml.train_quote_detection import evaluate_quote_detection
 from backend.ml.train_quote_attribution import evaluate_quote_attribution
 
@@ -40,8 +40,6 @@ class Command(BaseCommand):
             nlp = spacy.load('fr_core_news_md')
             nlp.add_pipe(set_custom_boundaries, before="parser")
 
-            print('Extracting labeled articles...')
-            train_sentences, train_labels, train_in_quotes, _, _, _ = load_sentence_labels(nlp)
             print('Loading cue verbs...')
             with open('data/cue_verbs.csv', 'r') as f:
                 reader = csv.reader(f)

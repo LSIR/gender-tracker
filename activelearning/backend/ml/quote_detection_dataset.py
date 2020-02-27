@@ -102,7 +102,7 @@ def parse_article(article, nlp, cue_verbs, poly=None):
         sentence = nlp(''.join(tokens))
         features = feature_extraction(sentence, cue_verbs, in_quotes)
         if poly:
-            features = poly.fit_transform(features)
+            features = poly.fit_transform(features.reshape((-1, 1))).reshape((-1,))
         # Compute sentence label
         sentence_labels, sentence_authors, _ = aggregate_label(article, sentence_index)
         label = int(sum(sentence_labels) > 0)

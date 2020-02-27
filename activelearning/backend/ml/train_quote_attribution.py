@@ -3,6 +3,7 @@ from collections import Counter
 from sklearn.linear_model import SGDClassifier
 from sklearn.metrics import precision_recall_fscore_support, log_loss
 from sklearn.model_selection import KFold
+from sklearn.preprocessing import PolynomialFeatures
 
 from backend.db_management import load_labeled_articles, load_quote_authors
 from backend.ml.quote_attribution_dataset import QuoteAttributionDataset, subset, \
@@ -10,14 +11,14 @@ from backend.ml.quote_attribution_dataset import QuoteAttributionDataset, subset
 from backend.ml.quote_detection_dataset import QuoteDetectionDataset
 
 
-def load_data(nlp, cue_verbs):
+def load_data(nlp, cue_verbs, ovo, poly):
     print('\nCreating quote attribution dataset...')
     train_articles, _ = load_labeled_articles()
-    quote_detection_dataset = QuoteDetectionDataset(train_articles, cue_verbs, nlp)
-    train_article_dicts, _ = load_quote_authors()
-    quote_attribution_dataset = QuoteAttributionDataset(train_article_dicts, quote_detection_dataset, nlp, cue_verbs)
+    quote_detection_dataset = QuoteDetectionDataset(train_articles, cue_verbs, nlp, poly)
+    train_dicts, _ = load_quote_authors()
+    quote_attribution_dataset = QuoteAttributionDataset(train_dicts, quote_detection_dataset, nlp, cue_verbs, ovo, poly)
 
-    train_article_ids = np.array(list(map(lambda a: a['article'].id, train_article_dicts)))
+    train_article_ids = np.array(list(map(lambda a: a['article'].id, train_dicts)))
 
     return train_article_ids, quote_attribution_dataset
 
@@ -164,10 +165,9 @@ def evaluate_speaker_prediction(trained_model, dataset, articles):
 def evaluate_quote_attribution(nlp, cue_verbs, cv_folds=5):
     """
     Evaluates the quote attribution model.
-
-    :return:
     """
-    article_ids, attribution_dataset = load_data(nlp, cue_verbs)
+    poly = PolynomialFeatures(2, interaction_only=True)
+    article_ids, attribution_dataset = load_data(nlp, cue_verbs, False, poly)
     print(f'Labeled article ids: {article_ids}')
 
     print(f'Quote Attribution')
@@ -201,6 +201,6 @@ def evaluate_quote_attribution(nlp, cue_verbs, cv_folds=5):
         print('    True speaker counts:     ', dict(Counter(true_speakers)))
         print('    Predicted speaker counts:', dict(Counter(predicted_speaker)))
         true_speakers, predicted_speaker = evaluate_speaker_prediction(classifier, attribution_dataset, test_ids)
-        print(f'\n    Training Accuracy: {np.sum(np.equal(true_speakers, predicted_speaker)) / len(true_speakers)}')
+        print(f'\n    Testing Accuracy: {np.sum(np.equal(true_speakers, predicted_speaker)) / len(true_speakers)}')
         print('    True speaker counts:     ', dict(Counter(true_speakers)))
         print('    Predicted speaker counts:', dict(Counter(predicted_speaker)))

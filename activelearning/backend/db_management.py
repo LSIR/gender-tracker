@@ -269,6 +269,30 @@ def load_sentence_labels(nlp):
     return train_sentences, train_labels, train_in_quotes, test_sentences, test_labels, test_in_quotes
 
 
+def load_labeled_articles():
+    """
+    Finds all fully labeled articles, and assigns unassigned articles to the test or training set.
+
+    :return: list(models.Article), list(models.Article)
+        * the list of all training articles
+        * the list of all test articles
+    """
+    articles = Article.objects.filter(labeled__fully_labeled=1)
+    train_articles = []
+    test_articles = []
+    for article in articles:
+        # Check if the article already has its sentences assigned to the test or training set.
+        if 'test_set' not in article.labeled:
+            article.labeled['test_set'] = int(np.random.random() > 0.9)
+            article.save()
+        if article.labeled['test_set'] == 0:
+            train_articles.append(article)
+        else:
+            test_articles.append(article)
+
+    return train_articles, test_articles
+
+
 def load_unlabeled_sentences(nlp):
     """
     Finds all articles that aren't fully labeled, and extracts all sentences from each.

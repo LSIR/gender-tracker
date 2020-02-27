@@ -217,7 +217,6 @@ def extract_ovo_features(nlp, article, quote_index, other_quotes, cue_verbs):
         * Whether it contains a verb in the verb-cue list.
         * Presence of a parataxis.
         * Presence of multiple verbs.
-        * TODO: Presence of a verb in between quotes
         * Is the whole sentence in between quotes
         * The proportion of tokens in the sentence that are between quotes
 

@@ -34,7 +34,7 @@ class Command(BaseCommand):
                 labeled_articles[a.source] += 1
 
                 # Check if the article is in the training or test set.
-                if 'test_set' not in a.labeled or type(a.labeled['test_set']) is not int:
+                if 'test_set' not in a.labeled:
                     a.labeled['test_set'] = int(random() > 0.9)
                     a.save()
                 if a.labeled['test_set'] == 0:

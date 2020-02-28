@@ -2,9 +2,8 @@ from django.core.management.base import BaseCommand, CommandError
 import spacy
 import csv
 
-from backend.db_management import load_sentence_labels
-from backend.ml.train_quote_detection import evaluate_quote_detection
-from backend.ml.train_quote_attribution import evaluate_quote_attribution
+from backend.ml.quote_detection import evaluate_quote_detection
+from backend.ml.quote_attribution import evaluate_quote_attribution
 
 
 def set_custom_boundaries(doc):
@@ -36,7 +35,7 @@ class Command(BaseCommand):
             folds = options['folds']
 
         try:
-            print('Loading language model...')
+            print('\nLoading language model...')
             nlp = spacy.load('fr_core_news_md')
             nlp.add_pipe(set_custom_boundaries, before="parser")
 
@@ -45,11 +44,12 @@ class Command(BaseCommand):
                 reader = csv.reader(f)
                 cue_verbs = set(list(reader)[0])
 
-            print('Evaluating quote detection...')
+            print('\n\nEvaluating quote detection...')
             evaluate_quote_detection(nlp, cue_verbs, cv_folds=folds)
 
-            print('\nEvaluating quote attribution...')
+            print('\n\nEvaluating one vs all quote attribution...')
             evaluate_quote_attribution(nlp, cue_verbs, cv_folds=folds, ovo=False)
+            print('\n\nEvaluating one vs one quote attribution...')
             evaluate_quote_attribution(nlp, cue_verbs, cv_folds=folds, ovo=True)
 
 

@@ -68,3 +68,25 @@ def parse_sentence(nlp, article, sentence_id):
     q_in_quotes = article.in_quotes['in_quotes'][quote_start:quote_end + 1]
     q_doc = nlp(''.join(article.tokens['tokens'][quote_start:quote_end + 1]))
     return q_doc, q_in_quotes
+
+
+def print_scores(title, scores):
+    """
+    Prints the scores for a model to the console.
+
+    :param title: string
+        The title to print.
+    :param scores: dict
+        A dictionary containing the scores of the classifier on the dataset contained in the dataloader. Keys:
+            * 'accuracy': the model's accuracy
+            * 'precision': the model's precision
+            * 'recall': the model's recall
+            * 'f1': the model's f1
+    :return: str
+        A clean string used to display results
+    """
+    return f'\n    {title}:\n' + \
+           f'        accuracy:  {scores["accuracy"]}\n' + \
+           f'        precision: {scores["precision"]}\n' + \
+           f'        recall:    {scores["recall"]}\n' + \
+           f'        f1 score:  {scores["f1"]}\n'

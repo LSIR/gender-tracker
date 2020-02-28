@@ -3,10 +3,9 @@ from django.core.management.base import BaseCommand, CommandError
 import spacy
 import csv
 
-from backend.db_management import load_sentence_labels, load_unlabeled_sentences
+from backend.db_management import load_unlabeled_sentences
 from backend.helpers import change_confidence
 from backend.ml.quote_detection import train_quote_detection, predict_quotes
-
 
 def set_custom_boundaries(doc):
     """ Custom boundaries so that spaCy doesn't split sentences at ';' or at '-[A-Z]'. """
@@ -37,17 +36,12 @@ class Command(BaseCommand):
             print('Loading language model...')
             nlp = spacy.load('fr_core_news_md')
             nlp.add_pipe(set_custom_boundaries, before="parser")
-
-            print('Extracting labeled articles...')
-            train_sentences, train_labels, train_in_quotes, _, _, _ = load_sentence_labels(nlp)
-
-            print('Loading cue verbs...')
             with open('data/cue_verbs.csv', 'r') as f:
                 reader = csv.reader(f)
                 cue_verbs = set(list(reader)[0])
 
             print('Training model...')
-            trained_model = train_quote_detection(model, train_sentences, train_labels, cue_verbs, train_in_quotes)
+            trained_model = train_quote_detection(nlp, cue_verbs)
 
             print('Evaluating all unlabeled quotes...')
             articles, sentences, in_quotes = load_unlabeled_sentences(nlp)

@@ -179,7 +179,7 @@ def evaluate_speaker_prediction(trained_model, dataset, articles, ovo=False):
                 true_speaker = -1
                 m_index = 0
                 while true_speaker == -1 and m_index < num_mentions:
-                    if quote_labels[m_index] == 0:
+                    if quote_labels[m_index] == 1:
                         true_speaker = m_index
                     else:
                         m_index += 1

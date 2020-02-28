@@ -3,18 +3,11 @@
             fluid
             style="width: 800px; background-color: white;"
     >
-        <v-layout text-left wrap>
-            <v-flex mb-4>
-                <div class="mb-4">
-
-                </div>
-            </v-flex>
-        </v-layout>
 
         <v-layout text-center wrap>
             <v-flex mb-4>
                 <h2 class="font-weight-bold">
-                    Heidi Gender Tracker
+                    Comment Faire?
                 </h2>
             </v-flex>
         </v-layout>
@@ -22,14 +15,6 @@
 
         <v-layout text-left wrap>
             <v-flex mb-4>
-                <div class="mb-4">
-                    Le Heidi Gender Tracker est un projet d’algorithme du média suisse Heidi.news et de l’EPFL pour
-                    mesurer la part des femmes dans les articles. Aujourd’hui, les femmes ne représentent que 30 % des
-                    experts cités dans la presse. C’est le but de ce projet, et vous pouvez nous aider facilement.
-                </div>
-                <div class="mb-4">
-                    Comment ? C’est très simple, suivez les instructions ci-dessous.
-                </div>
                 <ol class="mb-4">
                     <li>
                         Regardez le paragraphe et cliquez sur le premier mot de la citation (le premier mot s’affiche

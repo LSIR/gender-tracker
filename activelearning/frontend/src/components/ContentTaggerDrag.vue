@@ -3,11 +3,17 @@
             fluid
             style="width: 800px; background-color: white;"
     >
-        <v-layout text-center wrap>
+        <v-layout
+                text-left
+                wrap
+        >
             <v-flex mb-4>
-                <h1 class="display-1 font-weight-bold mb-6">
-                    Gender Tracker Project
-                </h1>
+                <div v-if="quote_count === 0" class="mb-2">
+                    Vous n'avez pas encore trouvé une citation.
+                </div>
+                <div v-else class="mb-2">
+                    Vous avez annoté {{quote_count}} citations!
+                </div>
             </v-flex>
         </v-layout>
         <v-layout
@@ -26,6 +32,11 @@
                 wrap
                 v-if="tagging_task==='sentence'"
         >
+            <v-flex mb-4>
+                <h3 class="font-weight-bold mb-2">
+                    {{helper_text[helper_text_shown]}}
+                </h3>
+            </v-flex>
             <v-flex mb-4>
                 <div v-if="first_sentence > 0">
                     <v-btn small color="blue lighten-5" v-on:click.native=loadTextAbove>Montrer le texte au-dessus</v-btn>
@@ -80,6 +91,7 @@
                                 <v-btn
                                         small
                                         v-on="on"
+                                        v-on:click="update_helper_text(2)"
                                         v-bind:color="selecting_author === 0 ? 'deep-orange lighten-4' : 'white'"
                                 >
                                     Citation
@@ -92,7 +104,7 @@
                                 <v-btn
                                         small
                                         v-on="on"
-                                        v-on:click="show_author_tip = false"
+                                        v-on:click="update_helper_text(3)"
                                         v-bind:color="selecting_author === 1 ? 'green lighten-4' : 'white'"
                                 >
                                     Auteur
@@ -195,6 +207,7 @@ export default {
     data: () => ({
         // Information on the user
         admin: false,
+        quote_count: 0,
 
         // Information on the sentence to tag
         article_id: -1,
@@ -209,7 +222,7 @@ export default {
         //   * 'paragraph', if the user needs to confirm that no quote is in the paragraph
         //   * 'None', if there are no more articles to annotate
         //   * 'cookies', if the user doesn't have cookies activated
-        tagging_task: 'paragraph',
+        tagging_task: 'sentence',
 
         // List of tokens displayed on the page
         text: ['No sentence has been loaded yet.'],
@@ -246,14 +259,15 @@ export default {
         dragging: false,
 
         // Helper text to be displayed
-        tag_first_token: "Clickez sur le premier mot du text cité, ou sur \"Aucune Citation\" si il n'y en a pas.",
-        tag_last_token: "Clickez sur le dernier mot du text cité.",
-        tag_author: "Selectionnez l'auteur de la citation",
-        toggle_text: [
-            "Clickez sur le premier mot du text cité, ou sur \"Aucune Citation\" si il n'y en a pas.",
-            "Clickez sur le dernier mot du text cité.",
-            "Selectionnez l'auteur de la citation"
-        ],
+        helper_text: [
+            "Regardez le texte et cliquez sur le premier mot de la citation (le premier mot s’affiche en rouge)," +
+                " si une citation y est présente. Sinon, cliquez sur \"Aucune Citation\"",
+            "Clickez sur le dernier mot du text cité (la citation s’affiche en rouge).",
+            "Cliquez sur le bouton \"Auteur\" si tout le text cité est sélectionné. Sinon, " +
+                "sélectionnez le reste de la citation.",
+            "Cliquez sur le prénom et le nom de l’auteur de la citation, qui s'affiche en vert, puis cliquez " +
+                "sur soumettre."],
+        helper_text_shown: 0,
 
         // The style of buttons to use
         buttonStyle: {
@@ -283,6 +297,8 @@ export default {
                             that.text = data['data'];
                         }
 
+                        that.quote_count = data['quote_count'];
+
                         that.first_sentence = that.sentence_id[0];
                         that.last_sentence = that.sentence_id[that.sentence_id.length - 1];
                         that.paragraph_indices = [[0, that.text.length]];
@@ -299,24 +315,15 @@ export default {
             });
         },
         clearAnswers: function () {
-            // Set sentence to original text
-            this.text = this.text.slice(this.sentence_start_index, this.sentence_end_index + 1);
-            // Set initial paragraph edges
-            this.paragraph_indices = [[0, this.text.length]];
             // Set initial quote markers
             this.quote_markers = (new Array(this.text.length)).fill(0);
             // Set initial authors
             this.author_indices = [];
-            // Set original sentence start and stop tokens
-            this.sentence_start_index = 0;
-            this.sentence_end_index = this.text.length - 1;
-            // Set indices of first and last sentence
-            this.first_sentence = this.sentence_id[0];
-            this.last_sentence = this.sentence_id[this.sentence_id.length - 1];
             // Set content variables to default
             this.no_more_content = false;
             this.quote_open = false;
             this.selecting_author = 0;
+            this.helper_text_shown = 0;
             this.$forceUpdate();
         },
         loadTextAbove: function () {
@@ -481,6 +488,10 @@ export default {
                     this.quote_markers[index] = 1;
                     this.quote_open = true;
                     this.quote_first_token = index;
+                    this.update_helper_text(1);
+                }else{
+                    this.quote_markers[index] = 0;
+                    this.update_helper_text(2);
                 }
             }
             // Tagging the last word in the quote, must be after the start of the quote
@@ -490,8 +501,12 @@ export default {
                 }
                 this.quote_open = false;
                 this.show_author_tip = true;
+                this.update_helper_text(2);
             }
             this.$forceUpdate();
+        },
+        update_helper_text: function(value) {
+            this.helper_text_shown = value;
         },
         start_dragging: function (index) {
             // You can only drag for authors
@@ -555,7 +570,7 @@ export default {
                 text_array[i] = text_array[i].replace(' ', '\xa0')
             }
             return text_array
-        }
+        },
     },
 };
 </script>

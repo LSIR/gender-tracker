@@ -39,10 +39,11 @@ def load_content(request):
     :return: JsonResponse
         A Json file containing the 'article_id', 'sentence_id', 'data', 'task' and 'admin'.
     """
-    user_id, admin_tagger = session_load(request)
+    user_id, quote_count, admin_tagger = session_load(request)
     labelling_task = request_labelling_task(user_id)
     if labelling_task is not None:
         labelling_task['admin'] = admin_tagger
+        labelling_task['quote_count'] = quote_count
         return JsonResponse(labelling_task)
     else:
         return JsonResponse({'article_id': -1, 'sentence_id': [], 'data': [], 'task': 'None', 'admin': admin_tagger})
@@ -166,9 +167,14 @@ def submit_tags(request):
                 else:
                     sentence_ends = article.sentences['sentences']
                     clean_labels = clean_user_labels(sentence_ends, sent_id, first_sent, last_sent, labels, authors)
+                    found_quote = False
                     for sentence in clean_labels:
+                        if sum(sentence['labels']) > 0:
+                            found_quote = True
                         add_user_label_to_db(user_id, article_id, sentence['index'], sentence['labels'],
                                              sentence['authors'], admin_tagger)
+                    if found_quote:
+                        request.session['quote_count'] += 1
             return JsonResponse({'success': True})
         except KeyError:
             traceback.print_exc(file=sys.stdout)
@@ -192,10 +198,17 @@ def session_load(request):
         request.session.set_test_cookie()
         user_id = str(uuid.uuid1())
         request.session['id'] = user_id
+
+    if 'quote_count' in request.session:
+        quote_count = request.session['quote_count']
+    else:
+        quote_count = 0
+        request.session['quote_count'] = quote_count
+
     admin_tagger = False
     if 'admin' in request.session and request.session['admin']:
         admin_tagger = True
-    return user_id, admin_tagger
+    return user_id, quote_count, admin_tagger
 
 
 def session_post(request):

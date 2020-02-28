@@ -17,8 +17,8 @@
       <HelperPage/>
     </v-content>
     <v-content v-else>
+      <IntroText/>
       <ContentTaggerDrag/>
-      <BottomHelper/>
     </v-content>
 
     <v-container fluid style="width: 800px;">
@@ -51,7 +51,8 @@
 // import ContentTagger from "./components/ContentTagger";
 import ContentTaggerDrag from "./components/ContentTaggerDrag";
 import HelperPage from "./components/HelperPage";
-import BottomHelper from "./components/BottomHelper";
+// import BottomHelper from "./components/BottomHelper";
+import IntroText from "./components/IntroText";
 
 export default {
   name: 'App',
@@ -59,7 +60,8 @@ export default {
     // ContentTagger,
     ContentTaggerDrag,
     HelperPage,
-    BottomHelper,
+    // BottomHelper,
+    IntroText,
   },
   data: () => ({
       helper_page: false,

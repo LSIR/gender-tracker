@@ -183,7 +183,6 @@ def parse_article_ovo(article_dict, quote_dataset, nlp, cue_verbs, poly=None):
 
         # Create weasel feature:
         weasel_feature = np.zeros(single_features[-1].shape[0])
-        weasel_feature[:len(quote_features)] = quote_features
         single_features.append(weasel_feature)
 
         if true_index == -1:
@@ -201,7 +200,8 @@ def parse_article_ovo(article_dict, quote_dataset, nlp, cue_verbs, poly=None):
                     elif true_index == m2_index:
                         label = 1
                     else:
-                        label = -1
+                        # No good choice
+                        label = 2
                     features.append(quote_m1_m2_features)
                     labels.append(label)
 
@@ -231,6 +231,7 @@ class QuoteAttributionDataset(Dataset):
         :param poly: sklearn.preprocessing.PolynomialFeatures
             If defined, used for feature expansion.
         """
+        self.ovo = ovo
         self.features = []
         self.labels = []
         # Keys: article id, Values
@@ -304,8 +305,12 @@ class QuoteAttributionDataset(Dataset):
             The features for the sentence and each mention, and their labels
         """
         a_start, _, num_quotes, num_mentions = self.article_features[article_id]
-        q_start = a_start + quote_index * num_mentions
-        next_q_start = q_start + num_mentions
+        if self.ovo:
+            q_start = a_start + quote_index * num_mentions * (num_mentions - 1)
+            next_q_start = a_start + (quote_index + 1) * num_mentions * (num_mentions - 1)
+        else:
+            q_start = a_start + quote_index * num_mentions
+            next_q_start = q_start + num_mentions
         return self.features[q_start:next_q_start], self.labels[q_start:next_q_start]
 
 
@@ -322,6 +327,22 @@ def subset(dataset, article_indices):
     indices = []
     for a_id in article_indices:
         indices += dataset.get_article_indices(a_id)
+    return Subset(dataset, indices)
+
+
+def subset_ovo(dataset, article_indices):
+    """
+
+    :param dataset:
+    :param article_indices:
+    :return:
+    """
+    indices = []
+    for a_id in article_indices:
+        for feature_index in dataset.get_article_indices(a_id):
+            # Don't add feature vectors with no true label to the dataset.
+            if dataset[feature_index][1] < 2:
+                indices.append(feature_index)
     return Subset(dataset, indices)
 
 
@@ -345,6 +366,35 @@ def sampler_weights(dataset):
     for index in range(len(dataset)):
         _, label = dataset[index]
         weights.append(sample_weights[label])
+
+    num_samples = 2 * min(class_counts[0], class_counts[1])
+    return weights, num_samples
+
+
+def sampler_weights_ovo(dataset):
+    """
+    Computes the weights that need to be given to each index in the dataset for random sampling.
+
+    :param dataset: Dataset
+        The dataset to find the weights for
+    :return: list(float), int
+        The weights for each index in the dataset and the total number of samples in an epoch.
+    """
+    # Class 0, 1, 2
+    class_counts = [0, 0, 0]
+    for index in range(len(dataset)):
+        _, label = dataset[index]
+        class_counts[label] += 1
+
+    divisor = 2 * class_counts[0] * class_counts[1]
+    sample_weights = (class_counts[1] / divisor, class_counts[0] / divisor)
+    weights = []
+    for index in range(len(dataset)):
+        _, label = dataset[index]
+        if label < 2:
+            weights.append(sample_weights[label])
+        else:
+            weights.append(0)
 
     num_samples = 2 * min(class_counts[0], class_counts[1])
     return weights, num_samples

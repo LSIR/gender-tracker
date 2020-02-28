@@ -6,7 +6,7 @@ from sklearn.model_selection import KFold
 from sklearn.preprocessing import PolynomialFeatures
 
 from backend.db_management import load_labeled_articles, load_quote_authors
-from backend.ml.quote_attribution_dataset import QuoteAttributionDataset, subset, \
+from backend.ml.quote_attribution_dataset import QuoteAttributionDataset, subset, subset_ovo, \
     attribution_train_loader, attribution_test_loader
 from backend.ml.quote_detection_dataset import QuoteDetectionDataset
 
@@ -132,7 +132,33 @@ def predict_quote_author(trained_model, quote_features):
     return best_mention
 
 
-def evaluate_speaker_prediction(trained_model, dataset, articles):
+def predict_quote_author_ovo(trained_model, quote_features, num_mentions):
+    """
+    Uses a trained model to predict which Named Entity in an article is the true author of a quote.
+
+    :param trained_model: SGDClassifier
+        The classifier to use to predict the author of the quote.
+    :param quote_features: list(np.array)
+        The features for each mention in the article.
+    :return: int
+        The index of the predicted speaker in the mentions of the article.
+    """
+
+    mention_wins = num_mentions * [0]
+
+    for m1_index in range(num_mentions):
+        for m2_index in range(num_mentions):
+            if m1_index != m2_index:
+                m1_m2_features_index = m1_index * (num_mentions - 1) + m2_index - int(m1_index < m2_index)
+                m1_m2_features = quote_features[m1_m2_features_index]
+                prediction = trained_model.predict_proba(m1_m2_features.reshape((1, -1)))
+                mention_wins[m1_index] += prediction[0, 0]
+                mention_wins[m2_index] += prediction[0, 1]
+
+    return np.argmax(mention_wins)
+
+
+def evaluate_speaker_prediction(trained_model, dataset, articles, ovo=False):
     """
     Predicts the speaker for each quote in a list of articles.
 
@@ -149,30 +175,41 @@ def evaluate_speaker_prediction(trained_model, dataset, articles):
         start_index, _, num_quotes, num_mentions = dataset.get_article_features(article_id)
         for quote_id in range(num_quotes):
             quote_features, quote_labels = dataset.get_quote_mention_features(article_id, quote_id)
-            true_speaker = -1
-            for mention_index, label in enumerate(quote_labels):
-                if label == 1:
-                    if true_speaker >= 0:
-                        print('error! found 2 speakers in the same sentence')
-                    true_speaker = mention_index
-            true_speaker_indices.append(true_speaker)
-            predicted_speaker = predict_quote_author(trained_model, quote_features)
+            if ovo:
+                true_speaker = -1
+                m_index = 0
+                while true_speaker == -1 and m_index < num_mentions:
+                    if quote_labels[m_index] == 0:
+                        true_speaker = m_index
+                    else:
+                        m_index += 1
+                true_speaker_indices.append(true_speaker)
+                predicted_speaker = predict_quote_author_ovo(trained_model, quote_features, num_mentions)
+            else:
+                true_speaker = -1
+                for mention_index, label in enumerate(quote_labels):
+                    if label == 1:
+                        if true_speaker >= 0:
+                            print('error! found 2 speakers in the same sentence')
+                        true_speaker = mention_index
+                true_speaker_indices.append(true_speaker)
+                predicted_speaker = predict_quote_author(trained_model, quote_features)
             predicted_speaker_indices.append(predicted_speaker)
 
     return true_speaker_indices, predicted_speaker_indices
 
 
-def evaluate_quote_attribution(nlp, cue_verbs, cv_folds=5):
+def evaluate_quote_attribution(nlp, cue_verbs, cv_folds=5, ovo=False):
     """
     Evaluates the quote attribution model.
     """
     poly = PolynomialFeatures(2, interaction_only=True)
-    article_ids, attribution_dataset = load_data(nlp, cue_verbs, False, poly)
+    article_ids, attribution_dataset = load_data(nlp, cue_verbs, ovo, poly)
     print(f'Labeled article ids: {article_ids}')
 
     print(f'Quote Attribution')
     kf = KFold(n_splits=cv_folds)
-    max_iter = 50
+    max_iter = 200
     folds = 0
     for train_indices, test_indices in kf.split(article_ids):
         print(f'\n  Fold {folds}')
@@ -182,8 +219,12 @@ def evaluate_quote_attribution(nlp, cue_verbs, cv_folds=5):
         print(f'\n  Splitting datasets into subsets')
         train_ids = article_ids[train_indices]
         test_ids = article_ids[test_indices]
-        train_dataset = subset(attribution_dataset, train_ids)
-        test_dataset = subset(attribution_dataset, test_ids)
+        if ovo:
+            train_dataset = subset_ovo(attribution_dataset, train_ids)
+            test_dataset = subset_ovo(attribution_dataset, test_ids)
+        else:
+            train_dataset = subset(attribution_dataset, train_ids)
+            test_dataset = subset(attribution_dataset, test_ids)
 
         print(f'    Training articles: {len(train_ids)}, ids: {train_ids}')
         print(f'    Testing articles:  {len(test_ids)}, ids: {test_ids}')
@@ -196,11 +237,11 @@ def evaluate_quote_attribution(nlp, cue_verbs, cv_folds=5):
         print_scores('Train Results', evaluate(classifier, train_loader))
         print_scores('Test Results', evaluate(classifier, test_loader))
 
-        true_speakers, predicted_speaker = evaluate_speaker_prediction(classifier, attribution_dataset, train_ids)
+        true_speakers, predicted_speaker = evaluate_speaker_prediction(classifier, attribution_dataset, train_ids, ovo)
         print(f'\n    Training Accuracy: {np.sum(np.equal(true_speakers, predicted_speaker)) / len(true_speakers)}')
         print('    True speaker counts:     ', dict(Counter(true_speakers)))
         print('    Predicted speaker counts:', dict(Counter(predicted_speaker)))
-        true_speakers, predicted_speaker = evaluate_speaker_prediction(classifier, attribution_dataset, test_ids)
+        true_speakers, predicted_speaker = evaluate_speaker_prediction(classifier, attribution_dataset, test_ids, ovo)
         print(f'\n    Testing Accuracy: {np.sum(np.equal(true_speakers, predicted_speaker)) / len(true_speakers)}')
         print('    True speaker counts:     ', dict(Counter(true_speakers)))
         print('    Predicted speaker counts:', dict(Counter(predicted_speaker)))

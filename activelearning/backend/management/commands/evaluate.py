@@ -49,7 +49,8 @@ class Command(BaseCommand):
             evaluate_quote_detection(nlp, cue_verbs, cv_folds=folds)
 
             print('\nEvaluating quote attribution...')
-            evaluate_quote_attribution(nlp, cue_verbs, cv_folds=folds)
+            evaluate_quote_attribution(nlp, cue_verbs, cv_folds=folds, ovo=False)
+            evaluate_quote_attribution(nlp, cue_verbs, cv_folds=folds, ovo=True)
 
 
         except IOError:

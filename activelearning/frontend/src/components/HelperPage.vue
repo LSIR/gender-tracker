@@ -80,7 +80,6 @@
                     >
                         <v-btn
                                 small
-                                v-on="on"
                                 v-on:click="update_helper_text(2)"
                                 v-bind:color="selecting_author === 0 ? 'deep-orange lighten-4' : 'white'"
                         >
@@ -88,7 +87,6 @@
                         </v-btn>
                         <v-btn
                                 small
-                                v-on="on"
                                 v-on:click="update_helper_text(3)"
                                 v-bind:color="selecting_author === 1 ? 'green lighten-4' : 'white'"
                         >
@@ -129,12 +127,12 @@
                 </div>
                 <br>
                 <div>
-                    <v-btn class="ma-2" width="180px" outlined v-on:click.native=clearAnswers>Soumettre</v-btn>
+                    <v-btn class="ma-2" width="180px" outlined v-on:click="clearAnswers">Soumettre</v-btn>
                 </div>
                 <div>
-                    <v-btn class="ma-2" width="180px" outlined v-on:click.native=clearAnswers>Aucune Citation</v-btn>
-                    <v-btn class="ma-2" width="180px" outlined v-on:click.native=clearAnswers>Réinitialiser</v-btn>
-                    <v-btn class="ma-2" width="180px" outlined v-on:click.native=clearAnswers>Sauter</v-btn>
+                    <v-btn class="ma-2" width="180px" outlined v-on:click="clearAnswers">Aucune Citation</v-btn>
+                    <v-btn class="ma-2" width="180px" outlined v-on:click="clearAnswers">Réinitialiser</v-btn>
+                    <v-btn class="ma-2" width="180px" outlined v-on:click="clearAnswers">Sauter</v-btn>
                 </div>
             </v-flex>
         </v-layout>
@@ -332,7 +330,7 @@ export default {
     methods: {
         clearAnswers: function () {
             // Set initial quote markers
-            this.quote_markers = (new Array(this.text.length)).fill(0);
+            this.quote_markers = (new Array(this.sentence_text.length)).fill(0);
             // Set initial authors
             this.author_indices = [];
             // Set content variables to default

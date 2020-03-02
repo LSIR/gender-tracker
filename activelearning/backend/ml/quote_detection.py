@@ -24,7 +24,7 @@ def set_custom_boundaries(doc):
 
 def load_data(nlp, cue_verbs, poly):
     """
-
+    Loads all labeled articles from the database and extracts feature vectors for them.
 
     :param nlp:
     :param cue_verbs:
@@ -69,7 +69,7 @@ def train_quote_detection(nlp, cue_verbs):
     article_ids, quote_detection_dataset = load_data(nlp, cue_verbs, poly=None)
     classifier = SGDClassifier(loss='log', alpha=0.1, penalty='l2')
     dataloader = detection_train_loader(quote_detection_dataset, batch_size=len(quote_detection_dataset))
-    classifier, loss, accuracy = train(classifier, dataloader, 10)
+    classifier, loss, accuracy = train(classifier, dataloader, 50)
     return classifier
 
 
@@ -93,7 +93,7 @@ def evaluate_quote_detection(nlp, cue_verbs, cv_folds=5):
 
     print(f'Evaluating Quote Detection')
     kf = KFold(n_splits=cv_folds)
-    n_iter = 20
+    n_iter = 50
     folds = 0
     train_results = {
         'accuracy': [],

@@ -48,7 +48,10 @@
         <v-layout text-left wrap>
             <v-flex mb-4>
                 <div>
-                    {{intro_text}}
+                    Vous verrez du texte présenté sous deux formes. Soit vous verrez un paragraph entier, soit vous
+                    verrez une seule phrase. Si vous voyez un paragraphe, vous devrez simplement indiquer si il contient
+                    des citations. Si vous voyez une phrase, vous devrez determiner si elle contient une citation. Si
+                    c'est le cas, votre tâche est de nous indiquer l'auteur de la citation ainsi que son contenu.
                 </div>
             </v-flex>
         </v-layout>
@@ -66,6 +69,29 @@
         </v-layout>
         <v-layout text-center wrap>
             <v-flex mb-4>
+                <div>
+                    <v-btn-toggle
+                            v-model="selecting_author"
+                            shaped
+                            mandatory
+                    >
+                        <v-btn
+                                small
+                                v-on="on"
+                                v-bind:color="selecting_author === 0 ? 'deep-orange lighten-4' : 'white'"
+                        >
+                            Citation
+                        </v-btn>
+                        <v-btn
+                                small
+                                v-on="on"
+                                v-bind:color="selecting_author === 1 ? 'green lighten-4' : 'white'"
+                        >
+                            Auteur
+                        </v-btn>
+                    </v-btn-toggle>
+                </div>
+                <br>
                 <div>
                     <v-btn small color="blue lighten-5">Montrer le texte au-dessus</v-btn>
                 </div>
@@ -94,17 +120,22 @@
                 </div>
                 <br>
                 <div>
-                    <v-btn class="ma-2" outlined>Aucune Citation</v-btn>
-                    <v-btn class="ma-2" outlined>Soumettre</v-btn>
-                    <v-btn class="ma-2" outlined>Réinitialiser</v-btn>
-                    <v-btn class="ma-2" outlined>Sauter</v-btn>
+                    <v-btn class="ma-2" width="180px" outlined>Soumettre</v-btn>
+                </div>
+                <div>
+                    <v-btn class="ma-2" width="180px" outlined>Aucune Citation</v-btn>
+                    <v-btn class="ma-2" width="180px" outlined>Réinitialiser</v-btn>
+                    <v-btn class="ma-2" width="180px" outlined>Sauter</v-btn>
                 </div>
             </v-flex>
         </v-layout>
         <v-layout text-left wrap>
             <v-flex mb-4>
                 <div>
-                    {{sentence_annotation_text_0}}
+                    Si la phrase affichée ne contient pas de citation, ils vous suffit de cliquer sur le bouton "AUCUNE
+                    CITATION". Une nouvelle phrase s'affichera Si elle contient une citation, vous devez commencer par
+                    cliquer sur le premier mot qui fait partie de la citation. Il devrait devenir rouge comme c'est le
+                    cas ci-dessous:
                 </div>
             </v-flex>
         </v-layout>
@@ -127,7 +158,33 @@
         <v-layout text-left wrap>
             <v-flex mb-4>
                 <div>
-                    {{sentence_annotation_text_1}}
+                    Vous devez ensuite cliquer sur le dernier mot de la citation. Tous les mots entre s'afficheront en
+                    rouge.
+                </div>
+            </v-flex>
+        </v-layout>
+        <v-layout text-center wrap>
+            <v-flex mb-4>
+                <div>
+                    <span v-for="(word, j) in sentence_text" :key="`${j}`">
+                        <v-btn
+                                class="text-none"
+                                depressed
+                                v-bind:style="buttonStyle"
+                                v-bind:color="button_color(j, quote_markers_2, author_indices_1)"
+                        >
+                            {{ word }}
+                        </v-btn>
+                    </span>
+                </div>
+            </v-flex>
+        </v-layout>
+        <v-layout text-left wrap>
+            <v-flex mb-4>
+                <div>
+                    Si il reste du texte cité dans la phrase, vous pouvez l'annoter de la même façon. Lorsque tout le
+                    texte cité est sélectionné, il faut cliquer sur le bouton 'Auteur', qui deviendra vert. Ensuite,
+                    vous pouvez cliquer sur le nom et prénom de la personne qui est citée, qui deviendront vert.
                 </div>
             </v-flex>
         </v-layout>
@@ -150,7 +207,7 @@
         <v-layout text-left wrap>
             <v-flex mb-4>
                 <div>
-                    {{sentence_annotation_text_2}}
+                    Lorsque vous avez fini, cliquez sur soumettre pour valider vos réponses.
                 </div>
             </v-flex>
         </v-layout>
@@ -168,9 +225,9 @@
         </v-layout>
         <v-layout text-centerg wrap>
             <v-flex mb-4>
-                <h3>
+                <h4>
                     Est-ce qu'une citation est présente dans ce paragraphe?
-                </h3>
+                </h4>
             </v-flex>
         </v-layout>
         <v-layout
@@ -212,25 +269,10 @@
 export default {
     data: () => ({
         //
-        intro_text: 'Vous verrez du texte présenté sous deux formes. Soit vous verrez un paragraph entier, soit vous ' +
-            'verrez une seule phrase. Si vous voyez un paragraphe, vous devrez simplement indiquer si il contient ' +
-            'des citations. Si vous voyez une phrase, vous devrez determiner si elle contient une citation. Si ' +
-            'c\'est le cas, votre tâche est de nous indiquer l\'auteur de la citation ainsi que son contenu.',
-        sentence_annotation_text_0: 'Si la phrase affichée ne contient pas de citation, ils vous suffit de cliquer ' +
-            'sur le bouton "AUCUNE CITATION". Une nouvelle phrase s\'affichera Si elle contient une citation, vous ' +
-            'devez commencer par cliquer sur le premier mot qui fait partie de la citation. Il devrait devenir rouge' +
-            ', comme c\'est le cas ci-dessous:',
-        sentence_annotation_text_1: 'Vous devez ensuite cliquer sur le dernier mot de la citation. Tous les mots ' +
-            'entre s\'afficheront en rouge. Ensuite, vous devez cliquer sur le nom de la personne qui est citée, qui ' +
-            'deviendra vert.',
-        sentence_annotation_text_2: 'Une fois que la citation entière et son auteur est chosis, le bouton ' +
-            '"SOUMETTRE" peut être utiliser pour confirmer les réponses. Pour recommencer, le bouton "REINITIALISER" ' +
-            ' peut être utilisé. ' +
-            'Si vous n\'êtes pas sur si la phrase contient une citation ou pas, cliquez sur "SAUTER". '+
-            'Il est possible qu\'une citation soit contenue dans plusieures phrases ' +
-            'consécutives, ou que l\'auteur d\'une citation ne soit pas dans le même phrase que le texte cité. ' +
-            'C\'est pour cela que deux boutons sont a disposition, qui affichent le text au-dessus ou au-dessous de ' +
-            'la phrase.' ,
+        intro_text: '',
+        sentence_annotation_text_0: '',
+        sentence_annotation_text_1: '',
+        sentence_annotation_text_2: '' ,
         paragraph_annotation_text_0: 'Votre tâche est simplement de lire le paragraphe, et de répondre si il contient' +
             'ou non des citations.',
         // List of tokens displayed on the page
@@ -242,6 +284,8 @@ export default {
         author_indices_1: [],
         quote_markers_2: [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0],
         author_indices_2: [1, 2],
+
+        selecting_author: 0,
 
         paragraph_text: 'Selon Bastien Favre "Neuchâtel Xamax ne se fera pas reléguer cette saison". Il pense que l' +
             '\'addition de Geoffrey Serey Die est suffisante pour les garder dans l\'élite Suisse. Il sera quand ' +

@@ -38,6 +38,41 @@
                 </h3>
             </v-flex>
             <v-flex mb-4>
+                <div>
+                    <v-btn-toggle
+                            v-model="selecting_author"
+                            shaped
+                            mandatory
+                    >
+                        <v-tooltip left>
+                            <template v-slot:activator="{ on }">
+                                <v-btn
+                                        small
+                                        v-on="on"
+                                        v-on:click="update_helper_text(2)"
+                                        v-bind:color="selecting_author === 0 ? 'deep-orange lighten-4' : 'white'"
+                                >
+                                    Citation
+                                </v-btn>
+                            </template>
+                            <span>Pour ajouter plus de texte à la citation, cliquez ici.</span>
+                        </v-tooltip>
+                        <v-tooltip v-model="show_author_tip" right>
+                            <template v-slot:activator="{ on }">
+                                <v-btn
+                                        small
+                                        v-on="on"
+                                        v-on:click="update_helper_text(3)"
+                                        v-bind:color="selecting_author === 1 ? 'green lighten-4' : 'white'"
+                                >
+                                    Auteur
+                                </v-btn>
+                            </template>
+                            <span>Si toute la citation à été annotée, cliquez ici pour annoter l'auteur.</span>
+                        </v-tooltip>
+                    </v-btn-toggle>
+                </div>
+                <br>
                 <div v-if="first_sentence > 0">
                     <v-btn small color="blue lighten-5" v-on:click.native=loadTextAbove>Montrer le texte au-dessus</v-btn>
                 </div>
@@ -78,41 +113,6 @@
             <v-flex mb-4>
                 <div v-if="!no_more_content">
                     <v-btn small color="blue lighten-5" v-on:click.native=loadTextBelow>Montrer le texte au-dessous</v-btn>
-                </div>
-                <br>
-                <div>
-                    <v-btn-toggle
-                            v-model="selecting_author"
-                            shaped
-                            mandatory
-                    >
-                        <v-tooltip left>
-                            <template v-slot:activator="{ on }">
-                                <v-btn
-                                        small
-                                        v-on="on"
-                                        v-on:click="update_helper_text(2)"
-                                        v-bind:color="selecting_author === 0 ? 'deep-orange lighten-4' : 'white'"
-                                >
-                                    Citation
-                                </v-btn>
-                            </template>
-                            <span>Pour ajouter plus de texte à la citation, cliquez ici.</span>
-                        </v-tooltip>
-                        <v-tooltip v-model="show_author_tip" right>
-                            <template v-slot:activator="{ on }">
-                                <v-btn
-                                        small
-                                        v-on="on"
-                                        v-on:click="update_helper_text(3)"
-                                        v-bind:color="selecting_author === 1 ? 'green lighten-4' : 'white'"
-                                >
-                                    Auteur
-                                </v-btn>
-                            </template>
-                            <span>Si toute la citation à été annotée, cliquez ici pour annoter l'auteur.</span>
-                        </v-tooltip>
-                    </v-btn-toggle>
                 </div>
                 <br>
                 <div>

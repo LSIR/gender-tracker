@@ -204,9 +204,6 @@ def request_labelling_task(session_id):
                     and labeled[prev_par_end + 1] == 0 \
                     and (prev_par_end + 1) not in annotated_sentences\
                     and p - prev_par_end > 2:
-                print()
-                print('confidences', confidences[prev_par_end + 1:p + 1])
-                print('predictions', par_predictions)
                 return form_paragraph_json(article, i)
 
             # For all sentences in the paragraph, check if they can be annotated by the user

@@ -33,7 +33,7 @@
                 v-if="tagging_task==='sentence'"
         >
             <v-flex mb-4>
-                <h3 class="font-weight-bold mb-2">
+                <h3 class="subtitle-1 font-weight-bold mb-2">
                     {{helper_text[helper_text_shown]}}
                 </h3>
             </v-flex>
@@ -131,7 +131,7 @@
                 v-if="tagging_task==='paragraph'"
         >
             <v-flex mb-4>
-                <h3>
+                <h3 class="subtitle-1 font-weight-bold mb-2">
                     Est-ce qu'une citation est présente dans ce paragraphe?
                 </h3>
             </v-flex>

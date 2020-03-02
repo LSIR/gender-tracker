@@ -54,15 +54,17 @@ def aggregate_label(article, sentence_index):
 ##############################################################################################
 
 
-def change_confidence(article_id, confidences):
+def change_confidence(article_id, confidences, predictions):
     """
     Edits the Article database to reflect that the trained model has changed his confidence level that each sentence is
     or isn't reported speech.
 
     :param article_id: int.
         The id of the article to edit
-    :param confidences: list(int).
-        The confidence (in [0, 100]) the trained model has for each sentence.
+    :param confidences: list(float).
+        The confidence (in [0, 1]) the trained model has for each sentence.
+    :param predictions: list(int).
+        The prediction in {0, 1} of the trained model for each sentence.
     :return: int.
         The minimum confidence this article has in a sentence, or -1 if the article couldn't be added to the database.
     """
@@ -73,8 +75,10 @@ def change_confidence(article_id, confidences):
 
     old_conf = article.confidence['confidence']
     min_conf = min(confidences)
-    if len(confidences) == len(old_conf) and min_conf >= 0 and max(confidences) <= 100:
+    if len(confidences) == len(old_conf) and len(predictions) == len(old_conf) and \
+            min_conf >= 0 and max(confidences) <= 1:
         article.confidence['confidence'] = confidences
+        article.confidence['predictions'] = predictions
         article.confidence['min_confidence'] = min_conf
         article.save()
         return min_conf

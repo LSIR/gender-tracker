@@ -10,6 +10,8 @@ from backend.ml.quote_detection_dataset import QuoteDetectionDataset, detection_
 from backend.ml.sgd import train, evaluate
 
 
+# TODO: Make regularization term adjustable
+
 def set_custom_boundaries(doc):
     """ Custom boundaries so that spaCy doesn't split sentences at ';' or at '-[A-Z]'. """
     for token in doc[:-1]:
@@ -52,20 +54,36 @@ def predict_quotes(trained_model, sentences, cue_verbs, in_quotes, poly=None):
     """
     features = []
     for i, sentence in enumerate(sentences):
-        features.append(feature_extraction(sentence, cue_verbs, in_quotes[i]))
+        sentence_features = feature_extraction(sentence, cue_verbs, in_quotes[i])
+        if poly:
+            sentence_features = poly.fit_transform(sentence_features.reshape((-1, 1))).reshape((-1,))
+        features.append(sentence_features)
     X = np.array(features)
-    if poly:
-        X = poly.fit_transform(X)
-    return trained_model.predict_proba(X)[:, 1]
+    predictions = trained_model.predict_proba(X)[:, 1]
+    print(predictions)
+    return predictions
 
 
 def train_quote_detection(nlp, cue_verbs):
     poly = PolynomialFeatures(2, interaction_only=False)
-    article_ids, quote_detection_dataset = load_data(nlp, cue_verbs, poly)
-    classifier = SGDClassifier(loss='log', penalty='l2')
-    dataloader = detection_train_loader(quote_detection_dataset, batch_size=1)
-    classifier, loss, accuracy = train(classifier, dataloader, 50)
+    article_ids, quote_detection_dataset = load_data(nlp, cue_verbs, poly=None)
+    classifier = SGDClassifier(loss='log', alpha=0.1, penalty='l2')
+    dataloader = detection_train_loader(quote_detection_dataset, batch_size=len(quote_detection_dataset))
+    classifier, loss, accuracy = train(classifier, dataloader, 10)
     return classifier
+
+
+def evaluate_unlabeled_sentences(trained_model, sentences, cue_verbs, in_quotes):
+    """
+
+    :param trained_model:
+    :param sentences:
+    :param cue_verbs:
+    :param in_quotes:
+    :return:
+    """
+    poly = PolynomialFeatures(2, interaction_only=False)
+    return predict_quotes(trained_model, sentences, cue_verbs, in_quotes, poly=None)
 
 
 def evaluate_quote_detection(nlp, cue_verbs, cv_folds=5):
@@ -92,7 +110,7 @@ def evaluate_quote_detection(nlp, cue_verbs, cv_folds=5):
     for train, test in kf.split(article_ids):
         # print(f'\n  Fold {folds}')
         folds += 1
-        classifier = SGDClassifier(loss='log', penalty='l2')
+        classifier = SGDClassifier(loss='log', alpha=0.1, penalty='l2')
         # print(f'\n  Splitting datasets into subsets')
         train_ids = article_ids[train]
         test_ids = article_ids[test]

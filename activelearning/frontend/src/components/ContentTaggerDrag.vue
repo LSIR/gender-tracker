@@ -33,12 +33,10 @@
                 v-if="tagging_task==='sentence'"
         >
             <v-flex mb-4>
-                <h3 class="subtitle-1 font-weight-bold mb-2">
+                <h3 class="subtitle-1 font-weight-bold mb-6">
                     {{helper_text[helper_text_shown]}}
                 </h3>
-            </v-flex>
-            <v-flex mb-4>
-                <div>
+                <div class="mb-6">
                     <v-btn-toggle
                             v-model="selecting_author"
                             shaped
@@ -72,7 +70,6 @@
                         </v-tooltip>
                     </v-btn-toggle>
                 </div>
-                <br>
                 <div v-if="first_sentence > 0">
                     <v-btn small color="blue lighten-5" v-on:click.native=loadTextAbove>Montrer le texte au-dessus</v-btn>
                 </div>
@@ -260,13 +257,10 @@ export default {
 
         // Helper text to be displayed
         helper_text: [
-            "Regardez le texte et cliquez sur le premier mot de la citation (le premier mot s’affiche en rouge)," +
-                " si une citation y est présente. Sinon, cliquez sur \"Aucune Citation\"",
-            "Clickez sur le dernier mot du text cité (la citation s’affiche en rouge).",
-            "Cliquez sur le bouton \"Auteur\" si tout le text cité est sélectionné. Sinon, " +
-                "sélectionnez le reste de la citation.",
-            "Cliquez sur le prénom et le nom de l’auteur de la citation, qui s'affiche en vert, puis cliquez " +
-                "sur soumettre."],
+            "Cliquez sur le premier mot de la citation, ou sur \"Aucune Citation\" si il n'y en a pas.",
+            "Clickez sur le dernier mot de la citation.",
+            "Cliquez sur le bouton \"Auteur\" si tout le text cité est sélectionné.",
+            "Cliquez sur le prénom et le nom de l’auteur de la citation, puis sur sur soumettre quand vous avez fini."],
         helper_text_shown: 0,
 
         // The style of buttons to use

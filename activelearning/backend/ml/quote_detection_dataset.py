@@ -25,6 +25,7 @@ def feature_extraction(sentence, cue_verbs, in_quotes):
     contains_per_named_entity = int(len([ne for ne in sentence.ents if ne.label_ == 'PER']) > 0)
     sentence_inside_quotes = int(len(in_quotes) == sum(in_quotes))
     inside_quote_proportion = sum(in_quotes ) /len(in_quotes)
+
     def contains_cue_verb():
         for token in sentence:
             if token.lemma_ in cue_verbs:
@@ -52,7 +53,7 @@ def feature_extraction(sentence, cue_verbs, in_quotes):
 
     def verb_inside_quotes():
         for index, token in enumerate(sentence):
-            if token.pos_ == 'VERB' and in_quotes[index] == 1:
+            if token.pos_ == 'VERB' and index < len(in_quotes) and in_quotes[index] == 1:
                 return 1
         return 0
 

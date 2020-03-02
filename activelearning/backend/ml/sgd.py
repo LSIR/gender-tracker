@@ -24,7 +24,7 @@ def train(classifier, dataloader, max_iter):
         for X, y in dataloader:
             classifier.partial_fit(X, y, classes=np.array([0, 1]))
             y_pred = classifier.predict_proba(X)
-            loss.append(log_loss(y, y_pred))
+            loss.append(log_loss(y, y_pred, labels=np.array([0, 1])))
             accuracy.append(classifier.score(X, y))
 
     return classifier, loss, accuracy

@@ -141,7 +141,7 @@ def evaluate_quote_attribution(nlp, cue_verbs, cv_folds=5, ovo=False):
     test_accuracies = []
     print('Performing cross-validation...')
     for train_indices, test_indices in kf.split(article_ids):
-        classifier = SGDClassifier(loss='log', penalty='l2')
+        classifier = SGDClassifier(loss='log', alpha=0.1, penalty='l2')
 
         train_ids = article_ids[train_indices]
         test_ids = article_ids[test_indices]

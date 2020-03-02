@@ -119,6 +119,7 @@ def add_article_to_db(path, nlp, source, admin_article=False):
     data = process_article(article_text, nlp)
     labeled = len(data['s']) * [0]
     confidence = len(data['s']) * [0]
+    predictions = len(data['s']) * [0]
     return Article.objects.create(
         name=data['name'],
         text=article_text,
@@ -136,6 +137,7 @@ def add_article_to_db(path, nlp, source, admin_article=False):
         in_quotes={'in_quotes': data['in_quotes']},
         confidence={
             'confidence': confidence,
+            'predictions': predictions,
             'min_confidence': 0,
         },
         admin_article=admin_article,
@@ -195,12 +197,16 @@ def request_labelling_task(session_id):
         for (i, p) in enumerate(article.paragraphs['paragraphs']):
             # Lowest confidence in the whole paragraph
             min_conf = min([conf for conf in confidences[prev_par_end + 1:p + 1]])
-
+            par_predictions = article.confidence['predictions'][prev_par_end + 1:p + 1]
             # For high enough confidences, annotate the whole paragraph
             if min_conf >= CONFIDENCE_THRESHOLD \
+                    and max(par_predictions) == 0 \
                     and labeled[prev_par_end + 1] == 0 \
                     and (prev_par_end + 1) not in annotated_sentences\
                     and p - prev_par_end > 2:
+                print()
+                print('confidences', confidences[prev_par_end + 1:p + 1])
+                print('predictions', par_predictions)
                 return form_paragraph_json(article, i)
 
             # For all sentences in the paragraph, check if they can be annotated by the user
@@ -214,6 +220,10 @@ def request_labelling_task(session_id):
                     if article.in_quotes['in_quotes'][sent_end] == 1:
                         last_sent = quote_end_sentence(sentence_ends, article.in_quotes['in_quotes'], sent_end)
                         labelling_task = list(range(labelling_task[0], min(last_sent + 1, len(sentence_ends))))
+
+                    print()
+                    print('confidences', confidences[j])
+                    print('predictions', article.confidence['predictions'][j])
                     return form_sentence_json(article, labelling_task)
             prev_par_end = p
     return None

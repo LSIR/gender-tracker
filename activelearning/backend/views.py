@@ -23,7 +23,7 @@ ADMIN_SECRET_KEY = 'i_want_to_be_admin'
 def load_content(request):
     """
     Selects either a sentence or a paragraph that needs to be labelled. Creates a JSON file that contains an article_id
-    (an integer), sentence_ids (a list of integers), data (a list of strings), a task (a string: 'sentence' if a
+    (an integer), sentence_id (a list of integers), data (a list of strings), a task (a string: 'sentence' if a
     sentence needs to be labelled, 'paragraph' if a whole paragraph needs to be labelled, 'None' if there are no more
     sentences to label in the database and 'error' if an error happened in the backend) and a boolean 'admin value',
     which is true is the user has been assigned as an admin.
@@ -44,6 +44,9 @@ def load_content(request):
     if labelling_task is not None:
         labelling_task['admin'] = admin_tagger
         labelling_task['quote_count'] = quote_count
+        print('article_id:', labelling_task['article_id'])
+        print('sentence_id:', labelling_task['sentence_id'])
+        print()
         return JsonResponse(labelling_task)
     else:
         return JsonResponse({'article_id': -1, 'sentence_id': [], 'data': [], 'task': 'None', 'admin': admin_tagger})
@@ -163,7 +166,7 @@ def submit_tags(request):
                     # paragraph, reset the confidences for the whole paragraph to 0.
                     sentence_confidences = article.confidence['confidence'].copy()
                     sentence_confidences[first_sent:last_sent + 1] = (last_sent - first_sent + 1) * [0]
-                    change_confidence(article_id, sentence_confidences)
+                    change_confidence(article_id, sentence_confidences, article.confidence['predictions'])
                 else:
                     sentence_ends = article.sentences['sentences']
                     clean_labels = clean_user_labels(sentence_ends, sent_id, first_sent, last_sent, labels, authors)

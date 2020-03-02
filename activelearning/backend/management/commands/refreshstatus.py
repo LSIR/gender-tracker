@@ -29,6 +29,8 @@ class Command(BaseCommand):
                     is_labeled = int(consensus >= CONSENSUS_THRESHOLD and len(labels) >= COUNT_THRESHOLD)
                     labeled.append(is_labeled)
 
+            predictions = len(a.sentences['sentences']) * [0]
+            a.confidence['predictions'] = predictions
             fully_labeled = int(sum(labeled) == len(a.sentences['sentences']))
             a.labeled = {
                 'labeled': labeled,

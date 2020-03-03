@@ -33,7 +33,7 @@ class Results:
         av_precision = round(sum(self.precision) / len(self.precision), 3)
         av_recall = round(sum(self.recall) / len(self.recall), 3)
         av_f1 = round(sum(self.f1) / len(self.f1), 3)
-        return f'        accuracy:  {av_accuracy}\n' + \
-               f'        precision: {av_precision}\n' + \
-               f'        recall:    {av_recall}\n' + \
-               f'        f1 score:  {av_f1}\n'
+        return f'            accuracy:  {av_accuracy}\n' + \
+               f'            precision: {av_precision}\n' + \
+               f'            recall:    {av_recall}\n' + \
+               f'            f1 score:  {av_f1}\n'

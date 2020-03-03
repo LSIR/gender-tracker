@@ -2,6 +2,7 @@ from django.core.management.base import BaseCommand, CommandError
 import spacy
 import csv
 from backend.xml_parsing.helpers import load_nlp
+from backend.ml.baseline import baseline_quote_detection, baseline_quote_attribution
 from backend.ml.quote_detection import evaluate_quote_detection
 from backend.ml.quote_attribution import evaluate_quote_attribution
 
@@ -34,13 +35,18 @@ class Command(BaseCommand):
                 cue_verbs = set(list(reader)[0])
 
             print('\n\nEvaluating quote detection...')
+            print('\n  Baseline:')
+            baseline_quote_detection(nlp)
+            print('\n  L2 Logistic:')
             evaluate_quote_detection(nlp, cue_verbs, cv_folds=folds)
 
-            print('\n\nEvaluating one vs all quote attribution...')
+            print('\n\nEvaluating quote attribution...')
+            print('\n  Baseline:')
+            baseline_quote_attribution(nlp, cue_verbs)
+            print('\n  One vs All:')
             evaluate_quote_attribution(nlp, cue_verbs, cv_folds=folds, ovo=False)
-            print('\n\nEvaluating one vs one quote attribution...')
+            print('\n  One vs One:')
             evaluate_quote_attribution(nlp, cue_verbs, cv_folds=folds, ovo=True)
-
 
         except IOError:
             raise CommandError('IO Error.')

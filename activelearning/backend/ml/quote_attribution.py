@@ -149,10 +149,10 @@ def evaluate_quote_attribution(nlp, cue_verbs, cv_folds=5, ovo=False):
         Whether to load the One vs One model or not.
     """
     poly = PolynomialFeatures(2, interaction_only=False)
-    print('Creating dataset...')
+    print('    Creating dataset...')
     article_ids, attribution_dataset = load_data(nlp, cue_verbs, ovo, poly)
 
-    print(f'Feature dimensionality: {attribution_dataset.feature_dimensionality }')
+    print(f'    Feature dimensionality: {attribution_dataset.feature_dimensionality }')
 
     kf = KFold(n_splits=cv_folds)
     max_iter = 50
@@ -162,10 +162,10 @@ def evaluate_quote_attribution(nlp, cue_verbs, cv_folds=5, ovo=False):
 
     train_accuracies = []
     test_accuracies = []
-    print('Performing cross-validation...')
+    print('    Performing cross-validation...')
 
     for alpha in [0.001, 0.01, 0.1, 1]:
-        print(f'\n  Regularization term: {alpha}')
+        print(f'\n        Regularization term: {alpha}')
         for train_indices, test_indices in kf.split(article_ids):
             classifier = SGDClassifier(loss='log', alpha=alpha, penalty='l2')
 
@@ -193,11 +193,11 @@ def evaluate_quote_attribution(nlp, cue_verbs, cv_folds=5, ovo=False):
             true_speakers, predicted_speaker = predict_authors(classifier, attribution_dataset, test_ids, ovo)
             test_accuracies.append(np.sum(np.equal(true_speakers, predicted_speaker))/len(true_speakers))
 
-        print('    Average Training Results')
+        print('          Average Training Results')
         print(train_results.average_score())
-        print('    Average Test Results')
+        print('          Average Test Results')
         print(test_results.average_score())
 
-        print(f'\n    Accuracy in speaker prediction:\n'
-              f'        Training: {round(sum(train_accuracies)/len(train_accuracies), 3)}\n'
-              f'        Test:     {round(sum(test_accuracies)/len(test_accuracies), 3)}\n')
+        print(f'\n          Accuracy in speaker prediction:\n'
+              f'            Training: {round(sum(train_accuracies)/len(train_accuracies), 3)}\n'
+              f'            Test:     {round(sum(test_accuracies)/len(test_accuracies), 3)}\n')

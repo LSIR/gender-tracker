@@ -16,6 +16,8 @@ def find_true_author_index(true_author, mentions):
     :return: int
         The index of the mention in the list of mentions, or -1 if the true author isn't a named entity.
     """
+    if len(true_author) == 0:
+        return -1
     reported_start = true_author[0]
     reported_end = true_author[-1]
     for index, mention in enumerate(mentions):

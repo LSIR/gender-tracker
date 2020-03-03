@@ -109,10 +109,10 @@ def evaluate_quote_detection(nlp, cue_verbs, cv_folds=5):
     poly = PolynomialFeatures(2, interaction_only=False)
     article_ids, quote_detection_dataset = load_data(nlp, cue_verbs, poly)
 
-    print(f'Feature dimensionality: {quote_detection_dataset.feature_dimensionality}')
+    print(f'    Feature dimensionality: {quote_detection_dataset.feature_dimensionality}')
 
     for alpha in [0.001, 0.01, 0.1, 1]:
-        print(f'\n  Regularization term: {alpha}')
+        print(f'\n    Regularization term: {alpha}')
         train_results, test_results = cross_validate(split_ids=article_ids,
                                                      dataset=quote_detection_dataset,
                                                      subset=subset,

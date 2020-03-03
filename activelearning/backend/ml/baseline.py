@@ -1,4 +1,8 @@
+from backend.db_management import load_labeled_articles, load_quote_authors
+from backend.helpers import aggregate_label
+import numpy as np
 
+from backend.ml.helpers import find_true_author_index
 
 """ Contains methods for the baseline models for quote extraction and attribution. """
 
@@ -36,14 +40,14 @@ def find_longest_quote(in_quotes):
     return longest_sublist, start
 
 
-def baseline_quote_detection(sent_span, in_quotes):
+def predict_sentence(sent_span, in_quotes):
     """
     Rule-based model to determine if a sentence contains reported speech or not. Rule:
 
         A sentence is determined to contain reported speech if and only if it contains a piece of text of at least 3
         tokens between quotes, where all tokens between quotes aren't capitalized.
 
-    :param sent_span: spaCy.Span
+    :param sent_span: spaCy.Doc
         The span of the sentence.
     :param in_quotes: list(int)
         Whether each token in each sentence is between quotes or not.
@@ -60,6 +64,37 @@ def baseline_quote_detection(sent_span, in_quotes):
                                                                                 word.ent_type != 0)]
         return int(False in b)
     return 0
+
+
+def baseline_quote_detection(nlp):
+    """
+    Evaluates the baseline model for quote detection.
+
+    :param nlp: spaCy.Language
+        The language model used to tokenize the text.
+    :return: QuoteDetectionDataset
+        The dataset that was used for quote detection.
+    """
+    y = []
+    y_pred = []
+    train_articles, train_sentences, _, _ = load_labeled_articles(nlp)
+    for index, article in enumerate(train_articles):
+        article_sentences = train_sentences[index]
+        sentence_start = 0
+        for sentence_index, end in enumerate(article.sentences['sentences']):
+            sentence_labels, sentence_authors, _ = aggregate_label(article, sentence_index)
+            true_value = int(sum(sentence_labels) > 0)
+            y.append(true_value)
+
+            in_quotes = article.in_quotes['in_quotes'][sentence_start:end + 1]
+            prediction = predict_sentence(article_sentences[sentence_index], in_quotes)
+            y_pred.append(prediction)
+
+            sentence_start = end + 1
+
+    accuracy = np.sum(np.equal(y, y_pred))/len(y)
+    print(f'    Accuracy: {round(accuracy, 3)}')
+    return accuracy
 
 
 def extract_cue_verb(sentence, cue_verbs):
@@ -92,7 +127,7 @@ def extract_quotee(sentence, token):
         The indices of the tokens in the named entity in the sentence.
     """
     # Find the first token in the named entity
-    index = token.i - sentence.start
+    index = token.i
     while index >= 0 and sentence[index].ent_iob == 1:
         index -= 1
 
@@ -118,9 +153,10 @@ def absolute_indices(relative_indices, sentence_start):
     :return: list(int)
         The absolute positions.
     """
+    return [index - sentence_start for index in relative_indices]
 
 
-def baseline_quote_attribution(all_sentences, sentence_index, sentence_starts, in_quotes, cue_verbs):
+def attribute_quote(all_sentences, sentence_index, sentence_starts, in_quotes, cue_verbs):
     """
     Baseline quote attribution model. This model selects a named entity for the quote in the following order:
 
@@ -170,7 +206,7 @@ def baseline_quote_attribution(all_sentences, sentence_index, sentence_starts, i
     while index >= 0:
         for i, token in enumerate(all_sentences[index]):
             if token.ent_type_ == "PER":
-                return absolute_indices(extract_quotee(all_sentences[index], token), sentence_starts[index])
+                return absolute_indices(extract_quotee(all_sentences[index], token),sentence_starts[index])
         index -= 1
 
     # Return the first named entity after the quote
@@ -183,3 +219,61 @@ def baseline_quote_attribution(all_sentences, sentence_index, sentence_starts, i
 
     # The sentence has no named entity as an author
     return []
+
+
+def baseline_quote_attribution(nlp, cue_verbs):
+    """
+    Evaluates the baseline model for quote attribution.
+
+    :param nlp: spaCy.Language
+        The language model used to tokenize the text.
+    :param cue_verbs: list(string)
+        The list of all "cue verbs", which are verbs that often introduce reported speech.
+    :return:
+    """
+    y = []
+    y_pred = []
+    train_dicts, _ = load_quote_authors(nlp)
+    for i, article_dict in enumerate(train_dicts):
+        mentions = article_dict['article'].people['mentions']
+        sentence_ends = article_dict['article'].sentences['sentences']
+        sentence_starts = [0] + [s_end - 1 for s_end in sentence_ends][:-1]
+        sentence_edges = zip(sentence_starts, sentence_ends)
+        in_quotes = []
+        for start, end in sentence_edges:
+            in_quotes.append(article_dict['article'].in_quotes['in_quotes'][start:end + 1])
+
+        sentences = article_dict['sentences']
+        for j, sent_index in enumerate(article_dict['quotes']):
+            true_author = article_dict['authors'][j]
+            true_mention_index = find_true_author_index(true_author, mentions)
+            y.append(true_mention_index)
+
+            predicted_author = attribute_quote(sentences, sent_index, sentence_starts, in_quotes, cue_verbs)
+            predicted_index = find_true_author_index(predicted_author, mentions)
+            y_pred.append(predicted_index)
+
+    accuracy = np.sum(np.equal(y, y_pred)) / len(y)
+    print(f'    Accuracy: {round(accuracy, 3)}')
+    return accuracy
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

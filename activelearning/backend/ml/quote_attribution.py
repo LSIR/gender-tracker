@@ -13,6 +13,20 @@ from backend.ml.quote_detection_dataset import QuoteDetectionDataset
 
 
 def load_data(nlp, cue_verbs, ovo, poly):
+    """
+    Loads the datasets to perform quote attribution.
+
+    :param nlp: spaCy.Language
+        The language model used to tokenize the text.
+    :param cue_verbs: list(string)
+        The list of all "cue verbs", which are verbs that often introduce reported speech.
+    :param ovo: boolean
+        Whether to load the One vs One model or not.
+    :param poly: sklearn.preprocessing.PolynomialFeatures
+        If defined, used to perform feature extraction.
+    :return: list(int), QuoteAttributionDataset
+        The ids of all articles in the dataset, and the dataset.
+    """
     train_articles, train_sentences, _, _ = load_labeled_articles(nlp)
     quote_detection_dataset = QuoteDetectionDataset(train_articles, train_sentences, cue_verbs, poly)
     train_dicts, _ = load_quote_authors(nlp)
@@ -56,6 +70,8 @@ def predict_quote_author_ovo(trained_model, quote_features, num_mentions):
         The classifier to use to predict the author of the quote.
     :param quote_features: list(np.array)
         The features for each mention in the article.
+    :param num_mentions: int
+        The number of mentions in the article containing the quote.
     :return: int
         The index of the predicted speaker in the mentions of the article.
     """
@@ -84,6 +100,10 @@ def predict_authors(trained_model, dataset, articles, ovo=False):
         The dataset containing the article for which we want to predict the author of a quote.
     :param articles: list(int)
         The unique id of the articles for which we want to predict the speaker of each quote.
+    :param ovo: boolean
+        Whether to load the One vs One model or not.
+    :return: np.array(int), np.array(int)
+        The true and predicted author indices.
     """
     true_speaker_indices = []
     predicted_speaker_indices = []
@@ -118,6 +138,15 @@ def predict_authors(trained_model, dataset, articles, ovo=False):
 def evaluate_quote_attribution(nlp, cue_verbs, cv_folds=5, ovo=False):
     """
     Evaluates the quote attribution model.
+
+    :param nlp: spaCy.Language
+        The language model used to tokenize the text.
+    :param cue_verbs: list(string)
+        The list of all "cue verbs", which are verbs that often introduce reported speech.
+    :param cv_folds: int
+        The number of cross-validation folds to perform.
+    :param ovo: boolean
+        Whether to load the One vs One model or not.
     """
     poly = PolynomialFeatures(2, interaction_only=False)
     print('Creating dataset...')

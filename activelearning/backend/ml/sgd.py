@@ -18,8 +18,8 @@ def train(classifier, dataloader, max_iter):
         The number of epochs to run SGD for.
     :return: SGDClassifier, list(float), list(float)
         * the trained classifier
-        * the loss after each dataload
-        * the accuracy after each dataload
+        * the loss after each data load
+        * the accuracy after each data load
     """
     loss = []
     accuracy = []

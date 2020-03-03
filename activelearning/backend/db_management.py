@@ -7,7 +7,7 @@ import random
 from backend.frontend_parsing.postgre_to_frontend import form_paragraph_json, form_sentence_json
 from backend.helpers import quote_end_sentence, label_consensus, aggregate_label
 from backend.models import Article, UserLabel
-from backend.xml_parsing.xml_to_postgre import process_article
+from backend.xml_parsing.xml_to_postgre import process_article, extract_sentence_spans
 
 
 """ File containing all methods used for database management """
@@ -255,49 +255,64 @@ def load_sentence_labels(nlp):
         if 'test_set' not in article.labeled:
             article.labeled['test_set'] = int(np.random.random() > 0.9)
             article.save()
+        # The spaCy.Doc object for each sentence in the article.
+        article_sentence_docs = extract_sentence_spans(article.text, nlp)
+        # The in_quotes list for each sentence in the article
+        article_in_quotes = []
+        # The label for each sentence in the article
+        article_labels = []
         for sentence_index, end in enumerate(article.sentences['sentences']):
-            # Extract sentence text
-            tokens = article.tokens['tokens'][start:end + 1]
+            # Extract the in_quote list for the sentence
             in_quotes = article.in_quotes['in_quotes'][start:end + 1]
-            sentence = nlp(''.join(tokens))
+            article_in_quotes.append(in_quotes)
             # Compute consensus labels
             sentence_labels, sentence_authors, _ = aggregate_label(article, sentence_index)
-            # Adds the data to the correct list
-            if article.labeled['test_set'] == 0:
-                train_sentences.append(sentence)
-                train_labels.append(int(sum(sentence_labels) > 0))
-                train_in_quotes.append(in_quotes)
-            else:
-                test_sentences.append(sentence)
-                test_labels.append(int(sum(sentence_labels) > 0))
-                test_in_quotes.append(in_quotes)
+            article_labels.append(int(sum(sentence_labels) > 0))
             start = end + 1
+
+        # Adds the data to the correct list
+        if article.labeled['test_set'] == 0:
+            train_sentences += article_sentence_docs
+            train_in_quotes += article_in_quotes
+            train_labels += article_labels
+        else:
+            test_sentences += article_sentence_docs
+            test_in_quotes += article_in_quotes
+            test_labels += article_labels
 
     return train_sentences, train_labels, train_in_quotes, test_sentences, test_labels, test_in_quotes
 
 
-def load_labeled_articles():
+def load_labeled_articles(nlp):
     """
     Finds all fully labeled articles, and assigns unassigned articles to the test or training set.
 
-    :return: list(models.Article), list(models.Article)
+    :return: list(models.Article), list(list(spaCy.Doc)), list(models.Article), list(list(spaCy.Doc))
         * the list of all training articles
+        * the list of docs for each sentence for each training article
         * the list of all test articles
+        * the list of docs for each sentence for each test article
     """
     articles = Article.objects.filter(labeled__fully_labeled=1)
     train_articles = []
+    train_sentences = []
     test_articles = []
+    test_sentences = []
     for article in articles:
         # Check if the article already has its sentences assigned to the test or training set.
         if 'test_set' not in article.labeled:
             article.labeled['test_set'] = int(np.random.random() > 0.9)
             article.save()
+        # The spaCy.Doc object for each sentence in the article.
+        article_sentence_docs = extract_sentence_spans(article.text, nlp)
         if article.labeled['test_set'] == 0:
             train_articles.append(article)
+            train_sentences.append(article_sentence_docs)
         else:
             test_articles.append(article)
+            test_sentences.append(article_sentence_docs)
 
-    return train_articles, test_articles
+    return train_articles, train_sentences, test_articles, test_sentences
 
 
 def load_unlabeled_sentences(nlp):
@@ -306,29 +321,27 @@ def load_unlabeled_sentences(nlp):
 
     :param nlp: spaCy.Language
         The language model used to tokenize the text.
-    :return: list(backend.models.Article), list(list(string))
+    :return: list(backend.models.Article), list(list(spaCy.Doc)), list(list(int))
         * the list of all articles that aren't fully labeled.
-        * the list of the list of sentences in each article.
+        * the list of the list of docs for each sentence in each article.
+        * the list of in_quotes values for each sentence in each article.
     """
     articles = list(Article.objects.filter(labeled__fully_labeled=0))
     sentences = []
     in_quotes = []
     for article in articles:
         start = 0
-        article_sentences = []
+        article_sentence_docs = extract_sentence_spans(article.text, nlp)
+        sentences.append(article_sentence_docs)
         for sentence_index, end in enumerate(article.sentences['sentences']):
-            # Extract sentence text
-            tokens = article.tokens['tokens'][start:end + 1]
-            sentence = nlp(''.join(tokens))
-            article_sentences.append(sentence)
+            # Extract in_quotes values
             in_quotes.append(article.in_quotes['in_quotes'][start:end + 1])
             start = end + 1
-        sentences.append(article_sentences)
 
     return articles, sentences, in_quotes
 
 
-def load_quote_authors():
+def load_quote_authors(nlp):
     """
     Finds all sentences containing quotes, and the author of each quote.
 
@@ -337,6 +350,7 @@ def load_quote_authors():
     :return: list(dict), list(dict)
         Lists of dicts containing training and test quotes, respectively. Keys:
             * 'article': models.Article, the article containing the quote
+            * 'sentences': list(spaCy.Doc), the spaCy.Doc for each sentence in the article.
             * 'quotes': list(int), the indices of sentences that contain quotes in the article.
             * 'author': list(list(int)), the indices of the tokens of the author of the quote.
     """
@@ -350,6 +364,8 @@ def load_quote_authors():
         if 'test_set' not in article.labeled:
             article.labeled['test_set'] = int(np.random.random() > 0.9)
             article.save()
+        # The spaCy.Doc object for each sentence in the article.
+        article_sentence_docs = extract_sentence_spans(article.text, nlp)
         quotes = []
         authors = []
         for sentence_index, end in enumerate(article.sentences['sentences']):
@@ -363,6 +379,7 @@ def load_quote_authors():
         if len(quotes) > 0:
             article_quotes = {
                 'article': article,
+                'sentences': article_sentence_docs,
                 'quotes': quotes,
                 'authors': authors,
             }

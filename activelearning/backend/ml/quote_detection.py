@@ -22,8 +22,8 @@ def load_data(nlp, cue_verbs, poly):
     :param poly:
     :return:
     """
-    train_articles, _ = load_labeled_articles()
-    quote_detection_dataset = QuoteDetectionDataset(train_articles, cue_verbs, nlp, poly=poly)
+    train_articles, train_sentences, _, _ = load_labeled_articles(nlp)
+    quote_detection_dataset = QuoteDetectionDataset(train_articles, train_sentences, cue_verbs, poly=poly)
     train_article_ids = np.array(list(map(lambda a: a.id, train_articles)))
     return train_article_ids, quote_detection_dataset
 

@@ -5,7 +5,7 @@ from torch.utils.data.sampler import WeightedRandomSampler
 from backend.ml.helpers import find_true_author_index
 
 
-def extract_features(article, quote_index, speaker, other_quotes, nlp, cue_verbs):
+def extract_features(article, sentences, quote_index, speaker, other_quotes, cue_verbs):
     """
     Gets the features for speaker attribution for a single speaker, in the one vs one case. The following features are
     taken, for a quote q and a speaker s where q.sent is the index of the sentence containing the quote, s.start is the
@@ -13,14 +13,14 @@ def extract_features(article, quote_index, speaker, other_quotes, nlp, cue_verbs
 
     :param article: models.Article
         The article from which the quote and speakers are taken.
+    :param sentences: list(spaCy.Doc)
+        the spaCy.Doc for each sentence in the article.
     :param quote_index: int
         The index of the sentence containing a quote in the article.
     :param speaker: dict.
         The speaker. Has keys 'name', 'full_name', 'start', 'end', as described in the database.
     :param other_quotes: list(int)
         The index of other sentences containing quotes in the article.
-    :param nlp: spaCy.Language
-        The language model used to tokenize the text
     :param cue_verbs: list(string).
         The sentence to extract features from.
     :return: np.array
@@ -58,11 +58,7 @@ def extract_features(article, quote_index, speaker, other_quotes, nlp, cue_verbs
     speaker_in_quotes = article.in_quotes['in_quotes'][speaker['end']]
 
     def speaker_with_cue_verb():
-        sentence_start = 0
-        if s_sent > 0:
-            sentence_start = article.sentences['sentences'][s_sent - 1] + 1
-        sentence_end = article.sentences['sentences'][s_sent]
-        tokens = nlp(''.join(article.tokens['tokens'][sentence_start:sentence_end + 1]))
+        tokens = sentences[s_sent]
         for token in tokens:
             if token.lemma_ in cue_verbs:
                 return True
@@ -78,7 +74,7 @@ def extract_features(article, quote_index, speaker, other_quotes, nlp, cue_verbs
     ])
 
 
-def parse_article(article_dict, quote_dataset, nlp, cue_verbs, poly=None):
+def parse_article(article_dict, quote_dataset, cue_verbs, poly=None):
     """
     Creates feature vectors for each sentence in the article from the raw data.
 
@@ -89,8 +85,6 @@ def parse_article(article_dict, quote_dataset, nlp, cue_verbs, poly=None):
             * 'author': list(list(int)), the indices of the tokens of the author for each quote.
     :param quote_dataset: QuoteDetectionDataset
         The dataset for quote detection in which this article is contained.
-    :param nlp: spaCy.Language
-        The language model used to tokenize the text
     :param cue_verbs: list(string)
         The list of all "cue verbs", which are verbs that often introduce reported speech.
     :param poly: sklearn.preprocessing.PolynomialFeatures
@@ -118,7 +112,9 @@ def parse_article(article_dict, quote_dataset, nlp, cue_verbs, poly=None):
         quote_features = quote_dataset.get_sentence_features(article_dict['article'].id, sent_index)
 
         for j, mention in enumerate(mentions):
-            ne_features = extract_features(article_dict['article'], sent_index, mention, other_quotes, nlp, cue_verbs)
+            article = article_dict['article']
+            sentences = article_dict['sentences']
+            ne_features = extract_features(article, sentences, sent_index, mention, other_quotes, cue_verbs)
             quote_mention_features = np.concatenate((quote_features, ne_features), axis=0)
             if poly:
                 quote_mention_features = poly.fit_transform(quote_mention_features.reshape((-1, 1))).reshape((-1,))
@@ -136,7 +132,7 @@ def parse_article(article_dict, quote_dataset, nlp, cue_verbs, poly=None):
     return features, labels, len(article_dict['quotes']), len(mentions) + 1
 
 
-def parse_article_ovo(article_dict, quote_dataset, nlp, cue_verbs, poly=None):
+def parse_article_ovo(article_dict, quote_dataset, cue_verbs, poly=None):
     """
     Creates feature vectors for each sentence in the article from the raw data.
 
@@ -147,8 +143,6 @@ def parse_article_ovo(article_dict, quote_dataset, nlp, cue_verbs, poly=None):
             * 'author': list(list(int)), the indices of the tokens of the author for each quote.
     :param quote_dataset: QuoteDetectionDataset
         The dataset for quote detection in which this article is contained.
-    :param nlp: spaCy.Language
-        The language model used to tokenize the text
     :param cue_verbs: list(string)
         The list of all "cue verbs", which are verbs that often introduce reported speech.
     :param poly: sklearn.preprocessing.PolynomialFeatures
@@ -178,8 +172,9 @@ def parse_article_ovo(article_dict, quote_dataset, nlp, cue_verbs, poly=None):
         # Mention features for single mentions
         single_features = []
         for mention in mentions:
-            single_features.append(extract_features(article_dict['article'], sent_index,
-                                                    mention, other_quotes, nlp, cue_verbs))
+            article = article_dict['article']
+            sentences = article_dict['sentences']
+            single_features.append(extract_features(article, sentences, sent_index, mention, other_quotes, cue_verbs))
 
         # Create weasel feature:
         weasel_feature = np.zeros(single_features[-1].shape[0])
@@ -211,7 +206,7 @@ def parse_article_ovo(article_dict, quote_dataset, nlp, cue_verbs, poly=None):
 class QuoteAttributionDataset(Dataset):
     """ Dataset comprised of labeled articles, with features extracted for quote attribution """
 
-    def __init__(self, article_dicts, quote_dataset, nlp, cue_verbs, ovo=False, poly=None):
+    def __init__(self, article_dicts, quote_dataset, cue_verbs, ovo=False, poly=None):
         """
         Initializes the dataset.
 
@@ -222,8 +217,6 @@ class QuoteAttributionDataset(Dataset):
             * 'author': list(list(int)), the indices of the tokens of the author for each quote.
         :param quote_dataset: QuoteDetectionDataset
             The dataset for quote detection in which this article is contained.
-        :param nlp: spaCy.Language
-            The language model used to tokenize the text
         :param cue_verbs: list(string)
             The list of all "cue verbs", which are verbs that often introduce reported speech.
         :param ovo: boolean
@@ -244,9 +237,9 @@ class QuoteAttributionDataset(Dataset):
 
         for a_dict in article_dicts:
             if ovo:
-                a_features, a_labels, a_quotes, a_mentions = parse_article_ovo(a_dict, quote_dataset, nlp, cue_verbs, poly)
+                a_features, a_labels, a_quotes, a_mentions = parse_article_ovo(a_dict, quote_dataset, cue_verbs, poly)
             else:
-                a_features, a_labels, a_quotes, a_mentions = parse_article(a_dict, quote_dataset, nlp, cue_verbs, poly)
+                a_features, a_labels, a_quotes, a_mentions = parse_article(a_dict, quote_dataset, cue_verbs, poly)
             self.features += a_features
             self.labels += a_labels
             self.article_features[a_dict['article'].id] = (total_sentences, total_sentences + len(a_labels) - 1,

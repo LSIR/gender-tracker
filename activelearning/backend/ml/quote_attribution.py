@@ -13,10 +13,10 @@ from backend.ml.quote_detection_dataset import QuoteDetectionDataset
 
 
 def load_data(nlp, cue_verbs, ovo, poly):
-    train_articles, _ = load_labeled_articles()
-    quote_detection_dataset = QuoteDetectionDataset(train_articles, cue_verbs, nlp, poly)
-    train_dicts, _ = load_quote_authors()
-    quote_attribution_dataset = QuoteAttributionDataset(train_dicts, quote_detection_dataset, nlp, cue_verbs, ovo, poly)
+    train_articles, train_sentences, _, _ = load_labeled_articles(nlp)
+    quote_detection_dataset = QuoteDetectionDataset(train_articles, train_sentences, cue_verbs, poly)
+    train_dicts, _ = load_quote_authors(nlp)
+    quote_attribution_dataset = QuoteAttributionDataset(train_dicts, quote_detection_dataset, cue_verbs, ovo, poly)
 
     train_article_ids = np.array(list(map(lambda a: a['article'].id, train_dicts)))
 

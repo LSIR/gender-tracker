@@ -86,8 +86,8 @@ def process_article(article_text, nlp):
 
     :param article_text: string.
         The article in XML format stored as a string
-    :param nlp:
-        spaCy.Language The language model used to tokenize the text
+    :param nlp: spaCy.Language
+        The language model used to tokenize the text
     :return: dictionary. (list(spaCy.Tokens), list(int), list(int), list((int, int)), list(int))
         'tokens': list(spaCy.Tokens). A list of all the tokens in the article
         'p': list(int). A list of the indices of sentences that are the last sentence of a paragraph.
@@ -147,3 +147,21 @@ def process_article(article_text, nlp):
         'mentions': mentions_found,
         'in_quotes': in_quotes,
     }
+
+
+def extract_sentence_spans(article_text, nlp):
+    """
+    Given the xml string for an article, computes a Span object for each sentence in the article.
+
+    :param article_text: string.
+        The article in XML format stored as a string
+    :param nlp: spaCy.Language
+        The language model used to tokenize the text
+    :return: list(spaCy.Doc)
+        A Doc object for each sentence in the article.
+    """
+    root = ET.fromstring(article_text)
+    # Extracts the article as a list of paragraphs
+    paragraphs = [nlp(p) for p in extract_paragraphs(root)]
+    sentences = [sent.as_doc() for p in paragraphs for sent in p.sents]
+    return sentences

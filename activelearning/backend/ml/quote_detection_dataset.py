@@ -80,14 +80,14 @@ def feature_extraction(sentence, cue_verbs, in_quotes):
     ])
 
 
-def parse_article(article, nlp, cue_verbs, poly=None):
+def parse_article(article, sentences, cue_verbs, poly=None):
     """
     Creates feature vectors for each sentence in the article from the raw data.
 
     :param article: models.Article
         A fully labeled article for which to create features.
-    :param nlp: spaCy.Language
-        The language model used to tokenize the text
+    :param sentences: list(spaCy.Doc)
+        the spaCy.Doc for each sentence in the article.
     :param cue_verbs: list(string)
         The list of all "cue verbs", which are verbs that often introduce reported speech.
     :param poly: sklearn.preprocessing.PolynomialFeatures
@@ -98,9 +98,8 @@ def parse_article(article, nlp, cue_verbs, poly=None):
     sentence_start = 0
     for sentence_index, end in enumerate(article.sentences['sentences']):
         # Compute sentence features
-        tokens = article.tokens['tokens'][sentence_start:end + 1]
+        sentence = sentences[sentence_index]
         in_quotes = article.in_quotes['in_quotes'][sentence_start:end + 1]
-        sentence = nlp(''.join(tokens))
         features = feature_extraction(sentence, cue_verbs, in_quotes)
         if poly:
             features = poly.fit_transform(features.reshape((-1, 1))).reshape((-1,))
@@ -118,14 +117,14 @@ def parse_article(article, nlp, cue_verbs, poly=None):
 class QuoteDetectionDataset(Dataset):
     """ Dataset comprised of labeled articles """
 
-    def __init__(self, articles, cue_verbs, nlp, poly=None):
+    def __init__(self, articles, sentences, cue_verbs, poly=None):
         """
         Initializes the dataset.
 
         :param articles: list(models.Article)
             A list of fully labeled articles to add to the dataset.
-        :param nlp: spaCy.Language
-            The language model used to tokenize the text
+        :param sentences: list(list(spaCy.Doc))
+            the spaCy.Doc for each sentence in each article.
         :param cue_verbs: list(string)
             The list of all "cue verbs", which are verbs that often introduce reported speech.
         :param poly: sklearn.preprocessing.PolynomialFeatures
@@ -136,8 +135,8 @@ class QuoteDetectionDataset(Dataset):
         self.article_features = {}
         total_sentences = 0
 
-        for article in articles:
-            article_features, article_labels = parse_article(article, nlp, cue_verbs, poly)
+        for index, article in enumerate(articles):
+            article_features, article_labels = parse_article(article, sentences[index], cue_verbs, poly)
             self.features += article_features
             self.labels += article_labels
             self.article_features[article.id] = (total_sentences, total_sentences + len(article_labels) - 1)

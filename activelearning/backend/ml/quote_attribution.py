@@ -1,14 +1,14 @@
 import numpy as np
-from collections import Counter
+
 from sklearn.linear_model import SGDClassifier
 from sklearn.model_selection import KFold
 from sklearn.preprocessing import PolynomialFeatures
 
+from backend.ml.scoring import Results
 from backend.ml.sgd import train, evaluate
-from backend.ml.helpers import print_scores
 from backend.db_management import load_labeled_articles, load_quote_authors
 from backend.ml.quote_attribution_dataset import QuoteAttributionDataset, subset, subset_ovo, \
-    attribution_train_loader, attribution_test_loader
+    attribution_loader
 from backend.ml.quote_detection_dataset import QuoteDetectionDataset
 
 
@@ -125,61 +125,48 @@ def evaluate_quote_attribution(nlp, cue_verbs, cv_folds=5, ovo=False):
 
     kf = KFold(n_splits=cv_folds)
     max_iter = 200
-    train_results = {
-        'accuracy': [],
-        'precision': [],
-        'recall': [],
-        'f1': [],
-    }
-    test_results = {
-        'accuracy': [],
-        'precision': [],
-        'recall': [],
-        'f1': [],
-    }
+
+    train_results = Results()
+    test_results = Results()
+
     train_accuracies = []
     test_accuracies = []
     print('Performing cross-validation...')
-    for train_indices, test_indices in kf.split(article_ids):
-        classifier = SGDClassifier(loss='log', alpha=0.1, penalty='l2')
 
-        train_ids = article_ids[train_indices]
-        test_ids = article_ids[test_indices]
-        if ovo:
-            train_dataset = subset_ovo(attribution_dataset, train_ids)
-            test_dataset = subset_ovo(attribution_dataset, test_ids)
-        else:
-            train_dataset = subset(attribution_dataset, train_ids)
-            test_dataset = subset(attribution_dataset, test_ids)
+    for alpha in [0.001, 0.01, 0.1, 1]:
+        print(f'\n  Regularization term: {alpha}')
+        for train_indices, test_indices in kf.split(article_ids):
+            classifier = SGDClassifier(loss='log', alpha=alpha, penalty='l2')
 
-        train_loader = attribution_train_loader(train_dataset, batch_size=len(train_dataset))
-        test_loader = attribution_test_loader(test_dataset)
+            train_ids = article_ids[train_indices]
+            test_ids = article_ids[test_indices]
+            if ovo:
+                train_dataset = subset_ovo(attribution_dataset, train_ids)
+                test_dataset = subset_ovo(attribution_dataset, test_ids)
+            else:
+                train_dataset = subset(attribution_dataset, train_ids)
+                test_dataset = subset(attribution_dataset, test_ids)
 
-        classifier, loss, accuracy = train(classifier, train_loader, max_iter)
+            train_loader = attribution_loader(train_dataset, train=True, batch_size=len(train_dataset))
+            test_loader = attribution_loader(test_dataset, train=False, batch_size=len(test_dataset))
 
-        train_loader = attribution_test_loader(train_dataset)
-        train_scores = evaluate(classifier, train_loader)
-        for key in train_results.keys():
-            train_results[key].append(train_scores[key])
-        test_scores = evaluate(classifier, test_loader)
-        for key in test_results.keys():
-            test_results[key].append(test_scores[key])
+            classifier, loss, accuracy = train(classifier, train_loader, max_iter)
 
-        true_speakers, predicted_speaker = predict_authors(classifier, attribution_dataset, train_ids, ovo)
-        train_accuracies.append(np.sum(np.equal(true_speakers, predicted_speaker)) / len(true_speakers))
+            train_loader = attribution_loader(train_dataset, train=False, batch_size=len(train_dataset))
+            train_results.add_scores(evaluate(classifier, train_loader))
+            test_results.add_scores(evaluate(classifier, test_loader))
 
-        true_speakers, predicted_speaker = predict_authors(classifier, attribution_dataset, test_ids, ovo)
-        test_accuracies.append(np.sum(np.equal(true_speakers, predicted_speaker)) / len(true_speakers))
+            true_speakers, predicted_speaker = predict_authors(classifier, attribution_dataset, train_ids, ovo)
+            train_accuracies.append(np.sum(np.equal(true_speakers, predicted_speaker))/len(true_speakers))
 
-    train_averages = {}
-    test_averages = {}
-    for key in train_results.keys():
-        train_averages[key] = round(sum(train_results[key])/len(train_results[key]), 3)
-        test_averages[key] = round(sum(test_results[key]) / len(test_results[key]), 3)
+            true_speakers, predicted_speaker = predict_authors(classifier, attribution_dataset, test_ids, ovo)
+            test_accuracies.append(np.sum(np.equal(true_speakers, predicted_speaker))/len(true_speakers))
 
-    print(print_scores('Average Training Results', train_averages))
-    print(print_scores('Average Test Results', test_averages))
+        print('    Average Training Results')
+        print(train_results.average_score())
+        print('    Average Test Results')
+        print(test_results.average_score())
 
-    print(f'\n    Accuracy in speaker prediction:\n'
-          f'        Training: {round(sum(train_accuracies)/len(train_accuracies), 3)}\n'
-          f'        Test:     {round(sum(test_accuracies)/len(test_accuracies), 3)}\n')
+        print(f'\n    Accuracy in speaker prediction:\n'
+              f'        Training: {round(sum(train_accuracies)/len(train_accuracies), 3)}\n'
+              f'        Test:     {round(sum(test_accuracies)/len(test_accuracies), 3)}\n')

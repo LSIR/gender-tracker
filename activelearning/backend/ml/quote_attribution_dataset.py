@@ -393,36 +393,25 @@ def sampler_weights_ovo(dataset):
     return weights, num_samples
 
 
-def attribution_train_loader(dataset, batch_size=1):
+def attribution_loader(dataset, train=True, batch_size=None):
     """
     Creates a training set dataloader for a dataset. Uses a sampler to load the same number of datapoints from
     both classes.
 
     :param dataset: Dataset
         The dataset used from which to load data.
+    :param train: boolean
+        Whether to load a training or testing dataloader.
     :param batch_size: int.
-        The batch size for training.
-    :return: torch.utils.data.DataLoader
-        DataLoader for quote detection.
-    """
-    weights, num_samples = sampler_weights(dataset)
-    sampler = WeightedRandomSampler(weights=weights, num_samples=num_samples, replacement=True)
-    data_loader = DataLoader(dataset=dataset, batch_size=batch_size, sampler=sampler)
-    return data_loader
-
-
-def attribution_test_loader(dataset, batch_size=None):
-    """
-    Creates a training set dataloader for a dataset. Does balance the two classes
-
-    :param dataset: Dataset
-        The dataset used from which to load data.
-    :param batch_size: int.
-        The batch size for training. If none, the whole test dataset is returned at once.
+        The batch size. The default is None, where the batch size is the size of the data.
     :return: torch.utils.data.DataLoader
         DataLoader for quote detection.
     """
     if batch_size is None:
         batch_size = len(dataset)
-    data_loader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=False)
-    return data_loader
+    if train:
+        weights, num_samples = sampler_weights(dataset)
+        sampler = WeightedRandomSampler(weights=weights, num_samples=num_samples, replacement=True)
+        return DataLoader(dataset=dataset, batch_size=batch_size, sampler=sampler)
+    else:
+        return DataLoader(dataset=dataset, batch_size=batch_size, shuffle=False)

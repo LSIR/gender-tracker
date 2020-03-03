@@ -12,15 +12,6 @@ from backend.ml.sgd import train, evaluate
 
 # TODO: Make regularization term adjustable
 
-def set_custom_boundaries(doc):
-    """ Custom boundaries so that spaCy doesn't split sentences at ';' or at '-[A-Z]'. """
-    for token in doc[:-1]:
-        if token.text == ";":
-            doc[token.i+1].is_sent_start = False
-        if token.text == "-" and token.i != 0:
-            doc[token.i].is_sent_start = False
-    return doc
-
 
 def load_data(nlp, cue_verbs, poly):
     """

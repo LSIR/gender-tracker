@@ -6,6 +6,7 @@ from backend.helpers import change_confidence
 from backend.db_management import add_article_to_db, add_user_label_to_db,\
     load_sentence_labels, load_unlabeled_sentences
 from backend.ml.quote_detection import evaluate_quote_detection, train_quote_detection, predict_quotes
+from backend.xml_parsing.helpers import load_nlp
 
 import spacy
 import csv
@@ -301,21 +302,8 @@ def add_correct_labels(test_article, test_article_id):
         add_user_label_to_db(0000, test_article_id, index, labels, authors, True)
 
 
-def set_custom_boundaries(doc):
-    """
-    Custom boundaries so that spaCy doesn't split sentences at ';' or at '-[A-Z]'.
-    """
-    for token in doc[:-1]:
-        if token.text == ";":
-            doc[token.i+1].is_sent_start = False
-        if token.text == "-" and token.i != 0:
-            doc[token.i].is_sent_start = False
-    return doc
-
-
 """ The language model. """
-nlp = spacy.load('fr_core_news_md')
-nlp.add_pipe(set_custom_boundaries, before="parser")
+nlp = load_nlp()
 
 
 class QuoteDetectionTestCase(TestCase):

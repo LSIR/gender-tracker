@@ -6,16 +6,7 @@ import csv
 from backend.db_management import load_unlabeled_sentences
 from backend.helpers import change_confidence
 from backend.ml.quote_detection import train_quote_detection, evaluate_unlabeled_sentences
-
-
-def set_custom_boundaries(doc):
-    """ Custom boundaries so that spaCy doesn't split sentences at ';' or at '-[A-Z]'. """
-    for token in doc[:-1]:
-        if token.text == ";":
-            doc[token.i+1].is_sent_start = False
-        if token.text == "-" and token.i != 0:
-            doc[token.i].is_sent_start = False
-    return doc
+from backend.xml_parsing.helpers import load_nlp
 
 
 def form_sentence(nlp, tokens):
@@ -35,8 +26,7 @@ class Command(BaseCommand):
         model = options['model']
         try:
             print('Loading language model...')
-            nlp = spacy.load('fr_core_news_md')
-            nlp.add_pipe(set_custom_boundaries, before="parser")
+            nlp = load_nlp()
             with open('data/cue_verbs.csv', 'r') as f:
                 reader = csv.reader(f)
                 cue_verbs = set(list(reader)[0])

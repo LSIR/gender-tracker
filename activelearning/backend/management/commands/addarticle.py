@@ -1,23 +1,12 @@
 from django.core.management.base import BaseCommand, CommandError
 
 from backend.db_management import add_article_to_db
+from backend.xml_parsing.helpers import load_nlp
 
 from os import listdir
 from os.path import isfile, join
 
 import spacy
-
-
-def set_custom_boundaries(doc):
-    """
-    Custom boundaries so that spaCy doesn't split sentences at ';' or at '-[A-Z]'.
-    """
-    for token in doc[:-1]:
-        if token.text == ";":
-            doc[token.i+1].is_sent_start = False
-        if token.text == "-" and token.i != 0:
-            doc[token.i].is_sent_start = False
-    return doc
 
 
 class Command(BaseCommand):
@@ -40,8 +29,7 @@ class Command(BaseCommand):
                              if isfile(join(path, article)) and len(article) > 4 and article[-3:] == 'xml']
             article_files.sort()
             print('Loading language model...')
-            nlp = spacy.load('fr_core_news_md')
-            nlp.add_pipe(set_custom_boundaries, before="parser")
+            nlp = load_nlp()
             print('Adding articles to the database...')
             for article_path in article_files:
                 articles.append(add_article_to_db(article_path, nlp, source))

@@ -5,26 +5,13 @@ from backend.models import Article, UserLabel
 from backend.db_management import add_article_to_db
 from backend.helpers import label_consensus, change_confidence
 from backend.xml_parsing.postgre_to_xml import database_to_xml
+from backend.xml_parsing.helpers import load_nlp
 
-import spacy
 import json
 
 
-def set_custom_boundaries(doc):
-    """
-    Custom boundaries so that spaCy doesn't split sentences at ';' or at '-[A-Z]'.
-    """
-    for token in doc[:-1]:
-        if token.text == ";":
-            doc[token.i+1].is_sent_start = False
-        if token.text == "-" and token.i != 0:
-            doc[token.i].is_sent_start = False
-    return doc
-
-
 """ The language model. """
-nlp = spacy.load('fr_core_news_md')
-nlp.add_pipe(set_custom_boundaries, before="parser")
+nlp = load_nlp()
 
 
 """ The content and annotation of the first article. """

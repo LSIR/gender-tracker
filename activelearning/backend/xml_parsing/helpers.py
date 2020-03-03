@@ -1,6 +1,29 @@
+import spacy
 
 
 """ File containing helper methods to transform XML files to rows of a PostgreSQL database and vice versa. """
+
+
+def set_custom_boundaries(doc):
+    """ Custom boundaries so that spaCy doesn't split sentences at ';' or at '-[A-Z]'. """
+    for token in doc[:-1]:
+        if token.text == ";":
+            doc[token.i+1].is_sent_start = False
+        if token.text == "-" and token.i != 0:
+            doc[token.i].is_sent_start = False
+    return doc
+
+
+def load_nlp():
+    """
+    Loads the spacy language model with custom boundaries.
+
+    :return: spacy.Language
+        The language model.
+    """
+    nlp = spacy.load('fr_core_news_md')
+    nlp.add_pipe(set_custom_boundaries, before="parser")
+    return nlp
 
 
 def overlap(seq1, seq2):

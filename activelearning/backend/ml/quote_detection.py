@@ -48,7 +48,7 @@ def predict_quotes(trained_model, sentences, cue_verbs, in_quotes, poly=None):
     :param cue_verbs: list(string)
         The list of all "cue verbs", which are verbs that often introduce reported speech.
     :param in_quotes: list(list(int)).
-        Whether each token in each sentence is between quotes or not
+        Whether each token in each sentence is between quotes or not.
     :return: np.array()
         The probability for each sentence.
     """

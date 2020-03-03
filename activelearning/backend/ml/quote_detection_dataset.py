@@ -142,6 +142,7 @@ class QuoteDetectionDataset(Dataset):
             self.article_features[article.id] = (total_sentences, total_sentences + len(article_labels) - 1)
             total_sentences += len(article_labels)
 
+        self.feature_dimensionality = self.features[0].shape
         self.length = len(self.features)
 
     def __getitem__(self, index):

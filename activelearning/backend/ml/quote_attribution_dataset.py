@@ -26,14 +26,24 @@ def extract_features(article, sentences, quote_index, speaker, other_quotes, cue
     :return: np.array
         The features extracted
     """
+    # The index of the sentence in which the speaker is found
     s_sent = 0
     while s_sent < len(article.sentences['sentences']) and article.sentences['sentences'][s_sent] < speaker['end']:
         s_sent = s_sent + 1
 
+    # The index of the first token in the sentence containing the speaker
+    speaker_sent_start = 0
+    if s_sent > 0:
+        speaker_sent_start = article.sentences['sentences'][s_sent - 1] + 1
+    # The indices of the tokens of the speaker in it's sentence doc.
+    relative_speaker_tokens = [i - speaker_sent_start for i in range(speaker['start'], speaker['end'] + 1)]
+
+    # The index of the paragraph in which the speaker is found
     s_par = 0
     while s_par < len(article.paragraphs['paragraphs']) and article.paragraphs['paragraphs'][s_par] < s_sent:
         s_par = s_par + 1
 
+    # The index of the paragraph in which the quote is found
     q_par = 0
     while q_par < len(article.paragraphs['paragraphs']) and article.paragraphs['paragraphs'][q_par] < quote_index:
         q_par = q_par + 1
@@ -61,8 +71,23 @@ def extract_features(article, sentences, quote_index, speaker, other_quotes, cue
         tokens = sentences[s_sent]
         for token in tokens:
             if token.lemma_ in cue_verbs:
-                return True
-        return False
+                return 1
+        return 0
+
+    def speaker_dep(dep):
+        for index in relative_speaker_tokens:
+            if sentences[s_sent][index].dep_ == dep:
+                return 1
+        return 0
+
+    def child_of_cue_verb():
+        speaker_sentence = sentences[s_sent]
+        for token in speaker_sentence:
+            if token.lemma_ in cue_verbs:
+                for child in token.children:
+                    if child.i in relative_speaker_tokens:
+                        return 1
+        return 0
 
     return np.array([
         sentence_dist,
@@ -71,6 +96,9 @@ def extract_features(article, sentences, quote_index, speaker, other_quotes, cue
         quotes_above_q(),
         speaker_in_quotes,
         speaker_with_cue_verb(),
+        speaker_dep('nsubj'),
+        speaker_dep('obj'),
+        child_of_cue_verb(),
     ])
 
 
@@ -246,6 +274,7 @@ class QuoteAttributionDataset(Dataset):
                                                            a_quotes, a_mentions)
             total_sentences += len(a_labels)
 
+        self.feature_dimensionality = self.features[0].shape
         self.length = len(self.features)
 
     def __getitem__(self, index):

@@ -152,8 +152,10 @@ def evaluate_quote_attribution(nlp, cue_verbs, cv_folds=5, ovo=False):
     print('Creating dataset...')
     article_ids, attribution_dataset = load_data(nlp, cue_verbs, ovo, poly)
 
+    print(f'Feature dimensionality: {attribution_dataset.feature_dimensionality }')
+
     kf = KFold(n_splits=cv_folds)
-    max_iter = 200
+    max_iter = 50
 
     train_results = Results()
     test_results = Results()

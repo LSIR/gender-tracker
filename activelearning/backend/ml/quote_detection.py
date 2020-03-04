@@ -92,12 +92,14 @@ def evaluate_unlabeled_sentences(trained_model, sentences, cue_verbs, in_quotes)
     return predict_quotes(trained_model, sentences, cue_verbs, in_quotes, poly=poly)
 
 
-def evaluate_quote_detection(penalty, nlp, cue_verbs, cv_folds=5):
+def evaluate_quote_detection(penalty, alpha, nlp, cue_verbs, cv_folds=5):
     """
     Trains different models for quote detection.
 
     :param penalty: string
         One of {'l1', 'l2}. The penalty to use for training
+    :param alpha: float
+        The regularization to use for training
     :param nlp: spaCy.Language
         The language model used to tokenize the text.
     :param cue_verbs: list(string)
@@ -110,23 +112,15 @@ def evaluate_quote_detection(penalty, nlp, cue_verbs, cv_folds=5):
     poly = PolynomialFeatures(2, interaction_only=False)
     article_ids, quote_detection_dataset = load_data(nlp, cue_verbs, poly)
 
-    print(f'  Feature dimensionality: {quote_detection_dataset.feature_dimensionality}')
-    for alpha in [0.001, 0.01, 0.1, 1]:
-        print(f'\n    Evaluating with regularization term: {alpha}')
-        train_results, test_results = cross_validate(penalty=penalty,
-                                                     split_ids=article_ids,
-                                                     dataset=quote_detection_dataset,
-                                                     subset=subset,
-                                                     dataloader=detection_loader,
-                                                     alpha=alpha,
-                                                     max_iter=200,
-                                                     cv_folds=cv_folds)
+    train_results, test_results = cross_validate(penalty=penalty,
+                                                 split_ids=article_ids,
+                                                 dataset=quote_detection_dataset,
+                                                 subset=subset,
+                                                 dataloader=detection_loader,
+                                                 alpha=alpha,
+                                                 max_iter=200,
+                                                 cv_folds=cv_folds)
 
-        print('    Average Training Results')
-        print(train_results.average_score())
-        print('    Average Test Results')
-        print(test_results.average_score())
-
-    return quote_detection_dataset
+    return train_results, test_results
 
 

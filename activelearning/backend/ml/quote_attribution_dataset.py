@@ -90,6 +90,10 @@ def extract_features(article, sentences, quote_index, speaker, other_quotes, cue
         return 0
 
     return np.array([
+        s_sent,
+        quote_index,
+        s_par,
+        q_par,
         sentence_dist,
         paragraph_dist,
         separating_quotes(),

@@ -2,7 +2,7 @@ from backend.db_management import load_labeled_articles, load_quote_authors
 from backend.helpers import aggregate_label
 import numpy as np
 
-from backend.ml.helpers import find_true_author_index
+from backend.ml.helpers import find_true_author_index, extract_speaker_names, evaluate_speaker_extraction
 
 """ Contains methods for the baseline models for quote extraction and attribution. """
 
@@ -153,7 +153,7 @@ def absolute_indices(relative_indices, sentence_start):
     :return: list(int)
         The absolute positions.
     """
-    return [index - sentence_start for index in relative_indices]
+    return [index + sentence_start for index in relative_indices]
 
 
 def attribute_quote(all_sentences, sentence_index, sentence_starts, in_quotes, cue_verbs):
@@ -206,7 +206,7 @@ def attribute_quote(all_sentences, sentence_index, sentence_starts, in_quotes, c
     while index >= 0:
         for i, token in enumerate(all_sentences[index]):
             if token.ent_type_ == "PER":
-                return absolute_indices(extract_quotee(all_sentences[index], token),sentence_starts[index])
+                return absolute_indices(extract_quotee(all_sentences[index], token), sentence_starts[index])
         index -= 1
 
     # Return the first named entity after the quote
@@ -216,6 +216,45 @@ def attribute_quote(all_sentences, sentence_index, sentence_starts, in_quotes, c
             if token.ent_type_ == "PER":
                 return absolute_indices(extract_quotee(all_sentences[index], token), sentence_starts[index])
         index += 1
+
+    # The sentence has no named entity as an author
+    return []
+
+
+def attribute_quote_lazy(all_sentences, sentence_index, sentence_starts, in_quotes, cue_verbs):
+    """
+    Lazy version of the baseline quote attribution model. This model only selects a named entity for the quote if the
+    sentence containing the quote contains a cue verb which has a named entity as a child, or if the sentence containing
+    the quote contains a named entity that isn't between quotes. Otherwise returns that the quote has no author
+
+    :param all_sentences: list(spacy.Span)
+        All sentences in the article.
+    :param sentence_index: int
+        The index of the sentence in the article.
+    :param sentence_starts: list(int)
+        The index of the token at which each sentence starts.
+    :param in_quotes: list(int)
+        Whether each token in each sentence is between quotes or not.
+    :param cue_verbs: list(string)
+        The list of all "cue verbs", which are verbs that often introduce reported speech.
+    :return: list(int)
+        The indices of the named entity in the article that is predicted to be the author of the quote. If there is
+        none, returns an empty list.
+    """
+    sentence = all_sentences[sentence_index]
+    s_in_quotes = in_quotes[sentence_index]
+
+    # If the sentence contains a cue verb with a named entity as a dependent, return the named entity.
+    cv = extract_cue_verb(sentence, cue_verbs)
+    if cv is not None:
+        for child in cv.children:
+            if child.ent_type_ == "PER":
+                return absolute_indices(extract_quotee(sentence, child), sentence_starts[sentence_index])
+
+    # If the sentence contains a named entity that isn't between quotes, return that named entity
+    for index, token in enumerate(sentence):
+        if token.ent_type_ == "PER" and s_in_quotes[index] == 0:
+            return absolute_indices(extract_quotee(sentence, token), sentence_starts[sentence_index])
 
     # The sentence has no named entity as an author
     return []
@@ -233,28 +272,67 @@ def baseline_quote_attribution(nlp, cue_verbs):
     """
     y = []
     y_pred = []
+    y_pred_lazy = []
+    average_precision = []
+    average_recall = []
+    average_precision_lazy = []
+    average_recall_lazy = []
     train_dicts, _ = load_quote_authors(nlp)
     for i, article_dict in enumerate(train_dicts):
         mentions = article_dict['article'].people['mentions']
         sentence_ends = article_dict['article'].sentences['sentences']
-        sentence_starts = [0] + [s_end - 1 for s_end in sentence_ends][:-1]
+        sentence_starts = [0] + [s_end + 1 for s_end in sentence_ends][:-1]
         sentence_edges = zip(sentence_starts, sentence_ends)
         in_quotes = []
         for start, end in sentence_edges:
             in_quotes.append(article_dict['article'].in_quotes['in_quotes'][start:end + 1])
 
+        article_labels = []
+        article_predictions = []
+        article_predictions_lazy = []
         sentences = article_dict['sentences']
         for j, sent_index in enumerate(article_dict['quotes']):
             true_author = article_dict['authors'][j]
             true_mention_index = find_true_author_index(true_author, mentions)
-            y.append(true_mention_index)
+            article_labels.append(true_mention_index)
 
             predicted_author = attribute_quote(sentences, sent_index, sentence_starts, in_quotes, cue_verbs)
             predicted_index = find_true_author_index(predicted_author, mentions)
-            y_pred.append(predicted_index)
+            article_predictions.append(predicted_index)
+
+            predicted_author_lazy = attribute_quote_lazy(sentences, sent_index, sentence_starts, in_quotes, cue_verbs)
+            predicted_index_lazy = find_true_author_index(predicted_author_lazy, mentions)
+            article_predictions_lazy.append(predicted_index_lazy)
+
+        true_names = extract_speaker_names(article_dict['article'], article_labels)
+
+        predicted_names = extract_speaker_names(article_dict['article'], article_predictions)
+        precision, recall = evaluate_speaker_extraction(true_names, predicted_names)
+        average_precision.append(precision)
+        average_recall.append(recall)
+
+        predicted_names_lazy = extract_speaker_names(article_dict['article'], article_predictions_lazy)
+        precision, recall = evaluate_speaker_extraction(true_names, predicted_names_lazy)
+        average_precision_lazy.append(precision)
+        average_recall_lazy.append(recall)
+
+        y += article_labels
+        y_pred += article_predictions
+        y_pred_lazy += article_predictions_lazy
 
     accuracy = np.sum(np.equal(y, y_pred)) / len(y)
     print(f'    Accuracy: {round(accuracy, 3)}')
+    accuracy_lazy = np.sum(np.equal(y, y_pred_lazy)) / len(y)
+    print(f'    Accuracy Lazy: {round(accuracy_lazy, 3)}')
+    precision = np.sum(average_precision) / len(average_precision)
+    recall = np.sum(average_recall) / len(average_recall)
+    print(f'    Average scores for speakers extracted from articles')
+    print(f'        Precision: {round(precision, 3)}')
+    print(f'        Recall:    {round(recall, 3)}')
+    precision = np.sum(average_precision_lazy) / len(average_precision_lazy)
+    recall = np.sum(average_recall_lazy) / len(average_recall_lazy)
+    print(f'        Lazy Precision: {round(precision, 3)}')
+    print(f'        Lazy Recall:    {round(recall, 3)}')
     return accuracy
 
 

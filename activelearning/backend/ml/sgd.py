@@ -10,6 +10,8 @@ def train(classifier, dataloader, max_iter):
     Trains a classifier using SGD.
     TODO: Implement early stopping, check that I don't need to touch learning rates.
 
+    TODO: Early stopping works, but I'm not sure the learning rates are adapted.
+
     :param classifier: SGDClassifier
         The classifier to train.
     :param dataloader: Dataloader
@@ -23,6 +25,7 @@ def train(classifier, dataloader, max_iter):
     """
     loss = []
     accuracy = []
+    going_up = 0
     for n in range(max_iter):
         for X, y in dataloader:
             classifier.partial_fit(X, y, classes=np.array([0, 1]))
@@ -30,13 +33,24 @@ def train(classifier, dataloader, max_iter):
             loss.append(log_loss(y, y_pred, labels=np.array([0, 1])))
             accuracy.append(classifier.score(X, y))
 
+        if len(accuracy) > 2 and accuracy[-2] < accuracy[-1]:
+            going_up += 1
+        else:
+            going_up = 0
+
+        if going_up > 5:
+            print(f'          early stopping: {len(accuracy)}')
+            return classifier, loss, accuracy
+
     return classifier, loss, accuracy
 
 
-def cross_validate(split_ids, dataset, subset, dataloader, alpha, max_iter, cv_folds):
+def cross_validate(penalty, split_ids, dataset, subset, dataloader, alpha, max_iter, cv_folds):
     """
     Performs cross-validation for a model on a dataset.
 
+    :param penalty: string
+        One of {'l1', 'l2}. The penalty to use for training
     :param split_ids: list(int)
         The ids of the articles in the dataset. Used to split them into subsets for cross-validation.
     :param dataset: torch.utils.data.Dataset
@@ -61,7 +75,7 @@ def cross_validate(split_ids, dataset, subset, dataloader, alpha, max_iter, cv_f
 
     for train_indices, test_indices in kf.split(split_ids):
         # Create the model
-        classifier = SGDClassifier(loss='log', alpha=alpha, penalty='l2')
+        classifier = SGDClassifier(loss='log', alpha=alpha, penalty=penalty)
 
         # Split the dataset into train and test
         train_ids = split_ids[train_indices]

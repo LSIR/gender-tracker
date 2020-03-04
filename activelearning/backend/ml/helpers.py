@@ -26,6 +26,79 @@ def find_true_author_index(true_author, mentions):
     return -1
 
 
+def author_full_name(article, author_index):
+    """
+    Determines the full name of someone cited in an article, given the index of the named entity in the article.
+
+    :param article: models.Article
+        The article containing the author
+    :param author_index: int
+        The index of the author in the list of mentions.
+    :return: string
+        The name of the author of the quote.
+    """
+    if author_index < 0 or author_index >= len(article.people['mentions']):
+        return None
+    return article.people['mentions'][author_index]['full_name']
+
+
+def extract_speaker_names(article, author_indices):
+    """
+    Given an article and the indices of named entities in the article that are quoted in it, extracts their full names.
+
+    :param article: models.Article
+        The article containing the author
+    :param author_indices: list(int)
+        The index of the author in the list of mentions.
+    :return: Set(string)
+        The full names of people quoted in the article.
+    """
+    speakers = set()
+    for i in author_indices:
+        full_name = author_full_name(article, i)
+        if full_name is not None and full_name not in speakers:
+            speakers.add(full_name)
+    return speakers
+
+
+def evaluate_speaker_extraction(true_names, predicted_names):
+    """
+    Computes the precision and recall for an article, given the true people cited and the predictions from a model.
+
+    :param true_names: set(string)
+        The names as given by user labels
+    :param predicted_names: set(string)
+        The names as predicted by a model
+    :return: float, float
+        The precision and recall.
+    """
+    true_positives = 0
+    false_positives = 0
+    false_negatives = 0
+
+    for name in true_names:
+        if name in predicted_names:
+            true_positives += 1
+        else:
+            false_negatives += 1
+
+    for name in predicted_names:
+        if name not in true_names:
+            false_positives += 1
+
+    if true_positives + false_positives == 0:
+        precision = 1
+    else:
+        precision = true_positives/(true_positives + false_positives)
+
+    if true_positives + false_negatives == 0:
+        recall = 1
+    else:
+        recall = true_positives/(true_positives + false_negatives)
+
+    return precision, recall
+
+
 def balance_classes(X, y):
     """
     Given the input matrices for an unbalanced classification task (where one class is present much more often than the

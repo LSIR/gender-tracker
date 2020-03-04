@@ -220,7 +220,6 @@ def evaluate_quote_attribution(penalty, nlp, cue_verbs, cv_folds=5, ovo=False):
     test_accuracies = []
     test_precision = []
     test_recall = []
-    print('    Performing cross-validation...')
 
     for alpha in [0.001, 0.01, 0.1, 1]:
         print(f'\n        Evaluating with regularization term: {alpha}')

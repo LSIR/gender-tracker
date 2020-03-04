@@ -26,10 +26,11 @@ class Command(BaseCommand):
             folds = options['folds']
 
         try:
-            print('\nLoading language model...')
+            print()
+            print('Loading language model...'.ljust(80), end='\r')
             nlp = load_nlp()
 
-            print('Loading cue verbs...')
+            print('Loading cue verbs...'.ljust(80), end='\r')
             with open('data/cue_verbs.csv', 'r') as f:
                 reader = csv.reader(f)
                 cue_verbs = set(list(reader)[0])
@@ -37,10 +38,11 @@ class Command(BaseCommand):
             alphas = [0.01, 0.1]
             penalties = ['l1', 'l2']
 
-            print('\n\nEvaluating quote detection...')
+            print('Evaluating quote detection...'.ljust(80), end='\r')
 
             print('\n  Baseline:')
-            baseline_quote_detection(nlp)
+            results = baseline_quote_detection(nlp)
+            print(results.average_score())
 
             for p in penalties:
                 print(f'\n  {p} logistic:')

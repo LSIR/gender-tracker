@@ -1,8 +1,11 @@
+from sklearn.metrics import precision_recall_fscore_support
+
 from backend.db_management import load_labeled_articles, load_quote_authors
 from backend.helpers import aggregate_label
 import numpy as np
 
 from backend.ml.helpers import find_true_author_index, extract_speaker_names, evaluate_speaker_extraction
+from backend.ml.scoring import Results
 
 """ Contains methods for the baseline models for quote extraction and attribution. """
 
@@ -93,8 +96,15 @@ def baseline_quote_detection(nlp):
             sentence_start = end + 1
 
     accuracy = np.sum(np.equal(y, y_pred))/len(y)
-    print(f'    Accuracy: {round(accuracy, 3)}')
-    return accuracy
+    precision, recall, f1, _ = precision_recall_fscore_support(y, y_pred, zero_division=0, average='binary')
+    scores = Results()
+    scores.add_scores({
+        'accuracy': accuracy,
+        'precision': precision,
+        'recall': recall,
+        'f1': f1,
+    })
+    return scores
 
 
 def extract_cue_verb(sentence, cue_verbs):

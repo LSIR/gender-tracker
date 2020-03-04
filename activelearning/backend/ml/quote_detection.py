@@ -92,10 +92,12 @@ def evaluate_unlabeled_sentences(trained_model, sentences, cue_verbs, in_quotes)
     return predict_quotes(trained_model, sentences, cue_verbs, in_quotes, poly=poly)
 
 
-def evaluate_quote_detection(penalty, alpha, nlp, cue_verbs, cv_folds=5):
+def evaluate_quote_detection(loss, penalty, alpha, nlp, cue_verbs, cv_folds=5):
     """
     Trains different models for quote detection.
 
+    :param loss: string
+        One of {'log', 'hinge'}. The loss function to use.
     :param penalty: string
         One of {'l1', 'l2}. The penalty to use for training
     :param alpha: float
@@ -112,7 +114,8 @@ def evaluate_quote_detection(penalty, alpha, nlp, cue_verbs, cv_folds=5):
     poly = PolynomialFeatures(2, interaction_only=False)
     article_ids, quote_detection_dataset = load_data(nlp, cue_verbs, poly)
 
-    train_results, test_results = cross_validate(penalty=penalty,
+    train_results, test_results = cross_validate(loss=loss,
+                                                 penalty=penalty,
                                                  split_ids=article_ids,
                                                  dataset=quote_detection_dataset,
                                                  subset=subset,

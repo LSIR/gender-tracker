@@ -36,7 +36,8 @@ class Command(BaseCommand):
                 cue_verbs = set(list(reader)[0])
 
             alphas = [0.01, 0.1]
-            penalties = ['l1', 'l2']
+            losses = ['log', 'hinge']
+            log_penalties = ['l1', 'l2']
 
             print('Evaluating quote detection...'.ljust(80), end='\r')
 
@@ -44,13 +45,14 @@ class Command(BaseCommand):
             results = baseline_quote_detection(nlp)
             print(results.average_score())
 
-            for p in penalties:
-                print(f'\n  {p} logistic:')
-                for alpha in alphas:
-                    print(f'\n    Evaluating with regularization term: {alpha}')
-                    train_results, test_results = evaluate_quote_detection(p, alpha, nlp, cue_verbs, cv_folds=folds)
-                    print(f'    Average Training Results\n{train_results.average_score()}')
-                    print(f'    Average Test Results\n{test_results.average_score()}')
+            for l in losses:
+                for p in log_penalties:
+                    print(f'\n  {p} {l}:')
+                    for alpha in alphas:
+                        print(f'\n    Evaluating with regularization term: {alpha}')
+                        train_res, test_res = evaluate_quote_detection(l, p, alpha, nlp, cue_verbs, cv_folds=folds)
+                        print(f'    Average Training Results\n{train_res.average_score()}')
+                        print(f'    Average Test Results\n{test_res.average_score()}')
 
             print('\n\nEvaluating quote attribution...')
             print('\n  Baseline:')

@@ -29,8 +29,8 @@ def train(classifier, dataloader, max_iter):
     for n in range(max_iter):
         for X, y in dataloader:
             classifier.partial_fit(X, y, classes=np.array([0, 1]))
-            y_pred = classifier.predict_proba(X)
-            loss.append(log_loss(y, y_pred, labels=np.array([0, 1])))
+            # y_pred = classifier.predict_proba(X)
+            # loss.append(log_loss(y, y_pred, labels=np.array([0, 1])))
             accuracy.append(classifier.score(X, y))
 
         if len(accuracy) > 2 and accuracy[-2] < accuracy[-1]:
@@ -45,10 +45,12 @@ def train(classifier, dataloader, max_iter):
     return classifier, loss, accuracy
 
 
-def cross_validate(penalty, split_ids, dataset, subset, dataloader, alpha, max_iter, cv_folds):
+def cross_validate(loss, penalty, split_ids, dataset, subset, dataloader, alpha, max_iter, cv_folds):
     """
     Performs cross-validation for a model on a dataset.
 
+    :param loss: string
+        One of {'log', 'hinge'}. The loss function to use.
     :param penalty: string
         One of {'l1', 'l2}. The penalty to use for training
     :param split_ids: list(int)
@@ -75,7 +77,7 @@ def cross_validate(penalty, split_ids, dataset, subset, dataloader, alpha, max_i
 
     for train_indices, test_indices in kf.split(split_ids):
         # Create the model
-        classifier = SGDClassifier(loss='log', alpha=alpha, penalty=penalty)
+        classifier = SGDClassifier(loss=loss, alpha=alpha, penalty=penalty)
 
         # Split the dataset into train and test
         train_ids = split_ids[train_indices]
@@ -86,7 +88,7 @@ def cross_validate(penalty, split_ids, dataset, subset, dataloader, alpha, max_i
         test_dataset = subset(dataset, test_ids)
         test_loader = dataloader(test_dataset, train=False, batch_size=len(test_dataset))
 
-        classifier, loss, accuracy = train(classifier, train_loader, max_iter)
+        classifier, _, _ = train(classifier, train_loader, max_iter)
 
         train_loader = dataloader(train_dataset, train=False, batch_size=len(train_dataset))
         train_results.add_scores(evaluate(classifier, train_loader))

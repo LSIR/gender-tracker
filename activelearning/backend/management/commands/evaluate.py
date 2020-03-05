@@ -1,12 +1,12 @@
-from django.core.management.base import BaseCommand, CommandError
-
 import csv
 
+from django.core.management.base import BaseCommand, CommandError
+
+from backend.ml.baseline import baseline_quote_detection, baseline_quote_attribution
+from backend.ml.quote_attribution import evaluate_quote_attribution
+from backend.ml.quote_detection import evaluate_quote_detection
 from backend.ml.scoring import ResultAccumulator
 from backend.xml_parsing.helpers import load_nlp
-from backend.ml.baseline import baseline_quote_detection, baseline_quote_attribution
-from backend.ml.quote_detection import evaluate_quote_detection
-from backend.ml.quote_attribution import evaluate_quote_attribution
 
 
 def form_sentence(nlp, tokens):

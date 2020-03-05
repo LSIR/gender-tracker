@@ -1,10 +1,10 @@
 from functools import reduce
-from numpy.random import random
 
 from django.core.management.base import BaseCommand
+from numpy.random import random
 
-from backend.models import Article
 from backend.helpers import aggregate_label
+from backend.models import Article
 
 
 class Command(BaseCommand):

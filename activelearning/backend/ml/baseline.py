@@ -1,9 +1,8 @@
+import numpy as np
 from sklearn.metrics import precision_recall_fscore_support
 
 from backend.db_management import load_labeled_articles, load_quote_authors
 from backend.helpers import aggregate_label
-import numpy as np
-
 from backend.ml.helpers import find_true_author_index, extract_speaker_names, evaluate_speaker_extraction
 from backend.ml.scoring import Results
 

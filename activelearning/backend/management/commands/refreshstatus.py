@@ -1,8 +1,8 @@
 from django.core.management.base import BaseCommand
 
-from backend.models import Article, UserLabel
-from backend.helpers import label_consensus
 from backend.db_management import CONSENSUS_THRESHOLD, COUNT_THRESHOLD
+from backend.helpers import label_consensus
+from backend.models import Article, UserLabel
 
 
 class Command(BaseCommand):

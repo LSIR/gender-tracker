@@ -1,5 +1,6 @@
-from backend.models import Article, UserLabel
 from django.core.exceptions import ObjectDoesNotExist
+
+from backend.models import Article, UserLabel
 
 
 ##############################################################################################

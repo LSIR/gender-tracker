@@ -1,7 +1,6 @@
-from django.core.management.base import BaseCommand, CommandError
-
-import spacy
 import csv
+
+from django.core.management.base import BaseCommand, CommandError
 
 from backend.db_management import load_unlabeled_sentences
 from backend.helpers import change_confidence

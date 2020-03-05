@@ -1,16 +1,13 @@
-from django.test import TestCase
-from django.test import Client
-
-from backend.models import Article
-from backend.helpers import change_confidence
-from backend.db_management import add_article_to_db, add_user_label_to_db,\
-    load_sentence_labels, load_unlabeled_sentences
-from backend.ml.quote_detection import evaluate_quote_detection, train_quote_detection, predict_quotes
-from backend.xml_parsing.helpers import load_nlp
-
-import spacy
 import csv
 
+from django.test import TestCase
+
+from backend.db_management import add_article_to_db, add_user_label_to_db, \
+    load_sentence_labels, load_unlabeled_sentences
+from backend.helpers import change_confidence
+from backend.ml.quote_detection import evaluate_quote_detection, train_quote_detection, predict_quotes
+from backend.models import Article
+from backend.xml_parsing.helpers import load_nlp
 
 """ The content and annotation of the first article. """
 TEST_1 = {

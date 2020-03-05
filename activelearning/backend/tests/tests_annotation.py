@@ -1,14 +1,13 @@
-from django.test import TestCase
-from django.test import Client
-
-from backend.models import Article, UserLabel
-from backend.db_management import add_article_to_db
-from backend.helpers import label_consensus, change_confidence
-from backend.xml_parsing.postgre_to_xml import database_to_xml
-from backend.xml_parsing.helpers import load_nlp
-
 import json
 
+from django.test import Client
+from django.test import TestCase
+
+from backend.db_management import add_article_to_db
+from backend.helpers import label_consensus, change_confidence
+from backend.models import UserLabel
+from backend.xml_parsing.helpers import load_nlp
+from backend.xml_parsing.postgre_to_xml import database_to_xml
 
 """ The language model. """
 nlp = load_nlp()

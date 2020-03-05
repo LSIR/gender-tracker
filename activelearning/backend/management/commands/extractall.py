@@ -1,8 +1,8 @@
 from django.core.management.base import BaseCommand, CommandError
 
-from backend.xml_parsing.postgre_to_xml import database_to_xml
 from backend.helpers import aggregate_label
-from backend.models import Article, UserLabel
+from backend.models import Article
+from backend.xml_parsing.postgre_to_xml import database_to_xml
 
 
 class Command(BaseCommand):

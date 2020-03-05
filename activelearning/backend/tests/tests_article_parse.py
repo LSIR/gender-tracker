@@ -1,8 +1,10 @@
-from django.test import TestCase
-from backend.models import Article
-from backend.db_management import add_article_to_db
-import spacy
 import json
+
+import spacy
+from django.test import TestCase
+
+from backend.db_management import add_article_to_db
+from backend.models import Article
 
 
 class ArticleParsingTestCase(TestCase):

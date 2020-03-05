@@ -1,12 +1,9 @@
 from django.test import TestCase
 
-import spacy
-
-from backend.models import Article, UserLabel
+from backend.management.commands.addarticle import set_custom_boundaries
 from backend.xml_parsing.helpers import *
 from backend.xml_parsing.postgre_to_xml import *
 from backend.xml_parsing.xml_to_postgre import *
-from backend.management.commands.addarticle import set_custom_boundaries
 
 
 class HelperTestCase(TestCase):

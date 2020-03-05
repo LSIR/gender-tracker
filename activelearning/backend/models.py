@@ -1,6 +1,6 @@
 from django.contrib.postgres.fields import JSONField
-from django.db.models.fields import TextField, IntegerField, BooleanField, CharField
 from django.db import models
+from django.db.models.fields import TextField, IntegerField, BooleanField, CharField
 
 
 class Article(models.Model):

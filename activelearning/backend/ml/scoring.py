@@ -1,5 +1,8 @@
 
 
+""" Contains Classes to deal with results of training ML models """
+
+
 class Results:
     """ Accumulates scores from different cross-validation passes """
 

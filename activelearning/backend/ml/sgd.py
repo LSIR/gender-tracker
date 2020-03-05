@@ -1,7 +1,8 @@
-from sklearn.metrics import precision_recall_fscore_support, log_loss
 import numpy as np
-from sklearn.model_selection import KFold
 from sklearn.linear_model import SGDClassifier
+from sklearn.metrics import precision_recall_fscore_support
+from sklearn.model_selection import KFold
+
 from backend.ml.scoring import Results
 
 

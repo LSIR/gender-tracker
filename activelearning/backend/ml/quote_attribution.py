@@ -1,16 +1,15 @@
 import numpy as np
-
 from sklearn.linear_model import SGDClassifier
 from sklearn.model_selection import KFold
 from sklearn.preprocessing import PolynomialFeatures
 
-from backend.ml.helpers import author_full_name, extract_speaker_names, evaluate_speaker_extraction
-from backend.ml.scoring import Results
-from backend.ml.sgd import train, evaluate
 from backend.db_management import load_labeled_articles, load_quote_authors
+from backend.ml.helpers import extract_speaker_names, evaluate_speaker_extraction
 from backend.ml.quote_attribution_dataset import QuoteAttributionDataset, subset, subset_ovo, \
     attribution_loader
 from backend.ml.quote_detection_dataset import QuoteDetectionDataset
+from backend.ml.scoring import Results
+from backend.ml.sgd import train, evaluate
 
 
 def load_data(nlp, cue_verbs, ovo, poly):

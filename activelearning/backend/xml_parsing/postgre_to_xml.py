@@ -1,4 +1,3 @@
-from backend.models import Article
 from backend.xml_parsing.helpers import resolve_overlapping_people
 
 

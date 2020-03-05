@@ -1,4 +1,5 @@
 from django.urls import path
+
 from .views import submit_tags, load_content, load_above, load_below, become_admin
 
 urlpatterns = [

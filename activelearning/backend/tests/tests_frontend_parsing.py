@@ -1,8 +1,7 @@
 from django.test import TestCase
 
-from backend.models import Article
-from backend.frontend_parsing.postgre_to_frontend import *
 from backend.frontend_parsing.frontend_to_postgre import *
+from backend.frontend_parsing.postgre_to_frontend import *
 
 """ The content and annotation of the first article. """
 TEST_ARTICLE = {

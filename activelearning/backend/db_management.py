@@ -1,14 +1,12 @@
-from django.core.exceptions import ObjectDoesNotExist
+import random
 
 import numpy as np
-
-import random
+from django.core.exceptions import ObjectDoesNotExist
 
 from backend.frontend_parsing.postgre_to_frontend import form_paragraph_json, form_sentence_json
 from backend.helpers import quote_end_sentence, label_consensus, aggregate_label
 from backend.models import Article, UserLabel
 from backend.xml_parsing.xml_to_postgre import process_article, extract_sentence_spans
-
 
 """ File containing all methods used for database management """
 

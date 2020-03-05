@@ -5,17 +5,16 @@ from sklearn.linear_model import SGDClassifier
 from backend.ml.scoring import Results
 
 
-def train(classifier, dataloader, max_iter):
+def train(classifier, dataloader, eval_dataloader, max_iter):
     """
     Trains a classifier using SGD.
-    TODO: Implement early stopping, check that I don't need to touch learning rates.
-
-    TODO: Early stopping works, but I'm not sure the learning rates are adapted.
 
     :param classifier: SGDClassifier
         The classifier to train.
     :param dataloader: Dataloader
         The dataloader containing the data to train the classifier on.
+    :param eval_dataloader: Dataloader
+        The dataloader to use to evaluate the model after each epoch. Should return a single matrix.
     :param max_iter: int
         The number of epochs to run SGD for.
     :return: SGDClassifier, list(float), list(float)
@@ -23,14 +22,13 @@ def train(classifier, dataloader, max_iter):
         * the loss after each data load
         * the accuracy after each data load
     """
-    loss = []
     accuracy = []
     going_up = 0
     for n in range(max_iter):
         for X, y in dataloader:
             classifier.partial_fit(X, y, classes=np.array([0, 1]))
-            # y_pred = classifier.predict_proba(X)
-            # loss.append(log_loss(y, y_pred, labels=np.array([0, 1])))
+
+        for X, y in eval_dataloader:
             accuracy.append(classifier.score(X, y))
 
         if len(accuracy) > 2 and accuracy[-2] < accuracy[-1]:
@@ -38,11 +36,11 @@ def train(classifier, dataloader, max_iter):
         else:
             going_up = 0
 
-        if going_up > 5:
-            print(f'          early stopping: {len(accuracy)}')
-            return classifier, loss, accuracy
+        if going_up >= 3:
+            print(f'          early stopping after {len(accuracy)} epochs')
+            return classifier, accuracy
 
-    return classifier, loss, accuracy
+    return classifier, accuracy
 
 
 def cross_validate(loss, penalty, split_ids, dataset, subset, dataloader, alpha, max_iter, cv_folds):
@@ -77,18 +75,18 @@ def cross_validate(loss, penalty, split_ids, dataset, subset, dataloader, alpha,
 
     for train_indices, test_indices in kf.split(split_ids):
         # Create the model
-        classifier = SGDClassifier(loss=loss, alpha=alpha, penalty=penalty)
+        classifier = SGDClassifier(loss=loss, alpha=alpha, penalty=penalty, warm_start=True)
 
         # Split the dataset into train and test
         train_ids = split_ids[train_indices]
         train_dataset = subset(dataset, train_ids)
-        train_loader = dataloader(train_dataset, train=True, batch_size=len(train_dataset))
+        train_loader = dataloader(train_dataset, train=True, batch_size=10)
 
         test_ids = split_ids[test_indices]
         test_dataset = subset(dataset, test_ids)
         test_loader = dataloader(test_dataset, train=False, batch_size=len(test_dataset))
 
-        classifier, _, _ = train(classifier, train_loader, max_iter)
+        classifier, _ = train(classifier, train_loader, test_loader, max_iter)
 
         train_loader = dataloader(train_dataset, train=False, batch_size=len(train_dataset))
         train_results.add_scores(evaluate(classifier, train_loader))

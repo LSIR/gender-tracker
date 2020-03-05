@@ -68,8 +68,9 @@ def train_quote_detection(nlp, cue_verbs):
     poly = PolynomialFeatures(2, interaction_only=False)
     article_ids, quote_detection_dataset = load_data(nlp, cue_verbs, poly=poly)
     classifier = SGDClassifier(loss='log', alpha=0.1, penalty='l2')
-    dataloader = detection_loader(quote_detection_dataset, train=True, batch_size=len(quote_detection_dataset))
-    classifier, loss, accuracy = train(classifier, dataloader, 50)
+    dataloader = detection_loader(quote_detection_dataset, train=True, batch_size=10)
+    eval_dataloader = detection_loader(quote_detection_dataset, train=False, batch_size=len(quote_detection_dataset))
+    classifier, accuracy = train(classifier, dataloader, eval_dataloader, 1000)
     return classifier
 
 
@@ -92,7 +93,7 @@ def evaluate_unlabeled_sentences(trained_model, sentences, cue_verbs, in_quotes)
     return predict_quotes(trained_model, sentences, cue_verbs, in_quotes, poly=poly)
 
 
-def evaluate_quote_detection(loss, penalty, alpha, nlp, cue_verbs, cv_folds=5):
+def evaluate_quote_detection(loss, penalty, alpha, max_iter, nlp, cue_verbs, cv_folds=5):
     """
     Trains different models for quote detection.
 
@@ -102,6 +103,8 @@ def evaluate_quote_detection(loss, penalty, alpha, nlp, cue_verbs, cv_folds=5):
         One of {'l1', 'l2}. The penalty to use for training
     :param alpha: float
         The regularization to use for training
+    :param max_iter: int
+        The maximum number of epochs to train for
     :param nlp: spaCy.Language
         The language model used to tokenize the text.
     :param cue_verbs: list(string)
@@ -121,7 +124,7 @@ def evaluate_quote_detection(loss, penalty, alpha, nlp, cue_verbs, cv_folds=5):
                                                  subset=subset,
                                                  dataloader=detection_loader,
                                                  alpha=alpha,
-                                                 max_iter=200,
+                                                 max_iter=max_iter,
                                                  cv_folds=cv_folds)
 
     return train_results, test_results

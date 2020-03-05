@@ -278,7 +278,16 @@ def baseline_quote_attribution(nlp, cue_verbs):
         The language model used to tokenize the text.
     :param cue_verbs: list(string)
         The list of all "cue verbs", which are verbs that often introduce reported speech.
-    :return:
+    :return: float, float, float, float, float, float
+        * The accuracy in speaker prediction for the baseline model: the accuracy the model has, when given a sentence
+        containing a quote and a list of mentions in the article, in predicting the correct speaker.
+        * The accuracy in speaker prediction for the lazy baseline model.
+        * The precision in article speaker extraction for the baseline model: the proportion of people that are
+        predicted to be cited in an article that are actually cited.
+        * The precision in article speaker extraction for the baseline model: the proportion of people cited in an
+        article that are predicted by the model.
+        * The precision in article speaker extraction for the lazy baseline model.
+        * The recall in article speaker extraction for the lazy baseline model.
     """
     y = []
     y_pred = []
@@ -330,20 +339,14 @@ def baseline_quote_attribution(nlp, cue_verbs):
         y_pred += article_predictions
         y_pred_lazy += article_predictions_lazy
 
-    accuracy = np.sum(np.equal(y, y_pred)) / len(y)
-    print(f'    Accuracy: {round(accuracy, 3)}')
-    accuracy_lazy = np.sum(np.equal(y, y_pred_lazy)) / len(y)
-    print(f'    Accuracy Lazy: {round(accuracy_lazy, 3)}')
-    precision = np.sum(average_precision) / len(average_precision)
-    recall = np.sum(average_recall) / len(average_recall)
-    print(f'    Average scores for speakers extracted from articles')
-    print(f'        Precision: {round(precision, 3)}')
-    print(f'        Recall:    {round(recall, 3)}')
-    precision = np.sum(average_precision_lazy) / len(average_precision_lazy)
-    recall = np.sum(average_recall_lazy) / len(average_recall_lazy)
-    print(f'        Lazy Precision: {round(precision, 3)}')
-    print(f'        Lazy Recall:    {round(recall, 3)}')
-    return accuracy
+    accuracy = round(np.sum(np.equal(y, y_pred)) / len(y), 3)
+    accuracy_lazy = round(np.sum(np.equal(y, y_pred_lazy)) / len(y), 3)
+    precision = round(np.sum(average_precision) / len(average_precision), 3)
+    recall = round(np.sum(average_recall) / len(average_recall), 3)
+    precision_lazy = round(np.sum(average_precision_lazy) / len(average_precision_lazy), 3)
+    recall_lazy = round(np.sum(average_recall_lazy) / len(average_recall_lazy), 3)
+
+    return accuracy, accuracy_lazy, precision, recall, precision_lazy, recall_lazy
 
 
 

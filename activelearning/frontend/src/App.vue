@@ -2,7 +2,7 @@
   <v-app>
     <v-app-bar app>
       <v-toolbar-title class="headline">
-        <span>GenderTracker</span>
+        <span>Heidi Gender Tracker</span>
       </v-toolbar-title>
       <v-spacer></v-spacer>
       <v-btn

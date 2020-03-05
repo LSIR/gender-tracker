@@ -6,7 +6,7 @@ from sklearn.model_selection import KFold
 from backend.ml.scoring import Results
 
 
-def train(classifier, dataloader, eval_dataloader, max_iter):
+def train(classifier, dataloader, eval_dataloader, max_iter, print_prefix=''):
     """
     Trains a classifier using SGD.
 
@@ -26,6 +26,7 @@ def train(classifier, dataloader, eval_dataloader, max_iter):
     accuracy = []
     going_up = 0
     for n in range(max_iter):
+        print(print_prefix + f'{int(100 * n/max_iter)}% {10 * n//max_iter *"█"}'.ljust(80), end='\r')
         for X, y in dataloader:
             classifier.partial_fit(X, y, classes=np.array([0, 1]))
 
@@ -38,13 +39,12 @@ def train(classifier, dataloader, eval_dataloader, max_iter):
             going_up = 0
 
         if going_up >= 3:
-            print(f'          early stopping after {len(accuracy)} epochs')
             return classifier, accuracy
 
     return classifier, accuracy
 
 
-def cross_validate(loss, penalty, split_ids, dataset, subset, dataloader, alpha, max_iter, cv_folds):
+def cross_validate(loss, penalty, split_ids, dataset, subset, dataloader, alpha, max_iter, cv_folds, prefix=''):
     """
     Performs cross-validation for a model on a dataset.
 
@@ -74,7 +74,8 @@ def cross_validate(loss, penalty, split_ids, dataset, subset, dataloader, alpha,
     train_results = Results()
     test_results = Results()
 
-    for train_indices, test_indices in kf.split(split_ids):
+    for n, (train_indices, test_indices) in enumerate(kf.split(split_ids)):
+        new_prefix = prefix + f'{int(100 * n/cv_folds)}% {10 * n // cv_folds * "█"}'.ljust(20)
         # Create the model
         classifier = SGDClassifier(loss=loss, alpha=alpha, penalty=penalty, warm_start=True)
 
@@ -87,7 +88,7 @@ def cross_validate(loss, penalty, split_ids, dataset, subset, dataloader, alpha,
         test_dataset = subset(dataset, test_ids)
         test_loader = dataloader(test_dataset, train=False, batch_size=len(test_dataset))
 
-        classifier, _ = train(classifier, train_loader, test_loader, max_iter)
+        classifier, _ = train(classifier, train_loader, test_loader, max_iter, new_prefix)
 
         train_loader = dataloader(train_dataset, train=False, batch_size=len(train_dataset))
         train_results.add_scores(evaluate(classifier, train_loader))

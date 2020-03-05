@@ -93,7 +93,7 @@ def evaluate_unlabeled_sentences(trained_model, sentences, cue_verbs, in_quotes)
     return predict_quotes(trained_model, sentences, cue_verbs, in_quotes, poly=poly)
 
 
-def evaluate_quote_detection(loss, penalty, alpha, max_iter, nlp, cue_verbs, cv_folds=5):
+def evaluate_quote_detection(loss, penalty, alpha, max_iter, nlp, cue_verbs, cv_folds=5, prefix=''):
     """
     Trains different models for quote detection.
 
@@ -125,7 +125,8 @@ def evaluate_quote_detection(loss, penalty, alpha, max_iter, nlp, cue_verbs, cv_
                                                  dataloader=detection_loader,
                                                  alpha=alpha,
                                                  max_iter=max_iter,
-                                                 cv_folds=cv_folds)
+                                                 cv_folds=cv_folds,
+                                                 prefix=prefix)
 
     return train_results, test_results
 

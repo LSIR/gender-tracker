@@ -45,7 +45,6 @@
                         <v-tooltip left>
                             <template v-slot:activator="{ on }">
                                 <v-btn
-                                        small
                                         v-on="on"
                                         v-on:click="update_helper_text(2)"
                                         v-bind:color="selecting_author === 0 ? 'deep-orange lighten-4' : 'white'"
@@ -58,7 +57,6 @@
                         <v-tooltip v-model="show_author_tip" right>
                             <template v-slot:activator="{ on }">
                                 <v-btn
-                                        small
                                         v-on="on"
                                         v-on:click="update_helper_text(3)"
                                         v-bind:color="selecting_author === 1 ? 'green lighten-4' : 'white'"
@@ -70,8 +68,9 @@
                         </v-tooltip>
                     </v-btn-toggle>
                 </div>
+                <hr color=”#d5121e” class="mb-6">
                 <div v-if="first_sentence > 0">
-                    <v-btn small color="blue lighten-5" v-on:click.native=loadTextAbove>Montrer le texte au-dessus</v-btn>
+                    <v-btn small color="blue lighten-5" v-on:click.native=loadTextAbove>⇡</v-btn>
                 </div>
             </v-flex>
         </v-layout>
@@ -109,8 +108,10 @@
         >
             <v-flex mb-4>
                 <div v-if="!no_more_content">
-                    <v-btn small color="blue lighten-5" v-on:click.native=loadTextBelow>Montrer le texte au-dessous</v-btn>
+                    <v-btn small color="blue lighten-5" v-on:click.native=loadTextBelow>⇣</v-btn>
                 </div>
+                <br>
+                <hr color=”#D5121E” class="mb-6">
                 <br>
                 <div>
                     <v-btn class="ma-2" width="180px" mb-10 outlined v-on:click.native=submitTags>Soumettre</v-btn>
@@ -257,10 +258,14 @@ export default {
 
         // Helper text to be displayed
         helper_text: [
-            "Cliquez sur le premier mot de la citation, ou sur \"Aucune Citation\" si il n'y en a pas.",
-            "Clickez sur le dernier mot de la citation.",
-            "Cliquez sur le bouton \"Auteur\" si tout le text cité est sélectionné.",
-            "Cliquez sur le prénom et le nom de l’auteur de la citation, puis sur sur soumettre quand vous avez fini."],
+            "Observez le texte ci-dessous. Cliquez sur le premier mot de la citation ou sur «aucune citation» s’il " +
+            "n’y en a pas.",
+            "Cliquez sur le dernier mot de la citation. Vous pouvez utiliser les flèches ⇡ et ⇣ pour naviguer dans " +
+            "le texte.",
+            "Cliquez sur le bouton auteur en-dessus.",
+            "Sélectionner l’auteur de la citation, puis cliquez sur «soumettre» en bas. Merci! Vous pouvez " +
+            "recommencer."
+        ],
         helper_text_shown: 0,
 
         // The style of buttons to use

@@ -52,7 +52,7 @@ class Command(BaseCommand):
                     print(f'\n  {p} {l}:')
                     accumulator = ResultAccumulator()
                     for alpha in alphas:
-                        print(f'    Evaluating with alpha={alpha}'.ljust(80), end='\r')
+                        prefix = 'alpha={alpha}'
                         train_res, test_res = evaluate_quote_detection(l, p, alpha, max_epochs, nlp, cue_verbs, folds)
                         accumulator.add_results(train_res, test_res, f'alpha={alpha}')
                     train, test, name = accumulator.best_model()

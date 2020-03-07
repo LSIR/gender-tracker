@@ -3,7 +3,8 @@ from sklearn.linear_model import SGDClassifier
 from sklearn.preprocessing import PolynomialFeatures
 
 from backend.db_management import load_labeled_articles
-from backend.ml.quote_detection_dataset import QuoteDetectionDataset, detection_loader, subset, feature_extraction
+from backend.ml.quote_detection_dataset import QuoteDetectionDataset, detection_loader, subset
+from backend.ml.quote_detection_feature_extraction import feature_extraction
 from backend.ml.sgd import train, cross_validate
 
 

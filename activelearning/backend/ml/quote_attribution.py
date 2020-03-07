@@ -12,7 +12,7 @@ from backend.ml.scoring import Results
 from backend.ml.sgd import train, evaluate
 
 
-def load_data(nlp, cue_verbs, ovo, poly):
+def load_data(nlp, cue_verbs, extraction_method, ovo, poly):
     """
     Loads the datasets to perform quote attribution.
 
@@ -20,6 +20,8 @@ def load_data(nlp, cue_verbs, ovo, poly):
         The language model used to tokenize the text.
     :param cue_verbs: list(string)
         The list of all "cue verbs", which are verbs that often introduce reported speech.
+    :param extraction_method: int
+        The feature extraction method to use.
     :param ovo: boolean
         Whether to load the One vs One model or not.
     :param poly: sklearn.preprocessing.PolynomialFeatures
@@ -35,7 +37,8 @@ def load_data(nlp, cue_verbs, ovo, poly):
     train_articles, train_sentences, _, _ = load_labeled_articles(nlp)
     quote_detection_dataset = QuoteDetectionDataset(train_articles, train_sentences, cue_verbs, poly)
     train_dicts, _ = load_quote_authors(nlp)
-    quote_attribution_dataset = QuoteAttributionDataset(train_dicts, quote_detection_dataset, cue_verbs, ovo, poly)
+    quote_attribution_dataset = QuoteAttributionDataset(train_dicts, quote_detection_dataset, cue_verbs,
+                                                        extraction_method, ovo, poly)
 
     return np.array(train_dicts), quote_attribution_dataset
 
@@ -158,7 +161,7 @@ def predict_authors(trained_model, dataset, article, ovo=False, proba=False):
     return true_speaker_indices, predicted_speaker_indices, precision, recall
 
 
-def evaluate_quote_attribution(loss, penalty, alpha, max_iter, nlp, cue_verbs, cv_folds=5, ovo=False):
+def evaluate_quote_attribution(loss, penalty, alpha, extraction_method, max_iter, nlp, cue_verbs, cv_folds=5, ovo=False):
     """
     Evaluates the quote attribution model, on the following metrics:
 
@@ -178,6 +181,8 @@ def evaluate_quote_attribution(loss, penalty, alpha, max_iter, nlp, cue_verbs, c
         One of {'l1', 'l2}. The penalty to use for training
     :param alpha: float
         The regularization to use for training
+    :param extraction_method: int
+        The feature extraction method to use.
     :param max_iter: int
         The maximum number of epochs to train for
     :param nlp: spaCy.Language
@@ -198,7 +203,7 @@ def evaluate_quote_attribution(loss, penalty, alpha, max_iter, nlp, cue_verbs, c
     """
     proba = loss == 'log'
     poly = PolynomialFeatures(2, interaction_only=False)
-    article_dicts, attribution_dataset = load_data(nlp, cue_verbs, ovo, poly)
+    article_dicts, attribution_dataset = load_data(nlp, cue_verbs, extraction_method, ovo, poly)
 
     kf = KFold(n_splits=cv_folds)
 
@@ -212,7 +217,11 @@ def evaluate_quote_attribution(loss, penalty, alpha, max_iter, nlp, cue_verbs, c
     test_precision = []
     test_recall = []
 
+    n = 0
     for train_indices, test_indices in kf.split(article_dicts):
+        prefix = f'      Evaluating with alpha={alpha}: {int(100 * n / cv_folds)}% {10 * n // cv_folds * "█"}'.ljust(50)
+        n += 1
+
         classifier = SGDClassifier(loss=loss, alpha=alpha, penalty=penalty, warm_start=True)
 
         train_articles = article_dicts[train_indices]
@@ -231,7 +240,7 @@ def evaluate_quote_attribution(loss, penalty, alpha, max_iter, nlp, cue_verbs, c
         train_loader = attribution_loader(train_dataset, train=True, batch_size=10)
         test_loader = attribution_loader(test_dataset, train=False, batch_size=len(test_dataset))
 
-        classifier, _ = train(classifier, train_loader, test_loader, max_iter)
+        classifier, _ = train(classifier, train_loader, test_loader, max_iter, print_prefix=prefix)
 
         train_loader = attribution_loader(train_dataset, train=False, batch_size=len(train_dataset))
         train_results.add_scores(evaluate(classifier, train_loader))

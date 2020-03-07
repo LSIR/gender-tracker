@@ -44,9 +44,6 @@ def load_content(request):
     if labelling_task is not None:
         labelling_task['admin'] = admin_tagger
         labelling_task['quote_count'] = quote_count
-        print('article_id:', labelling_task['article_id'])
-        print('sentence_id:', labelling_task['sentence_id'])
-        print()
         return JsonResponse(labelling_task)
     else:
         return JsonResponse({'article_id': -1, 'sentence_id': [], 'data': [], 'task': 'None', 'admin': admin_tagger})

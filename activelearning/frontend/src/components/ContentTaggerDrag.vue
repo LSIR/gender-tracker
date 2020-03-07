@@ -34,7 +34,7 @@
         >
             <v-flex mb-4>
                 <div class="heidi_red--text subtitle-1 font-weight-bold mb-6">
-                    Etape {{helper_text_shown + 1}} sur 4
+                    ETAPE {{helper_text_shown + 1}} SUR 4
                 </div>
                 <h3 class="subtitle-1 font-weight-bold mb-6">
                     {{helper_text[helper_text_shown]}}

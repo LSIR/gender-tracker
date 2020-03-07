@@ -33,6 +33,9 @@
                 v-if="tagging_task==='sentence'"
         >
             <v-flex mb-4>
+                <div class="heidi_red--text subtitle-1 font-weight-bold mb-6">
+                    Etape {{helper_text_shown + 1}} sur 4
+                </div>
                 <h3 class="subtitle-1 font-weight-bold mb-6">
                     {{helper_text[helper_text_shown]}}
                 </h3>
@@ -68,7 +71,7 @@
                         </v-tooltip>
                     </v-btn-toggle>
                 </div>
-                <hr color=”#d5121e” class="mb-6">
+                <hr class="heidi_red mb-6">
                 <div v-if="first_sentence > 0">
                     <v-btn small color="blue lighten-5" v-on:click.native=loadTextAbove>⇡</v-btn>
                 </div>
@@ -111,7 +114,7 @@
                     <v-btn small color="blue lighten-5" v-on:click.native=loadTextBelow>⇣</v-btn>
                 </div>
                 <br>
-                <hr color=”#D5121E” class="mb-6">
+                <hr class="mb-6 heidi_red">
                 <br>
                 <div>
                     <v-btn class="ma-2" width="180px" mb-10 outlined v-on:click.native=submitTags>Soumettre</v-btn>

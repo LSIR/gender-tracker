@@ -71,7 +71,7 @@ def parse_article(article_dict, quote_dataset, extraction_method, cue_verbs, pol
     return features, labels, len(article_dict['quotes']), len(mentions) + 1
 
 
-def parse_article_ovo(article_dict, quote_dataset, cue_verbs, extraction_method, use_quote_features=False, poly=None):
+def parse_article_ovo(article_dict, quote_dataset, extraction_method, cue_verbs, use_quote_features=False, poly=None):
     """
     Creates feature vectors for each sentence in the article from the raw data.
 
@@ -82,10 +82,10 @@ def parse_article_ovo(article_dict, quote_dataset, cue_verbs, extraction_method,
             * 'author': list(list(int)), the indices of the tokens of the author for each quote.
     :param quote_dataset: QuoteDetectionDataset
         The dataset for quote detection in which this article is contained.
-    :param cue_verbs: list(string)
-        The list of all "cue verbs", which are verbs that often introduce reported speech.
     :param extraction_method: int
         The index of the feature extraction method to use.
+    :param cue_verbs: list(string)
+        The list of all "cue verbs", which are verbs that often introduce reported speech.
     :param use_quote_features: boolean
         Whether to add the features for quote detection of the sentence containing the quote to the dataset.
     :param poly: sklearn.preprocessing.PolynomialFeatures
@@ -187,11 +187,11 @@ class QuoteAttributionDataset(Dataset):
 
         for a_dict in article_dicts:
             if ovo:
-                a_features, a_labels, a_quotes, a_mentions = parse_article_ovo(a_dict, quote_dataset, cue_verbs,
-                                                                               extraction_method, poly=poly)
+                a_features, a_labels, a_quotes, a_mentions = parse_article_ovo(a_dict, quote_dataset, extraction_method,
+                                                                               cue_verbs, poly=poly)
             else:
-                a_features, a_labels, a_quotes, a_mentions = parse_article(a_dict, quote_dataset, cue_verbs,
-                                                                           extraction_method)
+                a_features, a_labels, a_quotes, a_mentions = parse_article(a_dict, quote_dataset, extraction_method,
+                                                                           cue_verbs)
             self.features += a_features
             self.labels += a_labels
             self.article_features[a_dict['article'].id] = (total_sentences, total_sentences + len(a_labels) - 1,

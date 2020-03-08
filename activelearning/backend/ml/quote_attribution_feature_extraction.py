@@ -99,7 +99,7 @@ def attribution_features_2(article, sentences, quote_index, speaker, other_quote
     :return: np.array
         The features extracted
     """
-    features_1 = attribution_features_ovo_1(article, sentences, quote_index, speaker, cue_verbs)
+    features_1 = attribution_features_1(article, sentences, quote_index, speaker, cue_verbs)
 
     if speaker is None:
         return np.concatenate((features_1, np.array([0, 0, 0, 0])), axis=0)

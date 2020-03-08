@@ -58,27 +58,25 @@ class Command(BaseCommand):
             max_epochs = 200
             losses = ['log', 'hinge']
             log_penalties = ['l1', 'l2']
-            alphas = [0.001, 0.01, 0.1]
+            alphas = [0.01, 0.1]
 
-            print('Evaluating quote detection...'.ljust(80), end='\r')
+            print('Evaluating quote detection...'.ljust(80))
             print('\n  Baseline:')
             results = baseline_quote_detection(nlp)
             print(results.print_average_score())
 
-            """
             for l in losses:
                 for p in log_penalties:
                     print(f'\n  {p} {l}:')
                     accumulator = ResultAccumulator()
                     for alpha in alphas:
-                        prefix = 'alpha={alpha}'
                         train_res, test_res = evaluate_quote_detection(l, p, alpha, max_epochs, nlp, cue_verbs, folds)
                         accumulator.add_results(train_res, test_res, f'alpha={alpha}')
                     train, test, name = accumulator.best_model()
                     print(f'    Best results with {name}'.ljust(80))
                     print(f'        Average Training Results\n{train.print_average_score()}\n'
                           f'        Average Test Results\n{test.print_average_score()}')
-            """
+
             print('\n\nEvaluating quote attribution...')
             print('\n  Baseline:')
             acc, acc_lazy, p, r, p_lazy, r_lazy = baseline_quote_attribution(nlp, cue_verbs)
@@ -100,7 +98,7 @@ class Command(BaseCommand):
             best_ml_train = None
             best_ml_test = None
 
-            for ovo in [True, False]:
+            for ovo in [False, True]:
                 if ovo:
                     print('\n  One vs One')
                     extraction_methods = 3

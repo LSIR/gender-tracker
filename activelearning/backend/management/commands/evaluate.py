@@ -64,9 +64,9 @@ class Command(BaseCommand):
         log_penalties = ['l1', 'l2']
         if options['penalty']:
             if options['penalty'] == 'l1':
-                losses = ['l1']
+                log_penalties = ['l1']
             elif options['penalty'] == 'l2':
-                losses = ['l2']
+                log_penalties = ['l2']
 
         try:
             print()

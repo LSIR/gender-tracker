@@ -330,11 +330,13 @@ def load_unlabeled_sentences(nlp):
     for article in articles:
         start = 0
         article_sentence_docs = extract_sentence_spans(article.text, nlp)
+        article_in_quotes = []
         sentences.append(article_sentence_docs)
         for sentence_index, end in enumerate(article.sentences['sentences']):
             # Extract in_quotes values
-            in_quotes.append(article.in_quotes['in_quotes'][start:end + 1])
+            article_in_quotes.append(article.in_quotes['in_quotes'][start:end + 1])
             start = end + 1
+        in_quotes.append(article_in_quotes)
 
     return articles, sentences, in_quotes
 

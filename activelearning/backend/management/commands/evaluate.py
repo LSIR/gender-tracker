@@ -38,12 +38,35 @@ class Command(BaseCommand):
     help = 'Evaluates the different models using cross validation.'
 
     def add_arguments(self, parser):
-        parser.add_argument('--folds', type=int, help="The number of folds to perform cross-validation on.")
+        parser.add_argument('--folds', type=int, help='The number of folds to perform cross-validation on. Default: 5')
+        parser.add_argument('--epochs', type=int, help='The maximum number of epochs to train for. Default: 500')
+        parser.add_argument('--loss', help='The loss to use. Default: all are evaluated.',
+                            choices=['log', 'hinge', 'all'])
+        parser.add_argument('--penalty', help='The penalty to use. Default: all are evaluated.',
+                            choices=['l1', 'l2', 'all'], )
 
     def handle(self, *args, **options):
         folds = 5
         if options['folds']:
             folds = options['folds']
+
+        max_epochs = 500
+        if options['epochs']:
+            max_epochs = options['epochs']
+
+        losses = ['log', 'hinge']
+        if options['loss']:
+            if options['loss'] == 'log':
+                losses = ['log']
+            elif options['loss'] == 'hinge':
+                losses = ['hinge']
+
+        log_penalties = ['l1', 'l2']
+        if options['penalty']:
+            if options['penalty'] == 'l1':
+                losses = ['l1']
+            elif options['penalty'] == 'l2':
+                losses = ['l2']
 
         try:
             print()
@@ -55,15 +78,13 @@ class Command(BaseCommand):
                 reader = csv.reader(f)
                 cue_verbs = set(list(reader)[0])
 
-            max_epochs = 200
-            losses = ['log', 'hinge']
-            log_penalties = ['l1', 'l2']
             alphas = [0.01, 0.1]
 
             print('Evaluating quote detection...'.ljust(80))
             print('\n  Baseline:')
             results = baseline_quote_detection(nlp)
             print(results.print_average_score())
+            print('\n\n')
 
             for l in losses:
                 for p in log_penalties:
@@ -73,9 +94,9 @@ class Command(BaseCommand):
                         train_res, test_res = evaluate_quote_detection(l, p, alpha, max_epochs, nlp, cue_verbs, folds)
                         accumulator.add_results(train_res, test_res, f'alpha={alpha}')
                     train, test, name = accumulator.best_model()
-                    print(f'    Best results with {name}'.ljust(80))
+                    print(f'      Best results with {name}'.ljust(80))
                     print(f'        Average Training Results\n{train.print_average_score()}\n'
-                          f'        Average Test Results\n{test.print_average_score()}')
+                          f'        Average Test Results\n{test.print_average_score()}\n\n')
 
             print('\n\nEvaluating quote attribution...')
             print('\n  Baseline:')
@@ -91,7 +112,7 @@ class Command(BaseCommand):
                   f'        Lazy Baseline model:\n'
                   f'            Precision: {p_lazy}\n'
                   f'            Recall:    {r_lazy}\n'
-                  f'            F1:        {2 * p_lazy * r_lazy / (p_lazy + r_lazy)}\n')
+                  f'            F1:        {2 * p_lazy * r_lazy / (p_lazy + r_lazy)}\n\n')
 
             best_ml_f1 = 0
             best_ml_parameters = ''
@@ -107,7 +128,7 @@ class Command(BaseCommand):
                     extraction_methods = 2
                 for ext_method in list(range(1, extraction_methods + 1)):
                     for l, p in list(itertools.product(losses, log_penalties)):
-                        print(f'    Results with {p}-{l} loss and feature extraction {ext_method}'.ljust(80))
+                        print(f'   Results with {p}-{l} loss and feature extraction {ext_method}'.ljust(80))
                         best_train = None
                         best_test = None
                         best_f1 = 0
@@ -129,6 +150,7 @@ class Command(BaseCommand):
 
                         print(f'    Best results with alpha={best_alpha}'.ljust(80))
                         pretty_print(best_train, best_test)
+                        print('\n\n')
 
             print(f'\n\n    Best results from a machine learning model: {best_ml_parameters}')
             pretty_print(best_ml_train, best_ml_test)

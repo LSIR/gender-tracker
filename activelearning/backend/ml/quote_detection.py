@@ -27,7 +27,7 @@ def load_data(nlp, cue_verbs, poly):
     return train_article_ids, quote_detection_dataset
 
 
-def predict_quotes(trained_model, sentences, cue_verbs, in_quotes, poly=None):
+def predict_quotes(trained_model, sentences, cue_verbs, in_quotes, proba=False, poly=None):
     """
     Computes probabilities that each sentence contains a quote.
 
@@ -39,6 +39,8 @@ def predict_quotes(trained_model, sentences, cue_verbs, in_quotes, poly=None):
         The list of all "cue verbs", which are verbs that often introduce reported speech.
     :param in_quotes: list(list(int)).
         Whether each token in each sentence is between quotes or not.
+    :param proba: boolean
+        Whether or not to use probability estimates to predict the author.
     :param poly: sklearn.preprocessing.PolynomialFeatures
         If defined, used to perform feature extraction.
     :return: np.array()
@@ -51,14 +53,25 @@ def predict_quotes(trained_model, sentences, cue_verbs, in_quotes, poly=None):
             sentence_features = poly.fit_transform(sentence_features.reshape((-1, 1))).reshape((-1,))
         features.append(sentence_features)
     X = np.array(features)
-    predictions = trained_model.predict_proba(X)[:, 1]
+    if proba:
+        predictions = trained_model.predict_proba(X)[:, 1]
+    else:
+        predictions = trained_model.decision_function(X)
     return predictions
 
 
-def train_quote_detection(nlp, cue_verbs):
+def train_quote_detection(loss, penalty, alpha, max_iter, nlp, cue_verbs):
     """
     Trains a classifier to perform quote detection, on all fully labeled articles in the training set.
 
+    :param loss: string
+        One of {'log', 'hinge'}. The loss function to use.
+    :param penalty: string
+        One of {'l1', 'l2}. The penalty to use for training
+    :param alpha: float
+        The regularization to use for training
+    :param max_iter: int
+        The maximum number of epochs to train for
     :param nlp: spaCy.Language
         The language model used to tokenize the text.
     :param cue_verbs: list(string)
@@ -68,14 +81,14 @@ def train_quote_detection(nlp, cue_verbs):
     """
     poly = PolynomialFeatures(2, interaction_only=False)
     article_ids, quote_detection_dataset = load_data(nlp, cue_verbs, poly=poly)
-    classifier = SGDClassifier(loss='log', alpha=0.1, penalty='l2')
+    classifier = SGDClassifier(loss=loss, alpha=alpha, penalty=penalty)
     dataloader = detection_loader(quote_detection_dataset, train=True, batch_size=10)
     eval_dataloader = detection_loader(quote_detection_dataset, train=False, batch_size=len(quote_detection_dataset))
-    classifier, accuracy = train(classifier, dataloader, eval_dataloader, 1000)
+    classifier, accuracy = train(classifier, dataloader, eval_dataloader, max_iter)
     return classifier
 
 
-def evaluate_unlabeled_sentences(trained_model, sentences, cue_verbs, in_quotes):
+def evaluate_unlabeled_sentences(trained_model, sentences, cue_verbs, in_quotes, proba=False):
     """
     Uses a trained quote detection model to predict whether new sentences are also quotes.
 
@@ -87,11 +100,13 @@ def evaluate_unlabeled_sentences(trained_model, sentences, cue_verbs, in_quotes)
         The list of all "cue verbs", which are verbs that often introduce reported speech.
     :param in_quotes: list(list(int)).
         Whether each token in each sentence is between quotes or not.
+    :param proba: boolean
+        Whether or not to use probability estimates to predict the author.
     :return: np.array()
         The probability that each sentence contains a quote.
     """
     poly = PolynomialFeatures(2, interaction_only=False)
-    return predict_quotes(trained_model, sentences, cue_verbs, in_quotes, poly=poly)
+    return predict_quotes(trained_model, sentences, cue_verbs, in_quotes, proba=proba, poly=poly)
 
 
 def evaluate_quote_detection(loss, penalty, alpha, max_iter, nlp, cue_verbs, cv_folds=5, prefix=''):

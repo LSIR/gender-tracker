@@ -26,7 +26,7 @@ def train(classifier, dataloader, eval_dataloader, max_iter, print_prefix=''):
     accuracy = []
     going_up = 0
     for n in range(max_iter):
-        print(print_prefix + f'{int(100 * n/max_iter)}% {10 * n//max_iter *"█"}'.ljust(80), end='\r')
+        print((print_prefix + f'{int(100 * n/max_iter)}% {10 * n//max_iter *"█"}').ljust(50), end='\r')
         for X, y in dataloader:
             classifier.partial_fit(X, y, classes=np.array([0, 1]))
 

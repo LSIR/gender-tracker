@@ -183,7 +183,6 @@ class QuoteAttributionDataset(Dataset):
         #    number of quotes in the article,
         #    number of mentions in the article (including the weasel, which is the last one))
         self.article_features = {}
-        total_sentences = 0
 
         for a_dict in article_dicts:
             if ovo:
@@ -192,11 +191,11 @@ class QuoteAttributionDataset(Dataset):
             else:
                 a_features, a_labels, a_quotes, a_mentions = parse_article(a_dict, quote_dataset, extraction_method,
                                                                            cue_verbs)
+            first_feature = len(self.features)
             self.features += a_features
+            last_feature = len(self.features) - 1
             self.labels += a_labels
-            self.article_features[a_dict['article'].id] = (total_sentences, total_sentences + len(a_labels) - 1,
-                                                           a_quotes, a_mentions)
-            total_sentences += len(a_labels)
+            self.article_features[a_dict['article'].id] = (first_feature, last_feature, a_quotes, a_mentions)
 
         self.feature_dimensionality = self.features[0].shape
         self.length = len(self.features)

@@ -103,10 +103,15 @@ def predict_quote_author_ovo(trained_model, quote_features, num_mentions, proba=
                     prediction = trained_model.predict_proba(m1_m2_features.reshape((1, -1)))
                     mention_wins[m1_index] += prediction[0, 0]
                     mention_wins[m2_index] += prediction[0, 1]
+                    """
+                    prediction = trained_model.predict(m1_m2_features.reshape((1, -1)))
+                    mention_wins[m1_index] += 1 - prediction[0]
+                    mention_wins[m2_index] += prediction[0]
+                    """
                 else:
                     confidence = trained_model.decision_function(m1_m2_features.reshape((1, -1)))
-                    mention_wins[m1_index] += - confidence[0]
-                    mention_wins[m2_index] += confidence[0]
+                    mention_wins[m1_index] += (confidence[0] < 0)
+                    mention_wins[m2_index] += (confidence[0] > 0)
 
     return np.argmax(mention_wins)
 
@@ -136,8 +141,10 @@ def predict_authors(trained_model, dataset, article, ovo=False, proba=False):
         if ovo:
             true_speaker = -1
             m_index = 0
-            while true_speaker == -1 and m_index < num_mentions:
-                if quote_labels[m_index] == 1:
+            while true_speaker == -1:
+                if quote_labels[m_index] == 0:
+                    true_speaker = 0
+                elif quote_labels[m_index] == 1:
                     true_speaker = m_index
                 else:
                     m_index += 1

@@ -119,7 +119,7 @@ class Command(BaseCommand):
             best_ml_train = None
             best_ml_test = None
 
-            for ovo in [False, True]:
+            for ovo in [True, False]:
                 if ovo:
                     print('\n  One vs One')
                     extraction_methods = 3
@@ -143,7 +143,7 @@ class Command(BaseCommand):
                                 best_test = test_res
 
                             if test_res['f1'] > best_ml_f1:
-                                best_f1 = test_res['f1']
+                                best_ml_f1 = test_res['f1']
                                 best_ml_parameters = f'{p}-{l} loss, feature extraction {ext_method}, alpha={alpha}'
                                 best_ml_train = train_res
                                 best_ml_test = test_res

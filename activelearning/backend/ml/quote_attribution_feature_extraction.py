@@ -77,8 +77,8 @@ def attribution_features_2(article, sentences, quote_index, speaker, other_quote
     """
     Second feature extraction model for quote attribution. Extracts the same features as the first model, plus:
 
-        * The number of other speakers named between the first speaker and the quote.
-        * The number of other quotes between the first speaker and the quote.
+        * The number of other speakers named between the speaker and the quote.
+        * The number of other quotes between the speaker and the quote.
         * Whether the speaker is an object in it's sentence
         * Whether the speaker is a subject in it's sentence
 
@@ -222,6 +222,7 @@ def attribution_features_ovo_3(article, sentences, quote_index, speaker, cue_ver
         * The number of quotes between the speaker and the target quote.
         * The proportion of sentences that are quotes between the speaker and the sentence containing the quote. This
         value is set to 1 if the speaker and the quote are in the same sentence or adjacent sentences.
+        * Boolean feature indicating if the speaker is the descendant of a cue verb
 
     :param article: models.Article
         The article from which the quote and speakers are taken.
@@ -255,111 +256,17 @@ def attribution_features_ovo_3(article, sentences, quote_index, speaker, cue_ver
     else:
         quote_in_between_proportion = quotes_in_between/(abs(s_sent - quote_index) - 1)
 
-    return np.concatenate((features_2, np.array([
-        quotes_in_between,
-        quote_in_between_proportion,
-    ])), axis=0)
-
-
-########################################################################################################################
-# One vs One (ovo) Quote Attribution
-
-def attribution_features0(article, sentences, quote_index, speaker, other_quotes, cue_verbs):
-    """
-    Gets the features for speaker attribution for a single speaker, in the one vs one case. The following features are
-    taken, for a quote q and a speaker s where q.sent is the index of the sentence containing the quote, s.start is the
-    index of the first token of the speaker s, s.end of the last, and s.sent is the index.
-
-    :param article: models.Article
-        The article from which the quote and speakers are taken.
-    :param sentences: list(spaCy.Doc)
-        the spaCy.Doc for each sentence in the article.
-    :param quote_index: int
-        The index of the sentence containing a quote in the article.
-    :param speaker: dict.
-        The speaker. Has keys 'name', 'full_name', 'start', 'end', as described in the database.
-    :param other_quotes: list(int)
-        The index of other sentences containing quotes in the article.
-    :param cue_verbs: list(string).
-        The sentence to extract features from.
-    :return: np.array
-        The features extracted
-    """
-    # The index of the sentence in which the speaker is found
-    s_sent = 0
-    while s_sent < len(article.sentences['sentences']) and article.sentences['sentences'][s_sent] < speaker['end']:
-        s_sent = s_sent + 1
-
-    # The index of the first token in the sentence containing the speaker
-    speaker_sent_start = 0
-    if s_sent > 0:
-        speaker_sent_start = article.sentences['sentences'][s_sent - 1] + 1
-    # The indices of the tokens of the speaker in it's sentence doc.
-    relative_speaker_tokens = [i - speaker_sent_start for i in range(speaker['start'], speaker['end'] + 1)]
-
-    # The index of the paragraph in which the speaker is found
-    s_par = 0
-    while s_par < len(article.paragraphs['paragraphs']) and article.paragraphs['paragraphs'][s_par] < s_sent:
-        s_par = s_par + 1
-
-    # The index of the paragraph in which the quote is found
-    q_par = 0
-    while q_par < len(article.paragraphs['paragraphs']) and article.paragraphs['paragraphs'][q_par] < quote_index:
-        q_par = q_par + 1
-
-    sentence_dist = quote_index - s_sent
-    paragraph_dist = q_par - s_par
-
-    def separating_quotes():
-        sep_quotes = 0
-        for other_q in other_quotes:
-            if s_sent < other_q < quote_index or s_sent > other_q > quote_index:
-                sep_quotes += 1
-        return sep_quotes
-
-    def quotes_above_q():
-        quotes_above = 0
-        for other_q in other_quotes:
-            if 0 < quote_index - other_q <= 10:
-                quotes_above += 1
-        return quotes_above
-
-    speaker_in_quotes = article.in_quotes['in_quotes'][speaker['end']]
-
-    def speaker_with_cue_verb():
-        tokens = sentences[s_sent]
-        for token in tokens:
-            if token.lemma_ in cue_verbs:
-                return 1
-        return 0
-
-    def speaker_dep(dep):
-        for index in relative_speaker_tokens:
-            if sentences[s_sent][index].dep_ == dep:
-                return 1
-        return 0
-
     def child_of_cue_verb():
         speaker_sentence = sentences[s_sent]
         for token in speaker_sentence:
             if token.lemma_ in cue_verbs:
                 for child in token.children:
-                    if child.i in relative_speaker_tokens:
+                    if child.i in s_rel_token_indices:
                         return 1
         return 0
 
-    return np.array([
-        s_sent,
-        quote_index,
-        s_par,
-        q_par,
-        sentence_dist,
-        paragraph_dist,
-        separating_quotes(),
-        quotes_above_q(),
-        speaker_in_quotes,
-        speaker_with_cue_verb(),
-        speaker_dep('nsubj'),
-        speaker_dep('obj'),
+    return np.concatenate((features_2, np.array([
+        quotes_in_between,
+        quote_in_between_proportion,
         child_of_cue_verb(),
-    ])
+    ])), axis=0)

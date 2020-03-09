@@ -17,21 +17,25 @@ def form_sentence(nlp, tokens):
     return doc
 
 
+def pretty_print_string(train, test):
+    return f'    Average Training Results\n{train["results"].print_average_score()}\n' + \
+           f'    Average Test Results\n{test["results"].print_average_score()}\n\n' + \
+           f'    Given a quote and a list of speakers, accuracy in predicting the true speaker:\n' + \
+           f'        Training: {train["accuracy"]}\n' + \
+           f'        Test:     {test["accuracy"]}\n\n' + \
+           f'    Results in predicting the set of people cited in the article:\n' + \
+           f'        Training:\n' + \
+           f'            Precision: {train["precision"]}\n' + \
+           f'            Recall:    {train["recall"]}\n' + \
+           f'            F1:        {train["f1"]}\n' + \
+           f'        Test:\n' + \
+           f'            Precision: {test["precision"]}\n' + \
+           f'            Recall:    {test["recall"]}\n' + \
+           f'            F1:        {test["f1"]}\n\n\n'
+
+
 def pretty_print(train, test):
-    print(f'        Average Training Results\n{train["results"].print_average_score()}\n'
-          f'        Average Test Results\n{test["results"].print_average_score()}')
-    print(f'    Given a quote and a list of speakers, accuracy in predicting the true speaker:\n'
-          f'        Training: {train["accuracy"]}\n'
-          f'        Test:     {test["accuracy"]}\n')
-    print(f'    Results in predicting the set of people cited in the article:\n'
-          f'        Training:\n'
-          f'            Precision: {train["precision"]}\n'
-          f'            Recall:    {train["recall"]}\n'
-          f'            F1:        {train["f1"]}\n'
-          f'        Test:\n'
-          f'            Precision: {test["precision"]}\n'
-          f'            Recall:    {test["recall"]}\n'
-          f'            F1:        {test["f1"]}\n')
+    print(pretty_print_string(train, test))
 
 
 class Command(BaseCommand):
@@ -69,6 +73,11 @@ class Command(BaseCommand):
                 log_penalties = ['l2']
 
         try:
+            with open('logs.txt', 'w') as f:
+                f.write(f'Evaluation:\n'
+                        f'  {folds}-fold cross validation\n'
+                        f'  max epochs: {max_epochs}\n\n')
+
             print()
             print('Loading language model...'.ljust(80), end='\r')
             nlp = load_nlp()
@@ -84,6 +93,8 @@ class Command(BaseCommand):
             print('\n  Baseline:')
             results = baseline_quote_detection(nlp)
             print(results.print_average_score())
+            with open('logs.txt', 'a') as f:
+                f.write(f'  Baseline quote detection:\n{results.print_average_score()}\n')
             print('\n\n')
 
             for l in losses:
@@ -92,6 +103,10 @@ class Command(BaseCommand):
                     accumulator = ResultAccumulator()
                     for alpha in alphas:
                         train_res, test_res = evaluate_quote_detection(l, p, alpha, max_epochs, nlp, cue_verbs, folds)
+                        with open('logs.txt', 'a') as f:
+                            f.write(f'  Quote detection: {p}-{l} loss, alpha={alpha}\n'
+                                    f'    Training results:\n{train_res.print_average_score()}\n'
+                                    f'    Test results:\n{test_res.print_average_score()}\n')
                         accumulator.add_results(train_res, test_res, f'alpha={alpha}')
                     train, test, name = accumulator.best_model()
                     print(f'      Best results with {name}'.ljust(80))
@@ -136,6 +151,12 @@ class Command(BaseCommand):
                         for alpha in alphas:
                             train_res, test_res = evaluate_quote_attribution(l, p, alpha, ext_method, max_epochs, nlp,
                                                                              cue_verbs, folds, ovo)
+
+                            with open('logs.txt', 'a') as f:
+                                f.write(f'  Quote attribution: one vs one: {ovo}, {ext_method}-feature extraction,'
+                                        f' {p}-{l} loss, alpha={alpha}\n'
+                                        f'{pretty_print_string(train_res, test_res)}\n')
+
                             if test_res['f1'] > best_f1:
                                 best_f1 = test_res['f1']
                                 best_alpha = alpha
@@ -149,11 +170,15 @@ class Command(BaseCommand):
                                 best_ml_test = test_res
 
                         print(f'    Best results with alpha={best_alpha}'.ljust(80))
-                        pretty_print(best_train, best_test)
+                        print(pretty_print_string(best_train, best_test))
                         print('\n\n')
 
             print(f'\n\n    Best results from a machine learning model: {best_ml_parameters}')
-            pretty_print(best_ml_train, best_ml_test)
+            print(pretty_print_string(best_ml_train, best_ml_test))
+
+            with open('logs.txt', 'a') as f:
+                f.write(f'  Best results for quote attribution: {best_ml_parameters}\n'
+                        f'{pretty_print_string(best_ml_train, best_ml_test)}')
 
         except IOError:
             raise CommandError('IO Error.')

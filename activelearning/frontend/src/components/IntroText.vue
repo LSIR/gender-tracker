@@ -13,9 +13,9 @@
         <v-layout text-center wrap>
             <v-flex mb-4>
                 <div>
-                    Bienvenue sur le projet d’algorithme développé par Heidi.news et de l’EPFL pour mesurer la part des
+                    Bienvenue sur le projet d’algorithme développé par Heidi.news et l’EPFL pour mesurer la part des
                     femmes dans les articles de presse. En quelques clics, vous pouvez nous aider à rendre cet
-                    algorithme plus pertinent👇 Pour d’infos, lisez notre FAQ.
+                    algorithme plus pertinent👇 Pour plus d’infos, lisez notre FAQ.
                 </div>
             </v-flex>
         </v-layout>

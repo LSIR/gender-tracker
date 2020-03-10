@@ -242,7 +242,7 @@ def attribution_features_ovo_3(article, sentences, quote_index, speaker, cue_ver
     features_2 = attribution_features_ovo_2(article, sentences, quote_index, speaker, cue_verbs)
 
     if speaker is None:
-        return np.concatenate((features_2, np.array([0, 0])), axis=0)
+        return np.concatenate((features_2, np.array([0, 0, 0])), axis=0)
 
     s_sent, s_sent_start, s_rel_token_indices = speaker_information(article, speaker)
 

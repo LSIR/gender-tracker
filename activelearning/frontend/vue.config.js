@@ -1,7 +1,9 @@
 const BundleTracker = require("webpack-bundle-tracker");
 
 module.exports = {
-    publicPath: '/',
+      publicPath:process.env.NODE_ENV === 'production'
+        ? ''
+        : 'http://localhost:8080/',
     outputDir: './dist/',
     "transpileDependencies": [
       "vuetify"

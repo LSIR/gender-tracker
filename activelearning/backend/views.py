@@ -1,4 +1,5 @@
 import json
+import logging
 import sys
 import traceback
 import uuid
@@ -12,6 +13,10 @@ from backend.frontend_parsing.frontend_to_postgre import clean_user_labels
 from backend.frontend_parsing.postgre_to_frontend import load_paragraph_above, load_paragraph_below
 from backend.helpers import change_confidence
 from .models import Article
+
+
+logger = logging.getLogger(__name__)
+
 
 # The life span of a cookie, in seconds
 COOKIE_LIFE_SPAN = 1 * 60 * 60
@@ -192,6 +197,7 @@ def session_load(request):
         The user's id.
         If the user is admin.
     """
+    logger.warn("te")
     if 'id' in request.session:
         user_id = request.session['id']
     else:

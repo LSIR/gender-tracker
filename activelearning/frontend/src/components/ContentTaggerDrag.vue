@@ -11,8 +11,11 @@
                 <div v-if="quote_count === 0" class="mb-2">
                     Vous n'avez pas encore trouvé une citation.
                 </div>
+                <div v-else-if="quote_count === 1" class="mb-2">
+                    Pour le moment, vous avez annoté 1 citation!
+                </div>
                 <div v-else class="mb-2">
-                    Vous avez annoté {{quote_count}} citations!
+                    Pour le moment, vous avez annoté {{quote_count}} citations!
                 </div>
             </v-flex>
         </v-layout>
@@ -34,7 +37,7 @@
         >
             <v-flex mb-4>
                 <div class="heidi_red--text subtitle-1 font-weight-bold mb-6">
-                    ETAPE {{helper_text_shown + 1}} SUR 4
+                  &Eacute;TAPE {{helper_text_shown + 1}} SUR 4
                 </div>
                 <h3 class="subtitle-1 font-weight-bold mb-6">
                     {{helper_text[helper_text_shown]}}
@@ -45,8 +48,6 @@
                             shaped
                             mandatory
                     >
-                        <v-tooltip left>
-                            <template v-slot:activator="{ on }">
                                 <v-btn
                                         v-on="on"
                                         v-on:click="update_helper_text(2)"
@@ -54,11 +55,6 @@
                                 >
                                     Citation
                                 </v-btn>
-                            </template>
-                            <span>Pour ajouter plus de texte à la citation, cliquez ici.</span>
-                        </v-tooltip>
-                        <v-tooltip v-model="show_author_tip" right>
-                            <template v-slot:activator="{ on }">
                                 <v-btn
                                         v-on="on"
                                         v-on:click="update_helper_text(3)"
@@ -66,9 +62,6 @@
                                 >
                                     Auteur
                                 </v-btn>
-                            </template>
-                            <span>Si toute la citation à été annotée, cliquez ici pour annoter l'auteur.</span>
-                        </v-tooltip>
                     </v-btn-toggle>
                 </div>
                 <hr class="heidi_red mb-6">
@@ -261,12 +254,11 @@ export default {
 
         // Helper text to be displayed
         helper_text: [
-            "Observez le texte ci-dessous. Cliquez sur le premier mot de la citation ou sur «aucune citation» s’il " +
-            "n’y en a pas.",
-            "Cliquez sur le dernier mot de la citation. Vous pouvez utiliser les flèches ⇡ et ⇣ pour naviguer dans " +
-            "le texte.",
-            "Cliquez sur le bouton auteur en-dessus.",
-            "Sélectionner l’auteur de la citation, puis cliquez sur «soumettre» en bas. Merci! Vous pouvez " +
+            "Observez le texte ci-dessous. Repérez une citation et cliquez sur le premier mot de celle-ci, ou sur AUCUNE CITATION s’il n’y en a pas. ",
+            "Cliquez sur le dernier mot de la citation. Utilisez les flèches ⇡ et ⇣ pour naviguer " +
+            "si besoin.",
+            "La citation est surlignée en rouge. Cliquez sur le bouton AUTEUR ci-dessus",
+            "Sélectionnez dans le texte l’auteur de la citation, puis cliquez sur SOUMETTRE en bas. Merci! Vous pouvez " +
             "recommencer."
         ],
         helper_text_shown: 0,

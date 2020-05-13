@@ -50,6 +50,7 @@ INSTALLED_APPS = [
 ]
 
 if env('ENVIRONMENT') == 'production':
+    DEBUG = False
     # Sentry Debugging
     sentry_sdk.init(
         dsn=env('DSN'),
@@ -61,8 +62,25 @@ if env('ENVIRONMENT') == 'production':
     )
 else:
     INSTALLED_APPS.append('webpack_loader')
+    INSTALLED_APPS.append('django_extensions')
     ALLOWED_HOSTS.append('127.0.0.1')
     ALLOWED_HOSTS.append('0.0.0.0')
+
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'level': 'DEBUG',
+        'handlers': ['console']
+    }
+}
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

@@ -16,8 +16,7 @@ upstream gendertracker_backend {
 server {
   #listen       443 ssl;
   #server_name  modemos.epfl.ch;
-  listen 80;
-  server_name 185.181.160.137;
+  server_name 185.181.160.137 gendertracker.heidi.news;
   client_max_body_size 128G;
 
   access_log /var/log/nginx/access.log;
@@ -56,4 +55,25 @@ server {
   location ~ ^/(.*)$ {
     proxy_pass http://gendertracker_frontend/$1$is_args$args;
   }
+
+    listen 443 ssl; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/gendertracker.heidi.news/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/gendertracker.heidi.news/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+
+}
+
+
+server {
+    if ($host = gendertracker.heidi.news) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+
+  listen 80;
+  server_name 185.181.160.137 gendertracker.heidi.news;
+    return 404; # managed by Certbot
+
+
 }

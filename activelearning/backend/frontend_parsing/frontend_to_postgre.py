@@ -1,3 +1,6 @@
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 """ All methods used to transform user labels into rows that can be put in the UserLabels table. """
@@ -45,6 +48,7 @@ def clean_user_labels(sentence_ends, task_indices, first_sentence, last_sentence
             authors: list(int). A list containing the index of tokens that are authors for the quote.
     """
     if not check_label_validity(labels):
+        logger.warn("Found invalid labels")
         return []
 
     # Find the first and last token of each sentence
@@ -58,6 +62,7 @@ def clean_user_labels(sentence_ends, task_indices, first_sentence, last_sentence
     for index in authors:
         absolute_index = sentence_edges[0][0] + index
         if not (sentence_edges[0][0] <= absolute_index <= sentence_edges[-1][1]):
+            logger.warn("Invalid index in author indices")
             return []
         author_indices.append(absolute_index)
 
@@ -71,6 +76,7 @@ def clean_user_labels(sentence_ends, task_indices, first_sentence, last_sentence
 
     # Check that there are the correct number of labels for the text
     if total_length != len(labels):
+        logger.warn("Incorrect number of labels")
         return []
 
     task_first_sentence = task_indices[0] - first_sentence
@@ -112,21 +118,39 @@ def clean_user_labels(sentence_ends, task_indices, first_sentence, last_sentence
 
         # If some sentences before the original task are also in the quote, add labels for them too.
         for index, sentence_labels in enumerate(before_task_labels):
+            sentence_index = index + first_sentence
             if sum(sentence_labels) > 0:
-                sentence_index = index + first_sentence
                 clean_labels.append({
                     'index': sentence_index,
                     'labels': sentence_labels,
                     'authors': author_indices,
                 })
+            else:
+                # If no quote labels, we add an empty label. The reasoning is that we can't be sure the user correctly
+                # labelled the text from before the task if nothing was labelled, but we also do not want to show them
+                # again the same sentence.
+                clean_labels.append({
+                    'index': sentence_index,
+                    'labels': [],
+                    'authors': author_indices,
+                })
 
         # If some sentences after the original task are also in the quote, add labels for them too
         for index, sentence_labels in enumerate(after_task_labels):
+            sentence_index = (last_sentence - len(after_task_labels) + 1) + index
             if sum(sentence_labels) > 0:
-                sentence_index = (last_sentence - len(after_task_labels) + 1) + index
                 clean_labels.append({
                     'index': sentence_index,
                     'labels': sentence_labels,
+                    'authors': author_indices,
+                })
+            else:
+                # If no quote labels, we add an empty label. The reasoning is that we can't be sure the user correctly
+                # labelled the text from before the task if nothing was labelled, but we also do not want to show them
+                # again the same sentence.
+                clean_labels.append({
+                    'index': sentence_index,
+                    'labels': [],
                     'authors': author_indices,
                 })
 

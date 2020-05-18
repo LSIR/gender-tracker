@@ -140,7 +140,12 @@ class TaskParsingTestCase(TestCase):
         labels[0:9] = (9 - 0) * [1]
         authors = [2, 3]
         clean_labels = clean_user_labels(sentence_ends, task_indices, first_sentence, last_sentence, labels, authors)
-        self.assertEquals(clean_labels, [{'index': 1, 'labels': labels[13:35], 'authors': []}])
+        self.assertEquals(clean_labels, [
+            {'index': 1, 'labels': labels[13:35], 'authors': []},
+            {'authors': [2, 3], 'index': 0, 'labels': []},
+            {'authors': [2, 3], 'index': 2, 'labels': []},
+            {'authors': [2, 3], 'index': 3, 'labels': []}
+        ])
 
     def test_clean_user_labels_quote4(self):
         """ Test for when extra text is annotated as a quote, with none of the task text labeled in the quote. """

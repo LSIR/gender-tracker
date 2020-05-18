@@ -29,6 +29,9 @@ class Article(models.Model):
     admin_article = BooleanField()
     # The newspaper in which the article was published
     source = CharField(max_length=200)
+    # Date of instance creation
+    created_at = models.DateTimeField(auto_now_add=True)
+    
 
     def __str__(self):
         return f'Article id: {self.id}'
@@ -50,6 +53,8 @@ class UserLabel(models.Model):
     author_index = JSONField()
     # If this label was added by an admin user
     admin_label = BooleanField()
+    # Date of instance creation
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f'Label id: {self.id}, Session id: {self.session_id}, {self.article}, Sentence Number: ' \

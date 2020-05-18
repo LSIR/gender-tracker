@@ -172,6 +172,7 @@ def submit_tags(request):
                 else:
                     sentence_ends = article.sentences['sentences']
                     clean_labels = clean_user_labels(sentence_ends, sent_id, first_sent, last_sent, labels, authors)
+                    logger.warn(clean_labels)
                     found_quote = False
                     for sentence in clean_labels:
                         if sum(sentence['labels']) > 0:
@@ -197,7 +198,6 @@ def session_load(request):
         The user's id.
         If the user is admin.
     """
-    logger.warn("te")
     if 'id' in request.session:
         user_id = request.session['id']
     else:
@@ -214,6 +214,7 @@ def session_load(request):
     admin_tagger = False
     if 'admin' in request.session and request.session['admin']:
         admin_tagger = True
+    logger.warn(user_id)
     return user_id, quote_count, admin_tagger
 
 
@@ -228,10 +229,12 @@ def session_post(request):
         If the user is admin.
     """
     if 'id' not in request.session:
+        logger.warn("No session in post")
         return None
     admin_tagger = False
     if 'admin' in request.session and request.session['admin']:
         admin_tagger = True
+    logger.warn(request.session['id'])
     return request.session['id'], admin_tagger
 
 

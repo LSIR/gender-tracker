@@ -9,13 +9,13 @@
         >
             <v-flex mb-4>
                 <div v-if="quote_count === 0" class="mb-2">
-                    Vous n'avez pas encore trouvé une citation.
+                    Vous n'avez pas encore trouvé de citation.
                 </div>
                 <div v-else-if="quote_count === 1" class="mb-2">
-                    Pour le moment, vous avez annoté 1 citation!
+                    Vous avez déjà identifié 1 citation, merci de votre contribution!
                 </div>
                 <div v-else class="mb-2">
-                    Pour le moment, vous avez annoté {{quote_count}} citations!
+                    Vous avez déjà identifié {{quote_count}} citations, merci de votre contribution!
                 </div>
             </v-flex>
         </v-layout>
@@ -63,6 +63,9 @@
                                     Auteur
                                 </v-btn>
                     </v-btn-toggle>
+                    <h3 class="subtitle-1 font-weight-bold mb-6">
+                        Utilisez les flèches pour obtenir plus de contexte.
+                    </h3>
                 </div>
                 <hr class="heidi_red mb-6">
                 <div v-if="first_sentence > 0">
@@ -115,7 +118,7 @@
                 <div>
                     <v-btn class="ma-2" width="180px" outlined v-on:click.native=submitTags>Aucune Citation</v-btn>
                     <v-btn class="ma-2" width="180px" outlined v-on:click.native=clearAnswers>Réinitialiser</v-btn>
-                    <v-btn class="ma-2" width="180px" outlined v-on:click.native=skip_sentence>Sauter</v-btn>
+                    <v-btn class="ma-2" width="180px" outlined v-on:click.native=skip_sentence>Passer</v-btn>
                 </div>
             </v-flex>
         </v-layout>
@@ -257,8 +260,8 @@ export default {
             "Observez le texte ci-dessous. Repérez une citation et cliquez sur le premier mot de celle-ci, ou sur AUCUNE CITATION s’il n’y en a pas. ",
             "Cliquez sur le dernier mot de la citation. Utilisez les flèches ⇡ et ⇣ pour naviguer " +
             "si besoin.",
-            "La citation est surlignée en rouge. Cliquez sur le bouton AUTEUR ci-dessus",
-            "Sélectionnez dans le texte l’auteur de la citation, puis cliquez sur SOUMETTRE en bas. Merci! Vous pouvez " +
+            "La citation est surlignée en rouge. Cliquez sur le bouton AUTEUR, à droite de l'onglet CITATION.",
+            "Sélectionnez dans le texte l’auteur de la citation (prénom, nom), puis cliquez sur SOUMETTRE en bas. Merci! Vous pouvez " +
             "recommencer."
         ],
         helper_text_shown: 0,

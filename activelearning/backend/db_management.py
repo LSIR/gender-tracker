@@ -1,4 +1,5 @@
 import random
+import logging
 
 import numpy as np
 from django.core.exceptions import ObjectDoesNotExist
@@ -10,6 +11,7 @@ from backend.xml_parsing.xml_to_postgre import process_article, extract_sentence
 
 """ File containing all methods used for database management """
 
+logger = logging.getLogger(__name__)
 
 """ The minumum amount of user labels required for a sentence to be labeled. """
 MIN_USER_LABELS = 4

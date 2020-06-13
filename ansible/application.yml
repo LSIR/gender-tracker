@@ -60,4 +60,4 @@
     state: started
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
-    command: syslog+tls://logs7.papertrailapp.com:34779
+    command: syslog+tls://logs5.papertrailapp.com:26146

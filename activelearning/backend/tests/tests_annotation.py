@@ -311,12 +311,14 @@ def load_new_task(test_class, client):
     user_id = client.session['id']
     data = json.loads(response.content)
     keys = list(data)
-    test_class.assertEquals(len(keys), 5)
+    print(data)
+    test_class.assertEquals(len(keys), 6)
     test_class.assertTrue('article_id' in keys)
     test_class.assertTrue('sentence_id' in keys)
     test_class.assertTrue('data' in keys)
     test_class.assertTrue('task' in keys)
     test_class.assertTrue('admin' in keys)
+    test_class.assertTrue('quote_count' in keys)
     article_id = data['article_id']
     sentence_ids = data['sentence_id']
     text = data['data']

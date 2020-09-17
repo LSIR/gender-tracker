@@ -140,7 +140,7 @@ class Command(BaseCommand):
                     extraction_methods = 3
                 else:
                     print('\n  One vs All')
-                    extraction_methods = 2
+                    extraction_methods = 4
                 for ext_method in list(range(1, extraction_methods + 1)):
                     for l, p in list(itertools.product(losses, log_penalties)):
                         print(f'   Results with {p}-{l} loss and feature extraction {ext_method}'.ljust(80))

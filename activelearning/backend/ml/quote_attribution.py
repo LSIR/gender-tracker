@@ -209,7 +209,7 @@ def evaluate_quote_attribution(loss, penalty, alpha, extraction_method, max_iter
             * 'f1': float, The f1 score in article speaker extraction for the model
     """
     proba = loss == 'log'
-    poly = PolynomialFeatures(2, interaction_only=False)
+    poly = PolynomialFeatures(2, interaction_only=False, include_bias=True)
     article_dicts, attribution_dataset = load_data(nlp, cue_verbs, extraction_method, ovo, poly)
 
     kf = KFold(n_splits=cv_folds)

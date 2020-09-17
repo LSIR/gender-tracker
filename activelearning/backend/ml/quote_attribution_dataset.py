@@ -50,10 +50,19 @@ def parse_article(article_dict, quote_dataset, extraction_method, cue_verbs, pol
             sentences = article_dict['sentences']
             if extraction_method == 1:
                 ne_features = attribution_features_1(article, sentences, sent_index, mention, cue_verbs)
-            else:
+            elif extraction_method == 2:
                 other_speakers = mentions[:j] + mentions[j+1:]
                 ne_features = attribution_features_2(article, sentences, sent_index, mention, other_quotes,
                                                      other_speakers, cue_verbs)
+            elif extraction_method == 3:
+                other_speakers = mentions[:j] + mentions[j + 1:]
+                ne_features = attribution_features_baseline(article, sentences, sent_index, mention, other_speakers,
+                                                            cue_verbs)
+            elif extraction_method == 4:
+                other_speakers = mentions[:j] + mentions[j + 1:]
+                ne_features = attribution_features_baseline_expanded(article, sentences, sent_index, mention,
+                                                                     other_speakers, cue_verbs)
+
             quote_mention_features = np.concatenate((quote_features, ne_features), axis=0)
             if poly:
                 quote_mention_features = poly.fit_transform(quote_mention_features.reshape((-1, 1))).reshape((-1,))
@@ -177,7 +186,8 @@ class QuoteAttributionDataset(Dataset):
         self.ovo = ovo
         self.features = []
         self.labels = []
-        # Keys: article id, Values
+        # Keys: article id,
+        # Values:
         #   (first feature in the article,
         #    last feature in the article,
         #    number of quotes in the article,
@@ -190,7 +200,7 @@ class QuoteAttributionDataset(Dataset):
                                                                                cue_verbs, poly=poly)
             else:
                 a_features, a_labels, a_quotes, a_mentions = parse_article(a_dict, quote_dataset, extraction_method,
-                                                                           cue_verbs)
+                                                                           cue_verbs, poly=poly)
             first_feature = len(self.features)
             self.features += a_features
             last_feature = len(self.features) - 1

@@ -31,6 +31,182 @@ def speaker_information(article, speaker):
 ########################################################################################################################
 # One Versus All Quote Attribution
 
+
+def attribution_features_baseline(article, sentences, quote_index, speaker, other_speakers, cue_verbs):
+    """
+    First feature extraction model for quote attribution. Extracts the following features for a quote and a speaker:
+
+        * A first boolean feature to mark weasel features.
+        * Boolean features indicating:
+            * Whether the speaker is in the same sentence as the quote
+            * Whether the sentence containing a quote contains a cue verb
+            * Whether the speaker is in between quotation marks
+            * Whether the speaker is the first named entity in a sentence above the quote
+
+            * Whether ANOTHER speaker is in the same sentence as the quote, and isn't between quotation marks
+
+    :param article: models.Article
+        The article from which the quote and speakers are taken.
+    :param sentences: list(spaCy.Doc)
+        the spaCy.Doc for each sentence in the article.
+    :param quote_index: int
+        The index of the sentence containing a quote in the article.
+    :param speaker: dict.
+        The speaker. Has keys 'name', 'full_name', 'start', 'end', as described in the database.
+    :param other_speakers: list(dict)
+        The list of other speakers in the article.
+    :param cue_verbs: list(string).
+        The sentence to extract features from.
+    :return: np.array
+        The features extracted
+    """
+    if speaker is None:
+        return np.array([0, 0, 0, 0, 0, 0])
+
+    speaker_sent, speaker_first_token_index, _ = speaker_information(article, speaker)
+
+    in_same_sentence = (quote_index == speaker_sent)
+
+    def speaker_in_quotes():
+        return article.in_quotes['in_quotes'][speaker_first_token_index] == 1
+
+    def speaker_with_cue_verb():
+        tokens = sentences[speaker_sent]
+        for token in tokens:
+            if token.lemma_ in cue_verbs:
+                return 1
+        return 0
+
+    other_speaker_info = [speaker_information(article, speaker) for speaker in other_speakers]
+
+    def first_named_entity_above():
+        if speaker_sent < quote_index:
+            for sent, _, _ in other_speaker_info:
+                if speaker_sent < sent < quote_index:
+                    return 0
+            return 1
+        return 0
+
+    def other_speaker_in_quote():
+        for sent, start_token, _ in other_speaker_info:
+            if sent == quote_index and article.in_quotes['in_quotes'][start_token] == 0:
+                return 1
+        return 0
+
+    return np.array([
+        1,
+        in_same_sentence,
+        speaker_with_cue_verb(),
+        speaker_in_quotes(),
+        first_named_entity_above(),
+        other_speaker_in_quote(),
+    ])
+
+
+def attribution_features_baseline_expanded(article, sentences, quote_index, speaker, other_speakers, cue_verbs):
+    """
+    First feature extraction model for quote attribution. Extracts the following features for a quote and a speaker:
+
+        * A first boolean feature to mark weasel features.
+        * Boolean features indicating:
+            * Whether the speaker is in the same sentence as the quote
+            * Whether the sentence containing a quote contains a cue verb
+            * Whether the speaker is in between quotation marks
+            * Whether the speaker is the first named entity in a sentence above the quote
+
+            * Whether ANOTHER speaker is in the same sentence as the quote, and isn't between quotation marks
+
+            * Whether the speaker is a subject in the sentence
+            * Whether the speaker is an object in the sentence
+
+        * Features indicating:
+            * The number of sentences between the speaker and the quote
+            * The number of named entities between the speaker and the quote
+            * The number of sentences in the quote
+
+    :param article: models.Article
+        The article from which the quote and speakers are taken.
+    :param sentences: list(spaCy.Doc)
+        the spaCy.Doc for each sentence in the article.
+    :param quote_index: int
+        The index of the sentence containing a quote in the article.
+    :param speaker: dict.
+        The speaker. Has keys 'name', 'full_name', 'start', 'end', as described in the database.
+    :param other_speakers: list(dict)
+        The list of other speakers in the article.
+    :param cue_verbs: list(string).
+        The sentence to extract features from.
+    :return: np.array
+        The features extracted
+    """
+    if speaker is None:
+        return np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+
+    speaker_sent, speaker_first_token_index, s_rel_token_indices = speaker_information(article, speaker)
+
+    in_same_sentence = (quote_index == speaker_sent)
+
+    def speaker_in_quotes():
+        return article.in_quotes['in_quotes'][speaker_first_token_index] == 1
+
+    def speaker_with_cue_verb():
+        tokens = sentences[speaker_sent]
+        for token in tokens:
+            if token.lemma_ in cue_verbs:
+                return 1
+        return 0
+
+    other_speaker_info = [speaker_information(article, speaker) for speaker in other_speakers]
+    other_speaker_sentences = [speaker_info[0] for speaker_info in other_speaker_info]
+    other_speaker_start_tokens = [speaker_info[1] for speaker_info in other_speaker_info]
+
+    def first_named_entity_above():
+        if speaker_sent < quote_index:
+            for sent in other_speaker_sentences:
+                if speaker_sent < sent < quote_index:
+                    return 0
+            return 1
+        return 0
+
+    def other_speaker_in_quote():
+        for sent, start_token in zip(other_speaker_sentences, other_speaker_start_tokens):
+            if sent == quote_index and article.in_quotes['in_quotes'][start_token] == 0:
+                return 1
+        return 0
+
+    def speaker_dep(dep):
+        for index in s_rel_token_indices:
+            if sentences[speaker_sent][index].dep_ == dep:
+                return 1
+        return 0
+
+    num_sentences_separating = quote_index - speaker_sent
+
+    def speakers_between_speaker_and_quote():
+        speakers_between = 0
+        for sent in other_speaker_sentences:
+            if speaker_sent < sent < quote_index or speaker_sent > sent > quote_index:
+                speakers_between += 1
+        return speakers_between
+
+    def sentences_in_quote():
+        return 0
+
+    return np.array([
+        1,
+        in_same_sentence,
+        speaker_with_cue_verb(),
+        speaker_in_quotes(),
+        first_named_entity_above(),
+        other_speaker_in_quote(),
+        speaker_dep('nsubj'),
+        speaker_dep('obj'),
+        num_sentences_separating,
+        speakers_between_speaker_and_quote(),
+        sentences_in_quote(),
+    ])
+
+
 def attribution_features_1(article, sentences, quote_index, speaker, cue_verbs):
     """
     First feature extraction model for quote attribution. Extracts the following features for a quote and a speaker:

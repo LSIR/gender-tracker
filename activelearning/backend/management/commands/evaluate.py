@@ -80,6 +80,7 @@ class Command(BaseCommand):
                         f'  max epochs: {max_epochs}\n\n')
 
             print()
+            print('NEW EVALUATE METHOD')
             print('Loading language model...'.ljust(80), end='\r')
             nlp = load_nlp()
 

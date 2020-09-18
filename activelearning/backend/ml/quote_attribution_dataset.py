@@ -60,8 +60,7 @@ def parse_article(article_dict, quote_dataset, extraction_method, cue_verbs, pol
                                                             cue_verbs)
             elif extraction_method == 4:
                 other_speakers = mentions[:j] + mentions[j + 1:]
-                ne_features = attribution_features_baseline_expanded(article, sentences, sent_index, mention,
-                                                                     other_speakers, cue_verbs)
+                ne_features = attribution_features_baseline_expanded(article, sentences, sent_index, mention, other_quotes, other_speakers, cue_verbs)
 
             quote_mention_features = np.concatenate((quote_features, ne_features), axis=0)
             if poly:

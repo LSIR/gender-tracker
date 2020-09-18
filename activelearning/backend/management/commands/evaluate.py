@@ -3,6 +3,7 @@ import itertools
 
 from django.core.management.base import BaseCommand, CommandError
 
+from backend.ml.author_prediction import evaluate_author_prediction
 from backend.ml.baseline import baseline_quote_detection, baseline_quote_attribution
 from backend.ml.quote_attribution import evaluate_quote_attribution
 from backend.ml.quote_detection import evaluate_quote_detection
@@ -95,11 +96,10 @@ class Command(BaseCommand):
             print(results.print_average_score())
             with open('logs.txt', 'a') as f:
                 f.write(f'  Baseline quote detection:\n{results.print_average_score()}\n')
-            print('\n\n')
 
             for l in losses:
                 for p in log_penalties:
-                    print(f'\n  {p} {l}:')
+                    print(f'  {p} {l}:')
                     accumulator = ResultAccumulator()
                     for alpha in alphas:
                         train_res, test_res = evaluate_quote_detection(l, p, alpha, max_epochs, nlp, cue_verbs, folds)
@@ -112,6 +112,39 @@ class Command(BaseCommand):
                     print(f'      Best results with {name}'.ljust(80))
                     print(f'        Average Training Results\n{train.print_average_score()}\n'
                           f'        Average Test Results\n{test.print_average_score()}\n\n')
+
+            print('\n\nEvaluating speaker prediction...')
+            print('Speaker prediction: classifying each named entity in a text as either the author of a quote or not'
+                  ', but not assigning a single named entity to each quote.')
+            for l in losses:
+                for p in log_penalties:
+                    print(f'   Speaker Prediction Results with {p}-{l} loss'.ljust(80))
+                    best_train_res = None
+                    best_test_res = None
+                    best_train_set = None
+                    best_test_set = None
+                    best_f1 = 0
+                    best_alpha = ''
+                    for alpha in alphas:
+                        train_res, test_res, train_set, test_set = evaluate_author_prediction(l, p, alpha, max_epochs,
+                                                                                              nlp, cue_verbs, folds)
+
+                        acc, pre, rec, f1 = test_set.average_score()
+                        if f1 > best_f1:
+                            best_f1 = f1
+                            best_alpha = alpha
+                            best_train_res = train_res
+                            best_test_res = test_res
+                            best_train_set = train_set
+                            best_test_set = test_set
+
+                    print(f'      Best results with alpha={best_alpha}'.ljust(80))
+                    print(f'      Performance in predicting each named entity'.ljust(80))
+                    print(f'        Average Training Results\n{best_train_res.print_average_score()}\n'
+                          f'        Average Test Results\n{best_test_res.print_average_score()}\n\n')
+                    print(f'      Performance in predicting each author name'.ljust(80))
+                    print(f'        Average Training Results\n{best_train_set.print_average_score()}\n'
+                          f'        Average Test Results\n{best_test_set.print_average_score()}\n\n')
 
             print('\n\nEvaluating quote attribution...')
             print('\n  Baseline:')
@@ -134,14 +167,14 @@ class Command(BaseCommand):
             best_ml_train = None
             best_ml_test = None
 
-            for ovo in [True, False]:
+            for ovo in [False, True]:
                 if ovo:
                     print('\n  One vs One')
                     extraction_methods = 3
                 else:
                     print('\n  One vs All')
                     extraction_methods = 4
-                for ext_method in list(range(1, extraction_methods + 1)):
+                for ext_method in list(range(2, extraction_methods + 1)):
                     for l, p in list(itertools.product(losses, log_penalties)):
                         print(f'   Results with {p}-{l} loss and feature extraction {ext_method}'.ljust(80))
                         best_train = None

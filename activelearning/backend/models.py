@@ -31,7 +31,6 @@ class Article(models.Model):
     source = CharField(max_length=200)
     # Date of instance creation
     created_at = models.DateTimeField(auto_now_add=True)
-    
 
     def __str__(self):
         return f'Article id: {self.id}'

@@ -103,7 +103,7 @@ def attribution_features_baseline(article, sentences, quote_index, speaker, othe
     ])
 
 
-def attribution_features_baseline_expanded(article, sentences, quote_index, speaker, other_speakers, cue_verbs):
+def attribution_features_baseline_expanded(article, sentences, quote_index, speaker, other_quotes, other_speakers, cue_verbs):
     """
     First feature extraction model for quote attribution. Extracts the following features for a quote and a speaker:
 
@@ -120,9 +120,8 @@ def attribution_features_baseline_expanded(article, sentences, quote_index, spea
             * Whether the speaker is an object in the sentence
 
         * Features indicating:
-            * The number of sentences between the speaker and the quote
+            * The number of sentences between the speaker and the quote that don't contain quotes
             * The number of named entities between the speaker and the quote
-            * The number of sentences in the quote
 
     :param article: models.Article
         The article from which the quote and speakers are taken.
@@ -132,6 +131,8 @@ def attribution_features_baseline_expanded(article, sentences, quote_index, spea
         The index of the sentence containing a quote in the article.
     :param speaker: dict.
         The speaker. Has keys 'name', 'full_name', 'start', 'end', as described in the database.
+    :param other_quotes: list(dict)
+        The list of other speakers in the article.
     :param other_speakers: list(dict)
         The list of other speakers in the article.
     :param cue_verbs: list(string).
@@ -140,7 +141,7 @@ def attribution_features_baseline_expanded(article, sentences, quote_index, spea
         The features extracted
     """
     if speaker is None:
-        return np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+        return np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
 
     speaker_sent, speaker_first_token_index, s_rel_token_indices = speaker_information(article, speaker)
 
@@ -180,7 +181,12 @@ def attribution_features_baseline_expanded(article, sentences, quote_index, spea
                 return 1
         return 0
 
-    num_sentences_separating = quote_index - speaker_sent
+    def num_sentences_separating():
+        quotes_between = 0
+        for q in other_quotes:
+            if speaker_sent < q < quote_index or speaker_sent > q > quote_index:
+                quotes_between += 1
+        return quote_index - speaker_sent - quotes_between
 
     def speakers_between_speaker_and_quote():
         speakers_between = 0
@@ -188,9 +194,6 @@ def attribution_features_baseline_expanded(article, sentences, quote_index, spea
             if speaker_sent < sent < quote_index or speaker_sent > sent > quote_index:
                 speakers_between += 1
         return speakers_between
-
-    def sentences_in_quote():
-        return 0
 
     return np.array([
         1,
@@ -201,9 +204,8 @@ def attribution_features_baseline_expanded(article, sentences, quote_index, spea
         other_speaker_in_quote(),
         speaker_dep('nsubj'),
         speaker_dep('obj'),
-        num_sentences_separating,
+        num_sentences_separating(),
         speakers_between_speaker_and_quote(),
-        sentences_in_quote(),
     ])
 
 

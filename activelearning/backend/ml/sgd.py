@@ -18,6 +18,8 @@ def train(classifier, dataloader, eval_dataloader, max_iter, print_prefix=''):
         The dataloader to use to evaluate the model after each epoch. Should return a single matrix.
     :param max_iter: int
         The number of epochs to run SGD for.
+    :param print_prefix: String
+        The prefix to the string indicating the progression of the training
     :return: SGDClassifier, list(float), list(float)
         * the trained classifier
         * the loss after each data load

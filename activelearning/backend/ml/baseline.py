@@ -269,7 +269,7 @@ def attribute_quote_lazy(all_sentences, sentence_index, sentence_starts, in_quot
     return []
 
 
-def baseline_quote_attribution(nlp, cue_verbs):
+def baseline_quote_attribution(nlp, cue_verbs, test=False):
     """
     Evaluates the baseline model for quote attribution.
 
@@ -277,6 +277,8 @@ def baseline_quote_attribution(nlp, cue_verbs):
         The language model used to tokenize the text.
     :param cue_verbs: list(string)
         The list of all "cue verbs", which are verbs that often introduce reported speech.
+    :param test: bool.
+        Whether to evaluate on the test set.
     :return: float, float, float, float, float, float
         * The accuracy in speaker prediction for the baseline model: the accuracy the model has, when given a sentence
         containing a quote and a list of mentions in the article, in predicting the correct speaker.
@@ -295,8 +297,13 @@ def baseline_quote_attribution(nlp, cue_verbs):
     average_recall = []
     average_precision_lazy = []
     average_recall_lazy = []
-    train_dicts, _ = load_quote_authors(nlp)
-    for i, article_dict in enumerate(train_dicts):
+
+    if test:
+        _ , data_dicts = load_quote_authors(nlp)
+    else:
+        data_dicts, _ = load_quote_authors(nlp)
+        
+    for i, article_dict in enumerate(data_dicts):
         mentions = article_dict['article'].people['mentions']
         sentence_ends = article_dict['article'].sentences['sentences']
         sentence_starts = [0] + [s_end + 1 for s_end in sentence_ends][:-1]

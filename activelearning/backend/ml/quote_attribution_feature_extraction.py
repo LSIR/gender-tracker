@@ -28,6 +28,33 @@ def speaker_information(article, speaker):
     return sent, sent_start, rel_token_indices
 
 
+def speaker_information_no_db(sentence_indices, speaker):
+    """
+    Extracts information about the speaker and the sentence containing it.
+
+    :param sentence_indices: list(int)
+        The index of the first token of each sentence in the article, as in article.sentences['sentences']
+    :param speaker: dict.
+        The speaker. Has keys 'name', 'full_name', 'start', 'end', as described in the database.
+    :return: int, int, int
+        * The index of the sentence containing the speaker
+        * The index of the first token in the sentence containing the speaker
+        * The indices of the tokens of the speaker in the sentence's doc.
+    """
+    # The index of the speaker containing the quote.
+    sent = 0
+    while sent < len(sentence_indices) and sentence_indices[sent] < speaker['end']:
+        sent = sent + 1
+
+    # The index of the first token in the sentence containing the speaker
+    sent_start = 0
+    if sent > 0:
+        sent_start = sentence_indices[sent - 1] + 1
+    rel_token_indices = [i - sent_start for i in range(speaker['start'], speaker['end'] + 1)]
+
+    return sent, sent_start, rel_token_indices
+
+
 ########################################################################################################################
 # One Versus All Quote Attribution
 

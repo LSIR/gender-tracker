@@ -351,7 +351,7 @@ These feature vectors are then passed through different models to be evaluated. 
 don't contain quotes than ones that do, the set of sentences containing quotes is subsampled so that there are about the
 same number of sentences of both classes.
 
-#### Speaker Extraction
+#### Speaker Extraction - Quote Attribution
 
 This model takes as input a sentence and a list of named entities. It assigns a score between 0 and 1 to each named,
 where a score closer to 1 means it's more likely to be the author of the reported speech, using a classification model.
@@ -372,7 +372,37 @@ token of the speaker, quote_start is the index of the first token of q, quote_en
 * the number of mentions of other speakers in the 10 paragraphs before q
 * the number of quotes in the 10 paragraphs before q
 
+#### Speaker Extraction - Author (Quotee) Prediction
 
+The quote attribution model wasn't working well enough. I believe the issue was that it was trying to predict an author
+for each quote, instead of just ignoring quotes for which the author was too difficult to predict.
+
+To improve this, I built a model closer to the task we actually want to solve: given an article, extract the names of all
+people that are cited in it. The model I built tries to predict whether each Person Named Entity in the article is the
+"author" of one of the quotes in it. To do this, I extract the following features for each Person Named Entity.
+
+* Boolean Features 
+    * Is the speaker the subject of the sentence it's in?
+    * Is the speaker the object of the sentence it's in?
+    * Is the speaker in between quotation marks?
+    * Is the speaker in a sentence containing a cue verb?
+    * Is the speaker in a sentence containing a quote?
+    * Is the speaker in a sentence containing a parataxis?
+    * Is there any reported speech above the speaker
+    * Is there any reported speech below the speaker
+* Scalar Features
+    * The number of sentences between the speaker and the closest reported speech sentence above it. 100 if none.
+    * The number of sentences between the speaker and the closest reported speech sentence below it. 100 if none.
+    * The number of other speakers between it and the closest quote above it.
+    * The number of other speakers between it and the closest quote below it.
+    * The number of quotes within 3 sentences above it
+    * The number of quotes within 3 sentences below it
+    * The number of quotes within 6 sentences above it
+    * The number of quotes within 6 sentences below it
+    * The number of other speakers within 3 sentences above it
+    * The number of other speakers within 3 sentences below it
+    * The number of other speakers within 6 sentences above it
+    * The number of other speakers within 6 sentences below it
 
 ## Code
 

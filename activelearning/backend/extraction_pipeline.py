@@ -1,3 +1,5 @@
+import csv
+
 import numpy as np
 from sklearn.preprocessing import PolynomialFeatures
 
@@ -5,6 +7,7 @@ from backend.ml.author_prediction_feature_extraction import attribution_features
 from backend.ml.helpers import load_model, author_full_name_no_db
 from backend.ml.quote_detection import predict_quotes
 from backend.xml_parsing.xml_to_postgre import process_article, extract_sentence_spans
+from backend.xml_parsing.helpers import load_nlp
 
 """
 Pipeline the names of people cited from an article
@@ -102,3 +105,20 @@ def extract_people_quoted(article_text, nlp, cue_verbs):
     predicted_experts = list(speakers)
 
     return predicted_experts
+
+
+def test():
+    print(f'Loading article...')
+    test_article_url = 'data/parisien/article_00003.xml'
+    with open(test_article_url, 'r') as file:
+        article_text = file.read()
+
+    print(f'Loading language model...')
+    nlp = load_nlp()
+
+    print(f'Loading cue verbs...\n\n')
+    with open('data/cue_verbs.csv', 'r') as f:
+        reader = csv.reader(f)
+        cue_verbs = set(list(reader)[0])
+
+    print(extract_people_quoted(article_text, nlp, cue_verbs))

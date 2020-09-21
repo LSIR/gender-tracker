@@ -78,7 +78,7 @@ class Command(BaseCommand):
             loss = options['loss']
             penalty = options['penalty']
             exp_degree = options['exp']
-            train_res, test_res, train_authors, test_authors, test_lists =\
+            _, train_res, test_res, train_authors, test_authors, test_lists =\
                 evaluate_author_prediction_test(loss, penalty, alpha, epochs, nlp, cue_verbs, exp_degree)
 
             print(f'    Training Set Performance')

@@ -7,11 +7,12 @@ from backend.ml.author_prediction_feature_extraction import *
 
 def parse_article(article_dict, cue_verbs, poly=None):
     """
-    Creates feature vectors for each sentence in the article from the raw data.
+    Creates feature vectors for each Person Named Entity in the article from the raw data.
 
     :param article_dict: dict
         A dict containing information about the fully labeled article. Keys:
             * 'article': models.Article, the article containing the quote
+            * 'sentences': list(spaCy.Doc), the spaCy.Doc for each sentence in the article.
             * 'quotes': list(int), the indices of sentences that contain quotes in the article.
             * 'author': list(list(int)), the indices of the tokens of the author for each quote.
     :param cue_verbs: list(string)
@@ -64,6 +65,7 @@ class AuthorPredictionDataset(Dataset):
         :param article_dicts: list(dict)
         A dict containing information about the fully labeled article. Keys:
             * 'article': models.Article, the article containing the quote
+            * 'sentences': list(spaCy.Doc), the spaCy.Doc for each sentence in the article.
             * 'quotes': list(int), the indices of sentences that contain quotes in the article.
             * 'author': list(list(int)), the indices of the tokens of the author for each quote.
         :param cue_verbs: list(string)

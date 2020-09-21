@@ -49,6 +49,8 @@ class Command(BaseCommand):
                             choices=['log', 'hinge', 'all'])
         parser.add_argument('--penalty', help='The penalty to use. Default: all are evaluated.',
                             choices=['l1', 'l2', 'all'], )
+        parser.add_argument('--exp', help='The degree of feature expansion for author prediction and quote detection.',
+                            type=int, default=2)
 
     def handle(self, *args, **options):
         folds = 5
@@ -79,9 +81,7 @@ class Command(BaseCommand):
                         f'  {folds}-fold cross validation\n'
                         f'  max epochs: {max_epochs}\n\n')
 
-            print()
-            print('NEW EVALUATE METHOD')
-            print('Loading language model...'.ljust(80), end='\r')
+            print('\nLoading language model...'.ljust(80), end='\r')
             nlp = load_nlp()
 
             print('Loading cue verbs...'.ljust(80), end='\r')
@@ -115,6 +115,21 @@ class Command(BaseCommand):
                           f'        Average Test Results\n{test.print_average_score()}\n\n')
 
             print('\n\nEvaluating speaker prediction...')
+            print('\n  Baseline:')
+            acc, acc_lazy, p, r, p_lazy, r_lazy = baseline_quote_attribution(nlp, cue_verbs)
+            print(f'    Given a quote and a list of speakers, accuracy in predicting the true speaker:\n'
+                  f'        Baseline model:      {acc}\n'
+                  f'        Lazy Baseline model: {acc_lazy}\n')
+            print(f'    Results in predicting the set of people cited in the article:\n'
+                  f'        Baseline model:\n'
+                  f'            Precision: {p}\n'
+                  f'            Recall:    {r}\n'
+                  f'            F1:        {2 * p * r / (p + r)}\n'
+                  f'        Lazy Baseline model:\n'
+                  f'            Precision: {p_lazy}\n'
+                  f'            Recall:    {r_lazy}\n'
+                  f'            F1:        {2 * p_lazy * r_lazy / (p_lazy + r_lazy)}\n\n')
+
             print('Speaker prediction: classifying each named entity in a text as either the author of a quote or not'
                   ', but not assigning a single named entity to each quote.')
             for l in losses:
@@ -127,8 +142,10 @@ class Command(BaseCommand):
                     best_f1 = 0
                     best_alpha = ''
                     for alpha in alphas:
+                        exp_degree = options['exp']
                         train_res, test_res, train_set, test_set = evaluate_author_prediction(l, p, alpha, max_epochs,
-                                                                                              nlp, cue_verbs, folds)
+                                                                                              nlp, cue_verbs,
+                                                                                              exp_degree, folds)
 
                         acc, pre, rec, f1 = test_set.average_score()
                         if f1 > best_f1:
@@ -148,27 +165,14 @@ class Command(BaseCommand):
                           f'        Average Test Results\n{best_test_set.print_average_score()}\n\n')
 
             print('\n\nEvaluating quote attribution...')
-            print('\n  Baseline:')
-            acc, acc_lazy, p, r, p_lazy, r_lazy = baseline_quote_attribution(nlp, cue_verbs)
-            print(f'    Given a quote and a list of speakers, accuracy in predicting the true speaker:\n'
-                  f'        Baseline model:      {acc}\n'
-                  f'        Lazy Baseline model: {acc_lazy}\n')
-            print(f'    Results in predicting the set of people cited in the article:\n'
-                  f'        Baseline model:\n'
-                  f'            Precision: {p}\n'
-                  f'            Recall:    {r}\n'
-                  f'            F1:        {2 * p * r / (p + r)}\n'
-                  f'        Lazy Baseline model:\n'
-                  f'            Precision: {p_lazy}\n'
-                  f'            Recall:    {r_lazy}\n'
-                  f'            F1:        {2 * p_lazy * r_lazy / (p_lazy + r_lazy)}\n\n')
 
             best_ml_f1 = 0
             best_ml_parameters = ''
             best_ml_train = None
             best_ml_test = None
 
-            for ovo in [False, True]:
+            # TODO: Also train OVO (for now it's super slow though)
+            for ovo in [False]:
                 if ovo:
                     print('\n  One vs One')
                     extraction_methods = 3

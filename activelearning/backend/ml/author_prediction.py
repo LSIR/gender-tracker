@@ -19,7 +19,7 @@ binary classifier.
 
 def load_data(nlp, cue_verbs, poly):
     """
-    Loads the datasets to perform quote attribution.
+    Loads the datasets to perform article quotee extraction.
 
     :param nlp: spaCy.Language
         The language model used to tokenize the text.
@@ -37,7 +37,6 @@ def load_data(nlp, cue_verbs, poly):
     """
     train_dicts, _ = load_quote_authors(nlp)
     author_prediction_dataset = AuthorPredictionDataset(train_dicts, cue_verbs, poly)
-
     return np.array(train_dicts), author_prediction_dataset
 
 
@@ -74,19 +73,13 @@ def predict_authors(trained_model, dataset, article):
         return true_labels, predicted_labels
 
 
-def evaluate_author_prediction(loss, penalty, alpha, max_iter, nlp, cue_verbs, cv_folds=5):
+def evaluate_author_prediction(loss, penalty, alpha, max_iter, nlp, cue_verbs, poly_degree, cv_folds=5):
     """
-    Evaluates the quote attribution model, on the following metrics:
-
-        * General results: Given a sentence containing a quote and either a single speaker (ovo case: two speakers),
-        predicts if the speaker is the author of the quote (ovo case: which of the two is the author of the quote).
-
-        * Accuracy in speaker prediction: Given a sentence containing a quote and all the speakers (named entities) in
-        the article, accuracy in predicting which one said the quote.
-
+    Evaluates the author prediction model using cross-validation, only on the articles in the training set, on the
+    following metrics:
+        * Accuracy in speaker prediction: given a named entity, the model tries to predict if that named entity is the
+          quotee for any quote.
         * Speaker extraction: Given an article, find all people that are quoted in the article.
-            * Precision: proportion of people predicted that are actually quoted
-            * Recall: proportion of people quoted that are predicted
 
     :param loss: string
         One of {'log', 'hinge'}. The loss function to use.
@@ -100,17 +93,20 @@ def evaluate_author_prediction(loss, penalty, alpha, max_iter, nlp, cue_verbs, c
         The language model used to tokenize the text.
     :param cue_verbs: list(string)
         The list of all "cue verbs", which are verbs that often introduce reported speech.
+    :param poly_degree: int
+        The degree to which polynomial feature expansion should be performed
     :param cv_folds: int
         The number of cross-validation folds to perform.
-    :return: dict, dict
-        * A dictionary for the training and test sets, containing the keys:
-            * 'results': Result, The results for the model
-            * 'accuracy': float, The accuracy in speaker prediction for the model
-            * 'precision': float, The precision in article speaker extraction for the model
-            * 'recall': float, The recall in article speaker extraction for the model
-            * 'f1': float, The f1 score in article speaker extraction for the model
+    :return: Scoring.Results, Scoring.Results, Scoring.Results, Scoring.Results
+        The results of cross-validation
+            * CV training results of predicting if each named entity is the quotee for a sentence or not
+            * CV test results of predicting if each named entity is the quotee for a sentence or not
+            * CV training results of predicting if each person (across all mentions of that person) is cited in the
+              article or not
+            * CV test results of predicting if each person (across all mentions of that person) is cited in the article
+              or not
     """
-    poly = PolynomialFeatures(2, interaction_only=False, include_bias=True)
+    poly = PolynomialFeatures(poly_degree, interaction_only=True, include_bias=True)
     article_dicts, author_prediction_dataset = load_data(nlp, cue_verbs, poly)
 
     kf = KFold(n_splits=cv_folds)

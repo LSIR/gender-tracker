@@ -1,3 +1,5 @@
+from collections import defaultdict
+import csv
 import json
 import logging
 import sys
@@ -8,10 +10,19 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
+import gender_guesser.detector as gender_detector
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework_api_key.permissions import HasAPIKey
+
 from backend.db_management import add_user_label_to_db, request_labelling_task
+from backend.extraction_pipeline import extract_people_quoted
 from backend.frontend_parsing.frontend_to_postgre import clean_user_labels
 from backend.frontend_parsing.postgre_to_frontend import load_paragraph_above, load_paragraph_below
 from backend.helpers import change_confidence
+from backend.xml_parsing.helpers import load_nlp
 from .models import Article
 
 
@@ -246,7 +257,7 @@ def become_admin(request):
         The user request. Must contain a 'key' parameter with the correct value for the user to become an admin.
     :return: JsonResponse
         A Json containing the key 'Success', with value True if the user became an admin and false otherwise.
-    """
+        """
     # Get user secret key
     data = dict(request.GET)
     secret_key = data['key'][0]
@@ -255,3 +266,22 @@ def become_admin(request):
         return JsonResponse({'Success': True})
 
     return JsonResponse({'Success': False})
+
+
+nlp = load_nlp()
+detector = gender_detector.Detector()
+
+class GetCounts(APIView):
+    def post(self, request):
+        with open('data/cue_verbs.csv', 'r') as f:
+            reader = csv.reader(f)
+            cue_verbs = set(list(reader)[0])
+
+        people = extract_people_quoted(request.data["text"], nlp, cue_verbs)
+        # FIXME currently we get the firstname by keeping all text before the first space. Might not work for all names
+        genders = [detector.get_gender(p.split(" ")[0]) for p in people]
+        counts = defaultdict(int)
+        for key in genders:
+          counts[key] += 1
+
+        return Response({"people": people, "counts": counts}) 

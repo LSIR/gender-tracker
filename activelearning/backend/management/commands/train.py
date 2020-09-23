@@ -95,4 +95,5 @@ class Command(BaseCommand):
             print('Done')
 
         except IOError:
+            raise
             raise CommandError('IO Error.')

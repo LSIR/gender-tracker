@@ -1,6 +1,6 @@
 <template>
   <v-app>
-    <v-app-bar app>
+    <v-app-bar app style="padding-left: 10%; padding-right: 10%">
       <v-toolbar-title class="headline">
         <span>Heidi Gender Tracker</span>
       </v-toolbar-title>
@@ -10,6 +10,11 @@
         v-on:click.native="change_helper()"
       >
         <span class="mr-2">{{helper_text}}</span>
+      </v-btn>
+      <v-btn 
+        text
+        href="https://www.heidi.news/articles/vous-voulez-contribuer-au-projet-heidi-gender-tracker-mode-d-emploi">
+        <span class="mr-2">Tutorial</span>
       </v-btn>
     </v-app-bar>
 
@@ -66,7 +71,7 @@ export default {
   data: () => ({
       helper_page: false,
       drag_mode: false,
-      helper_text: 'FAQ',
+      helper_text: 'À propos',
       epfl_logo: require('@/assets/epfl_logo.svg'),
       heidi_logo: require('@/assets/heidi_news.png'),
   }),
@@ -76,7 +81,7 @@ export default {
           if (this.helper_page){
               this.helper_text = 'RETOUR AU GENDERTRACKER'
           }else{
-              this.helper_text = 'FAQ'
+              this.helper_text = 'À propos'
           }
       },
       change_drag: function () {

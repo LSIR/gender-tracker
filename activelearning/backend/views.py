@@ -5,6 +5,7 @@ import logging
 import sys
 import traceback
 import uuid
+from xml.sax.saxutils import escape
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import JsonResponse
@@ -277,7 +278,15 @@ class GetCounts(APIView):
             reader = csv.reader(f)
             cue_verbs = set(list(reader)[0])
 
-        people = extract_people_quoted(request.data["text"], nlp, cue_verbs)
+        template = """<?xml version='1.0' encoding='utf-8'?>
+            <article>
+               <titre></titre>
+               <p>{}</p>
+            </article>"""
+
+        xml_text = template.format(escape(request.data["text"]))
+
+        people = extract_people_quoted(xml_text, nlp, cue_verbs)
         # FIXME currently we get the firstname by keeping all text before the first space. Might not work for all names
         genders = [detector.get_gender(p.split(" ")[0]) for p in people]
         counts = defaultdict(int)

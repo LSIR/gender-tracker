@@ -60,6 +60,7 @@ def extract_people_quoted(article_text, nlp, cue_verbs):
     sentence_start = 0
     for sentence_index, end in enumerate(article_sentences):
         sentence_in_quotes.append(article_in_quotes[sentence_start:end + 1])
+        sentence_start = end + 1
 
     # Predict if each sentence contains a quote or not
     qd_poly = PolynomialFeatures(quote_detection_poly_degree, interaction_only=True, include_bias=True)
@@ -71,6 +72,18 @@ def extract_people_quoted(article_text, nlp, cue_verbs):
         proba=False,
         poly=qd_poly
     )
+
+    # predict_quotes returns a the distance from the boundary for SVM, probability for logistic regression
+    sentence_predictions = [int(pred > 0) for pred in sentence_predictions]
+
+    """
+    # DEBUGGING CODE
+    for pred, (s, in_q) in zip(sentence_predictions, zip(article_sentence_docs, sentence_in_quotes)):
+        print()
+        print(pred)
+        print(s)
+        print(in_q)
+    """
 
     # The indices of the sentences predicted to contain quotes in the article.
     indices_sentences_containing_quotes = [index for index, contains_quote in enumerate(sentence_predictions)
@@ -109,7 +122,8 @@ def extract_people_quoted(article_text, nlp, cue_verbs):
 
 def test():
     print(f'Loading article...')
-    test_article_url = 'data/parisien/article_00003.xml'
+    #test_article_url = 'data/parisien/article_00003.xml'
+    test_article_url = 'data/parisien/article_00000_test.xml'
     with open(test_article_url, 'r') as file:
         article_text = file.read()
 

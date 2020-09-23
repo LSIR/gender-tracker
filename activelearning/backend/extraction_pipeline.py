@@ -76,13 +76,14 @@ def extract_people_quoted(article_text, nlp, cue_verbs):
     # predict_quotes returns a the distance from the boundary for SVM, probability for logistic regression
     sentence_predictions = [int(pred > 0) for pred in sentence_predictions]
 
-    """
     # DEBUGGING CODE
+    """
     for pred, (s, in_q) in zip(sentence_predictions, zip(article_sentence_docs, sentence_in_quotes)):
         print()
         print(pred)
         print(s)
         print(in_q)
+    print()
     """
 
     # The indices of the sentences predicted to contain quotes in the article.
@@ -109,11 +110,21 @@ def extract_people_quoted(article_text, nlp, cue_verbs):
 
     predicted_labels = author_extraction_model.predict(np.array(ap_features))
 
+    # DEBUGGING CODE
+    """
+    for speaker, label in zip(article_mentions, predicted_labels):
+        print()
+        print(label)
+        print(speaker)
+    print()
+    """
+
     speakers = set()
-    for i in predicted_labels:
-        full_name = author_full_name_no_db(article_mentions, i)
-        if full_name is not None and full_name not in speakers:
-            speakers.add(full_name)
+    for i, label in enumerate(predicted_labels):
+        if label == 1:
+            full_name = author_full_name_no_db(article_mentions, i)
+            if full_name is not None and full_name not in speakers:
+                speakers.add(full_name)
 
     predicted_experts = list(speakers)
 
@@ -135,4 +146,4 @@ def test():
         reader = csv.reader(f)
         cue_verbs = set(list(reader)[0])
 
-    print(extract_people_quoted(article_text, nlp, cue_verbs))
+    print("Authors:", extract_people_quoted(article_text, nlp, cue_verbs))

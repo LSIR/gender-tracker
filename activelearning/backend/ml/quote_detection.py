@@ -60,7 +60,7 @@ def predict_quotes(trained_model, sentences, cue_verbs, in_quotes, proba=False, 
     return predictions
 
 
-def train_quote_detection(loss, penalty, alpha, max_iter, nlp, cue_verbs):
+def train_quote_detection(loss, penalty, alpha, max_iter, nlp, cue_verbs, exp_degree=2):
     """
     Trains a classifier to perform quote detection, on all fully labeled articles in the training set.
 
@@ -76,10 +76,11 @@ def train_quote_detection(loss, penalty, alpha, max_iter, nlp, cue_verbs):
         The language model used to tokenize the text.
     :param cue_verbs: list(string)
         The list of all "cue verbs", which are verbs that often introduce reported speech.
+
     :return: sklearn.linear_model.SGDClassifier
         The trained classifier
     """
-    poly = PolynomialFeatures(2, interaction_only=False)
+    poly = PolynomialFeatures(exp_degree, interaction_only=True, include_bias=True)
     article_ids, quote_detection_dataset = load_data(nlp, cue_verbs, poly=poly)
     classifier = SGDClassifier(loss=loss, alpha=alpha, penalty=penalty)
     dataloader = detection_loader(quote_detection_dataset, train=True, batch_size=10)
@@ -88,7 +89,7 @@ def train_quote_detection(loss, penalty, alpha, max_iter, nlp, cue_verbs):
     return classifier
 
 
-def evaluate_unlabeled_sentences(trained_model, sentences, cue_verbs, in_quotes, proba=False):
+def evaluate_unlabeled_sentences(trained_model, sentences, cue_verbs, in_quotes, proba=False, exp_degree=2):
     """
     Uses a trained quote detection model to predict whether new sentences are also quotes.
 
@@ -105,11 +106,11 @@ def evaluate_unlabeled_sentences(trained_model, sentences, cue_verbs, in_quotes,
     :return: np.array()
         The probability that each sentence contains a quote.
     """
-    poly = PolynomialFeatures(2, interaction_only=False)
+    poly = PolynomialFeatures(exp_degree, interaction_only=True, include_bias=True)
     return predict_quotes(trained_model, sentences, cue_verbs, in_quotes, proba=proba, poly=poly)
 
 
-def evaluate_quote_detection(loss, penalty, alpha, max_iter, nlp, cue_verbs, cv_folds=5, prefix=''):
+def evaluate_quote_detection(loss, penalty, alpha, max_iter, nlp, cue_verbs, cv_folds=5, prefix='', exp_degree=2):
     """
     Trains different models for quote detection.
 
@@ -130,7 +131,7 @@ def evaluate_quote_detection(loss, penalty, alpha, max_iter, nlp, cue_verbs, cv_
     :return: QuoteDetectionDataset
         The dataset that was used for quote detection.
     """
-    poly = PolynomialFeatures(2, interaction_only=False)
+    poly = PolynomialFeatures(exp_degree, interaction_only=True, include_bias=True)
     article_ids, quote_detection_dataset = load_data(nlp, cue_verbs, poly)
 
     train_results, test_results = cross_validate(loss=loss,

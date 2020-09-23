@@ -164,6 +164,7 @@ class Command(BaseCommand):
                     print(f'        Average Training Results\n{best_train_set.print_average_score()}\n'
                           f'        Average Test Results\n{best_test_set.print_average_score()}\n\n')
 
+            """
             print('\n\nEvaluating quote attribution...')
 
             best_ml_f1 = 0
@@ -171,8 +172,8 @@ class Command(BaseCommand):
             best_ml_train = None
             best_ml_test = None
 
-            # TODO: Also train OVO (for now it's super slow though)
-            for ovo in [False]:
+            # TODO: Should this be removed?
+            for ovo in [True, False]:
                 if ovo:
                     print('\n  One vs One')
                     extraction_methods = 3
@@ -213,10 +214,12 @@ class Command(BaseCommand):
 
             print(f'\n\n    Best results from a machine learning model: {best_ml_parameters}')
             print(pretty_print_string(best_ml_train, best_ml_test))
+            
 
             with open('logs.txt', 'a') as f:
                 f.write(f'  Best results for quote attribution: {best_ml_parameters}\n'
                         f'{pretty_print_string(best_ml_train, best_ml_test)}')
+            """
 
         except IOError:
             raise CommandError('IO Error.')

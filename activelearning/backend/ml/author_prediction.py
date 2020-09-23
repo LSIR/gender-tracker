@@ -214,8 +214,9 @@ def evaluate_author_prediction_test(loss, penalty, alpha, max_iter, nlp, cue_ver
         The list of all "cue verbs", which are verbs that often introduce reported speech.
     :param poly_degree: int
         The degree to which polynomial feature expansion should be performed
-    :return: Scoring.Results, Scoring.Results, Scoring.Results, Scoring.Results, list[dict]
-        The results of cross-validation
+    :return: SGDClassifier, Scoring.Results, Scoring.Results, Scoring.Results, Scoring.Results, list[dict]
+        The results of of training
+            * The trained model
             * CV training results of predicting if each named entity is the quotee for a sentence or not
             * CV test results of predicting if each named entity is the quotee for a sentence or not
             * CV training results of predicting if each person (across all mentions of that person) is cited in the
@@ -303,4 +304,5 @@ def evaluate_author_prediction_test(loss, penalty, alpha, max_iter, nlp, cue_ver
     }
     test_author_set_results.add_scores(test_people_cited_scores)
 
-    return train_results, test_results, train_author_set_results, test_author_set_results, test_authors_per_article
+    return classifier, train_results, test_results, train_author_set_results, test_author_set_results,\
+        test_authors_per_article

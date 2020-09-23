@@ -1,4 +1,5 @@
 import numpy as np
+from joblib import dump, load
 
 
 def find_true_author_index(true_author, mentions):
@@ -40,6 +41,22 @@ def author_full_name(article, author_index):
     if author_index < 0 or author_index >= len(article.people['mentions']):
         return None
     return article.people['mentions'][author_index]['full_name']
+
+
+def author_full_name_no_db(article_mentions, author_index):
+    """
+    Determines the full name of someone cited in an article, given the index of the named entity in the article.
+
+    :param article_mentions: ...
+        Article.people['mentions']
+    :param author_index: int
+        The index of the author in the list of mentions.
+    :return: string
+        The name of the author of the quote.
+    """
+    if author_index < 0 or author_index >= len(article_mentions):
+        return None
+    return article_mentions[author_index]['full_name']
 
 
 def extract_speaker_names(article, author_indices):
@@ -127,3 +144,22 @@ def balance_classes(X, y):
     sampled_y = np.take(y, indices)
     sampled_X = np.take(X, indices, axis=0)
     return sampled_X, sampled_y
+
+
+def save_model(classifier, filepath):
+    """
+
+    :param classifier:
+    :param filepath:
+    :return:
+    """
+    dump(classifier, filepath)
+
+
+def load_model(filepath):
+    """
+
+    :param filepath:
+    :return:
+    """
+    return load(filepath)

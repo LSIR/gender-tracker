@@ -286,7 +286,7 @@ class GetCounts(APIView):
 
         xml_text = template.format(escape(request.data["text"]))
 
-        people = extract_people_quoted(xml_text, nlp, cue_verbs)
+        people = extract_people_quoted(xml_text, nlp, cue_verbs, lazy_baseline=True)
         # FIXME currently we get the firstname by keeping all text before the first space. Might not work for all names
         genders = [detector.get_gender(p.split(" ")[0]) for p in people]
         counts = defaultdict(int)

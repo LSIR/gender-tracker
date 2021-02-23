@@ -8,7 +8,7 @@ import uuid
 from xml.sax.saxutils import escape
 
 from django.core.exceptions import ObjectDoesNotExist
-from django.http import JsonResponse
+from django.http import JsonResponse, QueryDict
 from django.views.decorators.csrf import csrf_exempt
 
 import gender_guesser.detector as gender_detector
@@ -284,13 +284,43 @@ class GetCounts(APIView):
                <p>{}</p>
             </article>"""
 
-        xml_text = template.format(escape(request.data["text"]))
+        # Clean article text
+        if "text" not in request.data:
+            # Check if data was passed through the form
+            if isinstance(request.data, QueryDict):
+                t = request.data.get("_content")
+            else:
+                raise ValueError(f'key "text" missing: {request.data}')
+        else:
+            t = request.data["text"]
 
+        clean_t = t.replace("\n", " ")
+        clean_t = clean_t.replace("\\n", " ")
+        clean_t = clean_t.replace("\\\n", " ")
+        clean_t = clean_t.replace("\t", " ")
+        clean_t = clean_t.replace("\\t", " ")
+        clean_t = clean_t.replace("\\\t", " ")
+        xml_text = template.format(escape(clean_t))
+
+        # Get default genders
         people = extract_people_quoted(xml_text, nlp, cue_verbs, lazy_baseline=True)
+        first_names = [p.split(" ")[0] for p in people]
         # FIXME currently we get the firstname by keeping all text before the first space. Might not work for all names
-        genders = [detector.get_gender(p.split(" ")[0]) for p in people]
+        genders = [detector.get_gender(n) for n in first_names]
         counts = defaultdict(int)
         for key in genders:
-          counts[key] += 1
+            counts[key] += 1
+
+        """
+        # Check for optional gender dictionary
+        if "gender_dict" in request.data:
+            gender_dict = request.data["gender_dict"]
+            if "m" in gender_dict and "f" in gender_dict:
+                # Lowercase the strings
+                extra_names_m = [name.lower() for name in gender_dict["m"]]
+                extra_names_f = [name.lower() for name in gender_dict["f"]]
+
+                first_names_lower = [n.lower() for n in first_names]
+        """
 
         return Response({"people": people, "counts": counts}) 

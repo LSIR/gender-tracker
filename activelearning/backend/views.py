@@ -293,6 +293,8 @@ class GetCounts(APIView):
                 raise ValueError(f'key "text" missing: {request.data}')
         else:
             t = request.data["text"]
+            if type("hello") != str:
+                raise ValueError(f'No text after text key. Write <"text": "example text">')
 
         clean_t = t.replace("\n", " ")
         clean_t = clean_t.replace("\\n", " ")
@@ -305,13 +307,7 @@ class GetCounts(APIView):
         # Get default genders
         people = extract_people_quoted(xml_text, nlp, cue_verbs, lazy_baseline=True)
         first_names = [p.split(" ")[0] for p in people]
-        # FIXME currently we get the firstname by keeping all text before the first space. Might not work for all names
-        genders = [detector.get_gender(n) for n in first_names]
-        counts = defaultdict(int)
-        for key in genders:
-            counts[key] += 1
-
-        """
+        
         # Check for optional gender dictionary
         if "gender_dict" in request.data:
             gender_dict = request.data["gender_dict"]
@@ -320,7 +316,22 @@ class GetCounts(APIView):
                 extra_names_m = [name.lower() for name in gender_dict["m"]]
                 extra_names_f = [name.lower() for name in gender_dict["f"]]
 
-                first_names_lower = [n.lower() for n in first_names]
-        """
+                genders = []
+                for n in first_names:
+                    if n.lower() in extra_names_m:
+                        genders.append('male')
+                    elif n.lower() in extra_names_f:
+                        genders.append('female')
+                    else:
+                        detector.get_gender(n)
+                
+            else:
+                genders = [detector.get_gender(n) for n in first_names]
+        else:
+            genders = [detector.get_gender(n) for n in first_names]
+
+        counts = defaultdict(int)
+        for key in genders:
+            counts[key] += 1
 
         return Response({"people": people, "counts": counts}) 

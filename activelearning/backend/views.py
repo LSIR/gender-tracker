@@ -308,6 +308,18 @@ class GetCounts(APIView):
         people = extract_people_quoted(xml_text, nlp, cue_verbs, lazy_baseline=True)
         first_names = [p.split(" ")[0] for p in people]
         
+        people_genders = {
+            'female': [],
+            'mostly_female': [],
+            'mostly_male': [],
+            'male': [],
+            'androgyne': [],
+            'unknown': [],
+        }
+
+        extra_names_m = []
+        extra_names_f = []
+
         # Check for optional gender dictionary
         if "gender_dict" in request.data:
             gender_dict = request.data["gender_dict"]
@@ -316,22 +328,16 @@ class GetCounts(APIView):
                 extra_names_m = [name.lower() for name in gender_dict["m"]]
                 extra_names_f = [name.lower() for name in gender_dict["f"]]
 
-                genders = []
-                for n in first_names:
-                    if n.lower() in extra_names_m:
-                        genders.append('male')
-                    elif n.lower() in extra_names_f:
-                        genders.append('female')
-                    else:
-                        detector.get_gender(n)
-                
+        for n, p in zip(first_names, people):
+            if n.lower() in extra_names_m:
+                people_genders['male'].append(p)
+            elif n.lower() in extra_names_f:
+                people_genders['female'].append(p)
             else:
-                genders = [detector.get_gender(n) for n in first_names]
-        else:
-            genders = [detector.get_gender(n) for n in first_names]
+                g = detector.get_gender(n.capitalize())
+                if g == 'andy':
+                    people_genders['androgyne'].append(p)
+                else:
+                    people_genders[g].append(p)
 
-        counts = defaultdict(int)
-        for key in genders:
-            counts[key] += 1
-
-        return Response({"people": people, "counts": counts}) 
+        return Response({"people": people_genders})
